@@ -15,12 +15,22 @@ body {
   padding: 0;
   margin: 0;
   color: #efefef;
-  background-color: #2f2f2f;
+  background-color: #1a1a1e;
 }
 #app {
   font-family: "Calibri", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+input[type="search"]:not(.multiselect-tags-search) {
+  background-color: #222;
+  box-shadow: 0px 2px 1px #000 !important;
+  border: none;
+  color: #efefef;
+  height: 40px;
+  border-radius: 4px;
+  padding: 0 10px;
 }
 
 .multiselect {
