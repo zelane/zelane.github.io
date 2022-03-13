@@ -85,22 +85,7 @@ const filterCards = async (cards, filters) => {
 
 let allCards = []
 let cards = reactive({ value: [] });
-db.cards.toArray().then(async dbCards => {
-  allCards = dbCards
-  cards['value'] = await filterCards(allCards, filters)
-  let keywords = new Set()
-  let sets = []
-  allCards.forEach(card => {
-    card.keywords.forEach(kw => {
-      keywords.add(kw)
-    })
-    sets[card.set] = card.set_name
-  });
-  filterVals.keywords = [...keywords]
-  filterVals.sets = Object.keys(sets).map(key => {
-    return { set: key, setName: sets[key] };
-  })
-})
+db.cards.toArray().then(cards => updateCards(cards));
 
 let to = null;
 watch(filters, async (value) => {
@@ -130,6 +115,23 @@ caches.open('cardDataCache').then(async (cache) => {
 //   })
 //   filterVals.keywords = [...keywords]
 // });
+
+const updateCards = async (_cards) => {
+  allCards = _cards;
+  cards['value'] = await filterCards(allCards, filters)
+  let keywords = new Set()
+  let sets = []
+  allCards.forEach(card => {
+    card.keywords.forEach(kw => {
+      keywords.add(kw)
+    })
+    sets[card.set] = card.set_name
+  });
+  filterVals.keywords = [...keywords]
+  filterVals.sets = Object.keys(sets).map(key => {
+    return { set: key, setName: sets[key] };
+  });
+};
 
 async function post(url = "", data = {}) {
   const response = await fetch(url, {
@@ -186,8 +188,7 @@ const fetchCardData = async (cardsCsv) => {
   upload.progress = 100;
   await db.cards.clear()
   db.cards.bulkAdd(cardData);
-  allCards = cardData;
-  cards['value'] = await filterCards(cardData, filters);
+  updateCards(cardData);
   upload.active = false;
   upload.progress = 0;
   upload.total = 0;
