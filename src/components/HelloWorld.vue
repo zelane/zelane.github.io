@@ -20,7 +20,7 @@ db.version(4).stores({
 const colours = { Red: "R", Green: "G", Black: "B", Blue: "U", White: "W", Colourless: "C" };
 const rarities = ['mythic', 'rare', 'uncommon', 'common'];
 let filterVals = reactive({ tribes: [], keywords: [], sets: [] });
-let filters = reactive({ colours: [], rarity: [], keywords: [], tribes: [], name: "", cardText: "", set: "" });
+let filters = reactive({ colours: [], rarity: [], keywords: [], tribes: [], name: "", cardText: "", sets: [] });
 
 const filterCards = async (cards, filters) => {
   // console.log({ ...filters })
@@ -69,9 +69,14 @@ const filterCards = async (cards, filters) => {
 
       const hasRarity = filters.rarity.length > 0 ? [...filters.rarity].includes(card.rarity) : true
 
-      const hasEdition = filters.set ? card.set == filters.set : true
+      let hasSet = true;
+      if (filters.sets.length > 0) {
+        hasSet = filters.sets.some((set) => {
+          return card.set == set;
+        });
+      }
 
-      return hasColour && hasKeyword && hasTribe && hasRarity && hasName && hasEdition
+      return hasColour && hasKeyword && hasTribe && hasRarity && hasName && hasSet
     });
     resolve(filtered.slice(0, 200))
   })
@@ -82,6 +87,18 @@ let cards = reactive({ value: [] });
 db.cards.toArray().then(async dbCards => {
   allCards = dbCards
   cards['value'] = await filterCards(allCards, filters)
+  let keywords = new Set()
+  let sets = []
+  allCards.forEach(card => {
+    card.keywords.forEach(kw => {
+      keywords.add(kw)
+    })
+    sets[card.set] = card.set_name
+  });
+  filterVals.keywords = [...keywords]
+  filterVals.sets = Object.keys(sets).map(key => {
+    return { set: key, setName: sets[key] };
+  })
 })
 
 let to = null;
@@ -100,19 +117,18 @@ caches.open('cardDataCache').then(async (cache) => {
     response = await cache.match(typeRequest)
   }
   const json = await response.json()
-  console.log(json['data'])
   filterVals.tribes = json['data']
 })
 
-db.cards.orderBy('keywords').uniqueKeys((keys) => {
-  let keywords = new Set();
-  keys.forEach(kws => {
-    kws.forEach(kw => {
-      keywords.add(kw)
-    })
-  })
-  filterVals.keywords = [...keywords]
-});
+// db.cards.orderBy('keywords').uniqueKeys((keys) => {
+//   let keywords = new Set();
+//   keys.forEach(kws => {
+//     kws.forEach(kw => {
+//       keywords.add(kw)
+//     })
+//   })
+//   filterVals.keywords = [...keywords]
+// });
 
 async function post(url = "", data = {}) {
   const response = await fetch(url, {
@@ -209,13 +225,13 @@ const fetchCardData = async (cardsCsv) => {
         </div>
       </div>
 
+      <h3>Name</h3>
       <div class="filter-group">
-        <h3>Name</h3>
         <input type="search" v-model="filters.name" />
       </div>
 
+      <h3>Keywords</h3>
       <div class="filter-group">
-        <h3>Keywords</h3>
         <Multiselect
           v-model="filters.keywords"
           :options="filterVals.keywords"
@@ -224,8 +240,8 @@ const fetchCardData = async (cardsCsv) => {
         />
       </div>
 
+      <h3>Types</h3>
       <div class="filter-group">
-        <h3>Types</h3>
         <Multiselect
           v-model="filters.tribes"
           :options="filterVals.tribes"
@@ -235,14 +251,26 @@ const fetchCardData = async (cardsCsv) => {
         />
       </div>
 
+      <h3>Card text</h3>
       <div class="filter-group">
-        <h3>Card text</h3>
         <input type="search" v-model="filters.cardText" />
       </div>
 
+      <!-- <h3>Set</h3>
       <div class="filter-group">
-        <h3>Set</h3>
         <input type="search" v-model="filters.set" />
+      </div>-->
+
+      <h3>Set</h3>
+      <div class="filter-group">
+        <Multiselect
+          v-model="filters.sets"
+          :options="filterVals.sets"
+          label="setName"
+          valueProp="set"
+          :searchable="true"
+          mode="tags"
+        />
       </div>
     </div>
 
@@ -318,6 +346,19 @@ label[for="upload"],
   height: 3px;
   background-color: #621895;
   transition: all 0.3s;
+  /* background: linear-gradient(
+    90deg,
+    rgba(255, 123, 123, 1) 0%,
+    rgba(255, 123, 123, 1) 20%,
+    rgba(125, 228, 159, 1) 20%,
+    rgba(125, 228, 159, 1) 40%,
+    rgba(204, 195, 192, 1) 40%,
+    rgba(204, 195, 192, 1) 60%,
+    rgba(171, 225, 250, 1) 60%,
+    rgba(171, 225, 250, 1) 80%,
+    rgba(255, 247, 177, 1) 80%,
+    rgba(255, 247, 177, 1) 100%
+  ); */
 }
 .colours,
 .rarities {
@@ -337,7 +378,7 @@ label[for="upload"],
   display: block;
   width: 40px;
   opacity: 0.5;
-  transition: opacity 0.1s, filter 0.1s;
+  transition: all 0.1s;
   cursor: pointer;
 }
 
@@ -347,7 +388,7 @@ label[for="upload"],
   text-shadow: 0px 0px 1px black;
 }
 .colour label {
-  color: #01121c;
+  color: #111;
   background-color: #666;
   height: 40px;
   width: 40px;
@@ -355,8 +396,11 @@ label[for="upload"],
   border-radius: 50%;
   font-size: 35px;
   text-align: center;
+  box-shadow: 2px 2px 0px black;
 }
-
+.colour.selected label {
+  color: #01121c;
+}
 .colour[data-colour="R"].selected label {
   background-color: #f9ac90;
   background-color: #ff7b7b;
@@ -382,16 +426,26 @@ label[for="upload"],
 
 .rarity[data-rarity="mythic"] label {
   color: #bf4427;
-}
-
-.rarity[data-rarity="mythic"] label {
-  color: #bf4427;
+  color: #de822b;
+  /* color: #222;
+  font-size: 0;
+  background: linear-gradient(
+    45deg,
+    rgba(191, 122, 39, 1) 0%,
+    rgba(191, 68, 39, 1) 100%
+  );
+  border-radius: 50%;
+  height: 40px;
+  width: 40px;
+  display: block; */
 }
 .rarity[data-rarity="rare"] label {
   color: #a58e4a;
+  color: #dbc98e;
 }
 .rarity[data-rarity="uncommon"] label {
   color: #707883;
+  color: #7a939d;
 }
 .rarity[data-rarity="common"] label {
   color: #efefef;
@@ -427,8 +481,6 @@ label[for="upload"],
   display: block;
   font-size: 1.1em;
   font-family: "Beleren Bold";
-  /* line-height: 1em; */
-  /* min-height: 3em; */
 }
 .card img {
   width: 100%;

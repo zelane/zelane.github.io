@@ -10,7 +10,7 @@ import HelloWorld from "./components/HelloWorld.vue";
 
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style>
-@import "./assets/fonts/beleren/index.css";
+@import "./assets/fonts/index.css";
 body {
   padding: 0;
   margin: 0;
