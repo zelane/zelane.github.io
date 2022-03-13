@@ -3,7 +3,8 @@ import { reactive, ref, watch } from "vue";
 import Papa from "papaparse";
 import Multiselect from '@vueform/multiselect'
 import Dexie from 'dexie';
-import Fuse from 'fuse.js'
+import Fuse from 'fuse.js';
+import languageEncoding from 'detect-file-encoding-and-language';
 
 defineProps({});
 
@@ -151,14 +152,16 @@ const handleFileUpload = async () => {
       header: true,
       worker: true,
       skipEmptyLines: true,
-      complete: fetchCardData,
+      complete: fetchCardData
     });
   };
-  console.log(Document.characterSet)
-  reader.readAsText(file.value.files[0], "UTF-16LE");
+  languageEncoding(file.value.files[0]).then((fileInfo) => {
+    reader.readAsText(file.value.files[0], fileInfo.encoding);
+  });
 };
 
 const fetchCardData = async (cardsCsv) => {
+  console.log(cardsCsv)
   let seen = new Set();
   let ids = [];
   cardsCsv.data.forEach((elem) => {

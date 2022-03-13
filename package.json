@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@vueform/multiselect": "^2.3.3",
+    "detect-file-encoding-and-language": "^2.1.0",
     "dexie": "^3.2.1",
     "fuse.js": "^6.5.3",
     "papaparse": "^5.3.1",
