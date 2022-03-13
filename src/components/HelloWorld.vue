@@ -17,51 +17,10 @@ db.version(4).stores({
   cards: '++id, name, prices.eur, type_line, color_identity, keywords, rarity'
 });
 
-const colours = { Red: "R", Green: "G", Black: "B", Blue: "U", White: "W", Colourless: "X" };
+const colours = { Red: "R", Green: "G", Black: "B", Blue: "U", White: "W", Colourless: "C" };
 const rarities = ['mythic', 'rare', 'uncommon', 'common'];
-let keywords = new Set();
-let filterVals = reactive({ tribes: [], keywords: [] });
+let filterVals = reactive({ tribes: [], keywords: [], sets: [] });
 let filters = reactive({ colours: [], rarity: [], keywords: [], tribes: [], name: "", cardText: "", set: "" });
-
-
-let allCards = []
-let cards = reactive({ value: [] });
-db.cards.toArray().then(async dbCards => {
-  allCards = dbCards
-  cards['value'] = await filterCards(allCards, filters)
-})
-
-let to = null;
-watch(filters, async (value) => {
-  clearTimeout(to);
-  to = setTimeout(async () => {
-    cards['value'] = await filterCards(allCards, value)
-  }, 500);
-})
-
-fetch('https://api.scryfall.com/catalog/creature-types').then(resp => resp.json()).then(data => {
-  filterVals.tribes = data['data']
-})
-
-db.cards.orderBy('keywords').uniqueKeys((keys) => {
-  keys.forEach(kws => {
-    kws.forEach(kw => {
-      keywords.add(kw)
-    })
-  })
-  filterVals.keywords = [...keywords]
-});
-
-async function post(url = "", data = {}) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-  });
-  return response.json();
-}
 
 const filterCards = async (cards, filters) => {
   // console.log({ ...filters })
@@ -92,7 +51,7 @@ const filterCards = async (cards, filters) => {
       const hasName = !filters.name || !filters.name != "" || card.name.toLowerCase().includes(filters.name.toLowerCase())
 
       const hasColour = filters.colours.every((colour) => {
-        if (colour == "X") {
+        if (colour == "C") {
           return card.color_identity.length == 0
         }
         else {
@@ -118,50 +77,103 @@ const filterCards = async (cards, filters) => {
   })
 };
 
+let allCards = []
+let cards = reactive({ value: [] });
+db.cards.toArray().then(async dbCards => {
+  allCards = dbCards
+  cards['value'] = await filterCards(allCards, filters)
+})
+
+let to = null;
+watch(filters, async (value) => {
+  clearTimeout(to);
+  to = setTimeout(async () => {
+    cards['value'] = await filterCards(allCards, value)
+  }, 500);
+})
+
+caches.open('cardDataCache').then(async (cache) => {
+  const typeRequest = new Request('https://api.scryfall.com/catalog/creature-types');
+  let response = await cache.match(typeRequest);
+  if (!response) {
+    await cache.add(typeRequest)
+    response = await cache.match(typeRequest)
+  }
+  const json = await response.json()
+  console.log(json['data'])
+  filterVals.tribes = json['data']
+})
+
+db.cards.orderBy('keywords').uniqueKeys((keys) => {
+  let keywords = new Set();
+  keys.forEach(kws => {
+    kws.forEach(kw => {
+      keywords.add(kw)
+    })
+  })
+  filterVals.keywords = [...keywords]
+});
+
+async function post(url = "", data = {}) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+}
+
 const handleFileUpload = async () => {
   const reader = new FileReader();
   upload.active = true;
   upload.progress = 0;
   reader.onload = (e) => {
-    Papa.parse(e.target.result, {
+    let csv = reader.result.replace("\"sep=,\"", "")
+    Papa.parse(csv, {
       header: true,
       worker: true,
       skipEmptyLines: true,
-      complete: async (result) => {
-        let seen = new Set();
-        let ids = [];
-        result.data.forEach((elem) => {
-          let code = elem["Set Code"] + elem["Card Number"].toString();
-          if (!seen.has(code)) {
-            ids.push({
-              set: elem["Set Code"],
-              collector_number: elem["Card Number"].toString(),
-            });
-          }
-          seen.add(code)
-        });
-        let cardData = []
-        upload.total = ids.length
-        for (let i = 0; i < ids.length; i += 75) {
-          let resp = await post(skyfallUrl, { 'identifiers': ids.slice(i, i + 75) })
-          cardData = cardData.concat(resp["data"]);
-          upload.count = i;
-          upload.progress = (i / ids.length) * 100;
-          await new Promise(r => setTimeout(r, 100));
-        }
-        upload.progress = 100;
-        await db.cards.clear()
-        cardData.forEach((card) => {
-          db.cards.add(card);
-        })
-        allCards = cardData;
-        cards['value'] = await filterCards(cardData, filters);
-        upload.active = false;
-      },
+      complete: fetchCardData,
     });
   };
-  reader.readAsText(file.value.files[0]);
+  console.log(Document.characterSet)
+  reader.readAsText(file.value.files[0], "UTF-16LE");
 };
+
+const fetchCardData = async (cardsCsv) => {
+  let seen = new Set();
+  let ids = [];
+  cardsCsv.data.forEach((elem) => {
+    let code = elem["Set Code"] + elem["Card Number"].toString();
+    if (!seen.has(code)) {
+      ids.push({
+        set: elem["Set Code"],
+        collector_number: elem["Card Number"].toString(),
+      });
+    }
+    seen.add(code)
+  });
+  let cardData = []
+  upload.total = ids.length
+  for (let i = 0; i < ids.length; i += 75) {
+    let resp = await post(skyfallUrl, { 'identifiers': ids.slice(i, i + 75) })
+    cardData = cardData.concat(resp["data"]);
+    upload.count = i;
+    upload.progress = (i / ids.length) * 100;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  upload.progress = 100;
+  await db.cards.clear()
+  db.cards.bulkAdd(cardData);
+  allCards = cardData;
+  cards['value'] = await filterCards(cardData, filters);
+  upload.active = false;
+  upload.progress = 0;
+  upload.total = 0;
+}
+
 </script>
 
 <template>
@@ -175,33 +187,27 @@ const handleFileUpload = async () => {
       </div>
       <br />
 
-      <div class="filter-group">
-        <h3>Colours</h3>
-        <div class="input-group" v-for="(code, colour) in colours" key="code">
+      <h3>Colours</h3>
+      <div class="filter-group colours">
+        <div
+          class="input-group colour"
+          :class="filters.colours.includes(code) ? 'selected' : ''"
+          :data-colour="code"
+          v-for="(code, colour) in colours"
+          key="code"
+        >
           <input type="checkbox" v-model="filters.colours" :value="code" :id="code" />
-          <label :for="code">{{ colour }}</label>
+          <label :for="code" :class="'icon icon-' + code"></label>
         </div>
       </div>
 
-      <div class="filter-group">
-        <h3>Rarity</h3>
-        <div class="input-group" v-for="rarity in rarities" key="code">
+      <h3>Rarity</h3>
+      <div class="filter-group rarities">
+        <div class="input-group rarity" :data-rarity="rarity" v-for="rarity in rarities" key="code">
           <input type="checkbox" v-model="filters.rarity" :value="rarity" :id="rarity" />
-          <label :for="rarity">{{ rarity }}</label>
+          <label :for="rarity" class="icon icon-logo"></label>
         </div>
       </div>
-
-      <!-- <div class="filter-group">
-        <h3>Rarity</h3>
-        <div class="input-group" key="rarity">
-          <input type="radio" v-model="filters.rarity" value id="any" checked />
-          <label for="any">Any</label>
-        </div>
-        <div class="input-group" v-for="rarity in rarities" key="rarity">
-          <input type="radio" v-model="filters.rarity" :value="rarity" :id="rarity" />
-          <label :for="rarity">{{ rarity }}</label>
-        </div>
-      </div>-->
 
       <div class="filter-group">
         <h3>Name</h3>
@@ -312,6 +318,83 @@ label[for="upload"],
   height: 3px;
   background-color: #621895;
   transition: all 0.3s;
+}
+.colours,
+.rarities {
+  display: flex;
+  gap: 10px;
+}
+.colours input[type="checkbox"]:checked + label,
+.rarities input[type="checkbox"]:checked + label {
+  opacity: 1;
+}
+.colours input[type="checkbox"],
+.rarities input[type="checkbox"] {
+  display: none;
+}
+.colour label,
+.rarity label {
+  display: block;
+  width: 40px;
+  opacity: 0.5;
+  transition: opacity 0.1s, filter 0.1s;
+  cursor: pointer;
+}
+
+.rarity label {
+  font-size: 40px;
+  text-align: center;
+  text-shadow: 0px 0px 1px black;
+}
+.colour label {
+  color: #01121c;
+  background-color: #666;
+  height: 40px;
+  width: 40px;
+  line-height: 40px;
+  border-radius: 50%;
+  font-size: 35px;
+  text-align: center;
+}
+
+.colour[data-colour="R"].selected label {
+  background-color: #f9ac90;
+  background-color: #ff7b7b;
+}
+.colour[data-colour="G"].selected label {
+  background-color: #9cd4af;
+  background-color: #7de49f;
+}
+.colour[data-colour="B"].selected label {
+  background-color: #ccc3c0;
+}
+.colour[data-colour="U"].selected label {
+  background-color: #abe1fa;
+  background-color: #75d3ff;
+}
+.colour[data-colour="W"].selected label {
+  background-color: #fffbd6;
+  background-color: #fff7b1;
+}
+.colour[data-colour="C"].selected label {
+  background-color: #cdc3c1;
+}
+
+.rarity[data-rarity="mythic"] label {
+  color: #bf4427;
+}
+
+.rarity[data-rarity="mythic"] label {
+  color: #bf4427;
+}
+.rarity[data-rarity="rare"] label {
+  color: #a58e4a;
+}
+.rarity[data-rarity="uncommon"] label {
+  color: #707883;
+}
+.rarity[data-rarity="common"] label {
+  color: #efefef;
 }
 
 #main {
