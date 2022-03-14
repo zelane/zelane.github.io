@@ -2,6 +2,7 @@
 import { reactive, ref, watch } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
+import Slider from '@vueform/slider';
 import Dexie from 'dexie';
 import Fuse from 'fuse.js';
 
@@ -24,7 +25,7 @@ const colours = {
 const rarities = ['mythic', 'rare', 'uncommon', 'common'];
 const filterVals = reactive({ tribes: [], keywords: [], sets: [] });
 const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: { min: 0, max: 20 },
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20],
 });
 
 const filterCards = async (cards, _filters) => new Promise((resolve) => {
@@ -76,7 +77,7 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
     }
     if (!hasSet) return false;
 
-    const hasMana = card.cmc >= (_filters.mana.min || 0) && card.cmc <= (_filters.mana.max !== "" ? _filters.mana.max : 20);
+    const hasMana = card.cmc >= _filters.mana[0] && card.cmc <= _filters.mana[1];
     if (!hasMana) return false;
 
     return true;
@@ -259,10 +260,12 @@ const fetchCardData = async (cardsCsv) => {
       <h3>Mana Cost</h3>
       <div class="filter-group mana">
         <!-- <label for="mana-min">Min</label> -->
-        <input id="mana-min" type="number" v-model="filters.mana.min" />
+        <!-- <input id="mana-min" type="number" v-model="filters.mana.min" /> -->
 
         <!-- <label for="mana-max">Max</label> -->
-        <input id="mana-max" type="number" v-model="filters.mana.max" />
+        <!-- <input id="mana-max" type="number" v-model="filters.mana.max" /> -->
+
+        <Slider v-model="filters.mana" :min="0" :max="20" />
       </div>
 
       <h3>Keywords</h3>
@@ -340,7 +343,7 @@ a {
   color: #42b983;
 }
 h3 {
-  font-family: "Beleren SmallCaps Bold";
+  /* font-family: "Beleren Bold"; */
 }
 #window {
   display: flex;
@@ -398,8 +401,9 @@ label[for="upload"],
 }
 
 .mana {
-  display: flex;
-  gap: 20px;
+  padding: 0 10px;
+  /* display: flex; */
+  /* gap: 20px; */
 }
 .mana input {
   min-width: 0;
@@ -526,6 +530,8 @@ label[for="upload"],
   display: block;
   font-size: 1.1em;
   font-family: "Beleren Bold";
+  line-height: 1;
+  /* font-weight: 600; */
 }
 .card img {
   width: 100%;

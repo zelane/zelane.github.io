@@ -194,6 +194,11 @@
   resolved "https://registry.npmjs.org/@vueform/multiselect/-/multiselect-2.3.3.tgz"
   integrity sha512-CLhtUZJwRGLyPqcgwuRrODOjT3Yqu6KNs5vV1O12kNOR/8c8ecX5vJyTcD0Mv1SJvnrslZgENmvYRRPpb5Cnjg==
 
+"@vueform/slider@^2.0.9":
+  version "2.0.9"
+  resolved "https://registry.yarnpkg.com/@vueform/slider/-/slider-2.0.9.tgz#64be2c5bdc50a096badc87bcfb0bdb71a5ad62ea"
+  integrity sha512-S+9eS9dKWacp//a9yTC3zkRnnAYiHHgjZ24K/qAQHC54PE0LYxzPqXSMnbTy7wdEUj9wiwqktlkPl13jWD1QtA==
+
 acorn-jsx@^5.3.1:
   version "5.3.2"
   resolved "https://registry.npmjs.org/acorn-jsx/-/acorn-jsx-5.3.2.tgz"
