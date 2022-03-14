@@ -537,15 +537,14 @@ label[for="upload"],
     flex-direction: column;
   }
   #main {
+    height: 60%;
     order: 0;
     width: 100%;
-    resize: vertical;
   }
   #sidebar {
-    order: 1;
     height: 40%;
+    order: 1;
     width: 100%;
-    resize: vertical;
   }
   .cards {
     justify-content: center;
