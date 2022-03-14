@@ -366,6 +366,7 @@ label[for="upload"],
 .progress {
   position: relative;
   display: block;
+  border-radius: 4px;
   background-color: #222;
   height: 40px;
   line-height: 40px;
@@ -530,5 +531,24 @@ label[for="upload"],
   width: 100%;
   border-radius: 12px;
   box-shadow: 0px 2px 5px #000000f2;
+}
+@media (max-width: 640px) {
+  #window {
+    flex-direction: column;
+  }
+  #main {
+    order: 0;
+    width: 100%;
+    resize: vertical;
+  }
+  #sidebar {
+    order: 1;
+    height: 40%;
+    width: 100%;
+    resize: vertical;
+  }
+  .cards {
+    justify-content: center;
+  }
 }
 </style>

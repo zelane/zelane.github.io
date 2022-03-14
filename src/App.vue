@@ -17,6 +17,10 @@ body {
   color: #efefef;
   background-color: #1a1a1e;
 }
+div,
+span {
+  box-sizing: border-box;
+}
 #app {
   font-family: "Calibri", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
