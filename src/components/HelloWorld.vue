@@ -50,7 +50,7 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
     });
   }
   filtered = filtered.filter((card) => {
-    const hasName = !_filters.name || !_filters.name !== '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
+    const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
 
     const hasColour = _filters.colours.every((colour) => {
