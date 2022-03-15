@@ -10,13 +10,13 @@ import Fuse from 'fuse.js';
 
 const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const upload = reactive({
-  active: false, progress: 0, count: 0, total: 0,
+  show: false, name: null, file: null, text: null, encoding: null, format: null, active: false, progress: 0, count: 0, total: 0
 });
-// let upload = reactive({ 'active': true, 'progress': 30, 'count': 12, 'total': 143 })
+// let upload = reactive({ show: false, name: null, file: null, text: null, encoding: null, format: null, active: true, progress: 50, count: 50, total: 100 })
 
 const db = new Dexie('mtg');
-db.version(4).stores({
-  cards: '++id, name, prices.eur, type_line, color_identity, keywords, rarity',
+db.version(1).stores({
+  collections: '&name',
 });
 
 const colours = {
@@ -85,10 +85,16 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
   resolve(filtered.slice(0, 200));
 });
 let allCards = [];
-const cards = reactive({ value: [] });
+const cards = reactive({ collections: [], value: [] });
+let activeCollection = reactive({ value: "" });
 
-const updateCards = async (_cards) => {
-  allCards = _cards;
+
+const loadCollection = async (name) => {
+  if (name === "") {
+    return;
+  }
+  let collection = await db.collections.get({ name: name });
+  allCards = collection.cards;
   cards.value = await filterCards(allCards, filters);
   const keywords = new Set();
   const sets = [];
@@ -102,7 +108,13 @@ const updateCards = async (_cards) => {
   filterVals.sets = Object.keys(sets).map((key) => ({ set: key, setName: sets[key] }));
 };
 
-db.cards.toArray().then((_cards) => updateCards(_cards));
+const deleteCollection = async (name) => {
+  await db.collections.delete(name);
+  cards.collections.pop(name);
+  activeCollection.value = cards.collections.length > 0 ? cards.collections[0] : "";
+};
+
+watch(activeCollection, x => loadCollection(x.value));
 
 let to = null;
 watch(filters, async (value) => {
@@ -110,6 +122,11 @@ watch(filters, async (value) => {
   to = setTimeout(async () => {
     cards.value = await filterCards(allCards, value);
   }, 500);
+});
+
+db.collections.toCollection().primaryKeys().then(keys => {
+  cards.collections = keys;
+  activeCollection.value = keys[0];
 });
 
 caches.open('cardDataCache').then(async (cache) => {
@@ -161,55 +178,134 @@ const checkEncoding = async (file) => {
   return 'UTF-8';
 };
 
+const handleTextUpload = async (e) => {
+  upload.active = true;
+  upload.progress = 0;
+  let cards = {};
+  if (upload.format === 'MTGA') {
+    const re = /([0-9]+) (.+) \((.+)\) ([0-9]+)/g;
+    const matches = upload.text.matchAll(re);
+    for (const m of matches) {
+      console.log(m);
+      cards[m[2]] = {
+        count: m[1],
+        set: m[3],
+        number: m[4],
+      };
+    };
+    // console.log(matches);
+  }
+  else if (upload.format === 'MTGO') {
+    const re = /([0-9]+) (.+)/g;
+    const matches = upload.text.matchAll(re);
+    for (const m of matches) {
+      console.log(m);
+      cards[m[2]] = {
+        count: m[1],
+        set: '',
+        number: '',
+      };
+    }
+  }
+  fetchCardData(cards);
+};
+
+const fileElem = ref(null);
+
+const onFileChange = e => {
+  e.preventDefault();
+  console.log(e.dataTransfer.items[0].getAsFile());
+};
+
 const handleFileUpload = async (e) => {
-  let file = e.target.files[0];
+  if (fileElem.value.files.length === 0) {
+    return;
+  }
+  let file = fileElem.value.files[0];
   const reader = new FileReader();
   upload.active = true;
   upload.progress = 0;
-  reader.onload = (e) => {
-    const csv = reader.result.replace('"sep=,"', '');
-    Papa.parse(csv, {
-      header: true,
-      worker: true,
-      skipEmptyLines: true,
-      dynamicTyping: true,
-      complete: fetchCardData,
-    });
+
+  let parser = null;
+  if (upload.format === 'DragonShield Web') {
+    parser = parseDSWeb;
+  }
+
+  reader.onload = async () => {
+    let cardList = await parser(reader.result);
+    fetchCardData(cardList);
   };
   let encoding = await checkEncoding(file);
   console.log(encoding);
   reader.readAsText(file, encoding);
 };
 
-const fetchCardData = async (cardsCsv) => {
-  const seen = new Set();
-  const ids = [];
-  cardsCsv.data.forEach((elem) => {
-    const code = elem['Set Code'] + elem['Card Number'].toString();
-    if (!seen.has(code)) {
-      ids.push({
-        set: elem['Set Code'],
-        collector_number: elem['Card Number'].toString(),
-      });
-    }
-    seen.add(code);
+Papa.parsePromise = (file) => {
+  return new Promise((complete, error) => {
+    Papa.parse(file, {
+      header: true,
+      worker: true,
+      skipEmptyLines: true,
+      dynamicTyping: true,
+      complete: complete,
+      error: error,
+    });
   });
-  let cardData = [];
-  upload.total = ids.length;
-  for (let i = 0; i < ids.length; i += 75) {
-    const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
-    cardData = cardData.concat(resp.data);
-    upload.count = i;
-    upload.progress = (i / ids.length) * 100;
-    await new Promise((r) => setTimeout(r, 100));
+};
+
+const parseDSWeb = async (csv) => {
+  csv = csv.replace('"sep=,"', '');
+  let parsed = await Papa.parsePromise(csv);
+  let cards = {};
+  parsed.data.forEach(row => {
+    cards[row['Card Name']] = {
+      count: 0,
+      set: row['Set Code'],
+      number: row['Card Number'],
+    };
+  });
+  return cards;
+};
+
+const fetchCardData = async (cardList) => {
+  const ids = [];
+
+  try {
+    Object.keys(cardList).forEach(key => {
+      let _card = cardList[key];
+      let elem = { name: key };
+      if (_card['set'] !== '') {
+        elem['set'] = _card['set'];
+      }
+      // collector_number: elem['Card Number'].toString(),
+      ids.push(elem);
+    });
+    let cardData = [];
+    upload.total = ids.length;
+    for (let i = 0; i < ids.length; i += 75) {
+      const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
+      cardData = cardData.concat(resp.data);
+      upload.count = i;
+      upload.progress = (i / ids.length) * 100;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    upload.progress = 100;
+    let name = upload.name;
+    db.collections.put({ 'name': name, 'cards': cardData });
+    if (!cards.collections.includes(name)) {
+      cards.collections.push(name);
+    }
+    activeCollection.value = name;
   }
-  upload.progress = 100;
-  await db.cards.clear();
-  db.cards.bulkAdd(cardData);
-  updateCards(cardData);
-  upload.active = false;
-  upload.progress = 0;
-  upload.total = 0;
+  catch {
+
+  }
+  finally {
+    upload.active = false;
+    upload.progress = 0;
+    upload.total = 0;
+    upload.show = false;
+  }
 };
 
 </script>
@@ -217,13 +313,17 @@ const fetchCardData = async (cardsCsv) => {
 <template>
   <div id="window">
     <div id="sidebar">
-      <label for="upload" v-if="!upload.active">Upload CSV</label>
-      <input id="upload" ref="file" v-on:change="handleFileUpload" type="file" />
-      <div class="progress" v-if="upload.active">
-        <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
-        <div class="bar" :style="{ width: upload.progress + '%' }"></div>
+      <h3>Collection</h3>
+      <div class="filter-group collections">
+        <Multiselect
+          v-model="activeCollection.value"
+          :options="cards.collections"
+          mode="single"
+          :canClear="false"
+        />
+        <button class="small add" @click="upload.show = true">+</button>
+        <button class="small remove" @click="deleteCollection(activeCollection.value)">-</button>
       </div>
-      <br />
 
       <h3>Colours</h3>
       <div class="filter-group colours">
@@ -259,12 +359,6 @@ const fetchCardData = async (cardsCsv) => {
 
       <h3>Mana Cost</h3>
       <div class="filter-group mana">
-        <!-- <label for="mana-min">Min</label> -->
-        <!-- <input id="mana-min" type="number" v-model="filters.mana.min" /> -->
-
-        <!-- <label for="mana-max">Max</label> -->
-        <!-- <input id="mana-max" type="number" v-model="filters.mana.max" /> -->
-
         <Slider v-model="filters.mana" :min="0" :max="20" />
       </div>
 
@@ -294,11 +388,6 @@ const fetchCardData = async (cardsCsv) => {
         <input type="search" v-model="filters.cardText" />
       </div>
 
-      <!-- <h3>Set</h3>
-      <div class="filter-group">
-        <input type="search" v-model="filters.set" />
-      </div>-->
-
       <h3>Set</h3>
       <div class="filter-group">
         <Multiselect
@@ -313,7 +402,62 @@ const fetchCardData = async (cardsCsv) => {
     </div>
 
     <div id="main">
-      <div class="cards">
+      <div class="upload" v-if="upload.show">
+        <button class="small close" @click="upload.show = false">
+          <span>+</span>
+        </button>
+        <div class="form">
+          <h3>Name</h3>
+          <input type="text" v-model="upload.name" />
+          <h3>Format</h3>
+          <Multiselect
+            v-model="upload.format"
+            :options="['DragonShield Web', 'DragonShield Mobile', 'MTGA', 'MTGO']"
+          />
+          <!-- <h3>Encoding</h3>
+        <Multiselect
+          v-model="upload.encoding"
+          :options="['UTF-16LE', 'UTF-16BE', 'UTF-8', 'ascii']"
+          />-->
+          <template v-if="['MTGA', 'MTGO'].includes(upload.format)">
+            <textarea v-model="upload.text"></textarea>
+          </template>
+
+          <!-- <div
+            class="file"
+            for="upload"
+            @drop="onFileChange"
+            @dragenter.prevent
+            @dragover.prevent
+            @dragover="e => e.preventDefault()"
+          ></div>-->
+
+          <label
+            class="button"
+            for="file-input"
+            v-if="['DragonShield Web', 'DragonShield Mobile'].includes(upload.format)"
+          >Choose file</label>
+          <input
+            v-if="upload.format === 'DragonShield Web'"
+            id="file-input"
+            ref="fileElem"
+            type="file"
+            :disabled="upload.active"
+          />
+          <div class="buttons" v-if="!upload.active && upload.format && (upload.text || fileElem)">
+            <button
+              @click="['MTGA', 'MTGO'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
+            >Upload</button>
+          </div>
+
+          <div class="progress" v-if="upload.active">
+            <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
+            <div class="bar" :style="{ width: upload.progress + '%' }"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cards" v-if="!upload.show">
         <div class="card" v-for="card in cards['value']" :key="card.id + card.foil">
           <img v-if="card.image_uris" :src="card.image_uris.normal" />
           <img
@@ -339,12 +483,6 @@ const fetchCardData = async (cardsCsv) => {
 </template>
 
 <style scoped>
-a {
-  color: #42b983;
-}
-h3 {
-  /* font-family: "Beleren Bold"; */
-}
 #window {
   display: flex;
   position: absolute;
@@ -362,11 +500,71 @@ h3 {
   padding-top: 60px;
   overflow: auto;
 }
-#upload {
+.upload {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  max-width: 640px;
+  margin: auto;
+  gap: 20px;
+}
+.upload .close {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+.upload .close span {
+  display: block;
+  transform: rotate(45deg);
+}
+.upload .form {
+  display: grid;
+  grid-template-columns: 1fr 10fr;
+  gap: 20px;
+  width: 100%;
+  align-items: center;
+}
+/* .upload input[type="file"] {
+  display: none;
+} */
+.upload .file {
+  grid-column: span 2;
+  display: block;
+  width: 100%;
+  background-color: #333;
+  height: 200px;
+}
+.upload textarea {
+  grid-column: 2;
+  width: 100%;
+  height: 300px;
+  background-color: #333;
+  border: none;
+  border-radius: 4px;
+  color: #efefef;
+  font-family: "Spectral", Helvetica, Arial, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.upload .buttons {
+  grid-column: span 2;
+  text-align: center;
+}
+.upload input[type="file"] {
   display: none;
 }
-label[for="upload"],
+.upload label {
+  grid-column: 2;
+}
+.collections {
+  display: flex;
+  gap: 10px;
+}
 .progress {
+  grid-column: span 2;
   position: relative;
   display: block;
   border-radius: 4px;
@@ -375,8 +573,7 @@ label[for="upload"],
   line-height: 40px;
   text-align: center;
   font-family: "Beleren SmallCaps Bold";
-  box-shadow: 0px 2px 1px #000;
-  cursor: pointer;
+  overflow: hidden;
 }
 
 .progress .bar {
@@ -402,8 +599,6 @@ label[for="upload"],
 
 .mana {
   padding: 0 10px;
-  /* display: flex; */
-  /* gap: 20px; */
 }
 .mana input {
   min-width: 0;
