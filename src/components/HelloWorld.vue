@@ -497,10 +497,10 @@ const fetchCardData = async (cardList) => {
   overflow: hidden;
 }
 #sidebar {
-  width: 400px;
+  width: 420px;
   text-align: left;
   padding: 50px 20px;
-  background-color: #111;
+  background-color: #171317;
   padding-top: 60px;
   overflow: auto;
 }
@@ -547,7 +547,7 @@ const fetchCardData = async (cardList) => {
   height: 300px;
   background-color: #333;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--default-br);
   color: #efefef;
   font-family: "Spectral", Helvetica, Arial, sans-serif;
   padding: 20px;
@@ -571,8 +571,8 @@ const fetchCardData = async (cardList) => {
   grid-column: span 2;
   position: relative;
   display: block;
-  border-radius: 4px;
-  background-color: #222;
+  border-radius: var(--default-br);
+  background-color: var(--colour-input-grey);
   height: 40px;
   line-height: 40px;
   text-align: center;
@@ -636,46 +636,76 @@ const fetchCardData = async (cardList) => {
   text-shadow: 0px 0px 1px black;
 }
 .colour label {
-  color: #111;
-  background-color: #666;
+  color: #938996;
+  background-color: transparent;
   height: 40px;
   width: 40px;
   line-height: 40px;
   border-radius: 50%;
   font-size: 35px;
   text-align: center;
-  box-shadow: 2px 2px 0px black;
+  /* box-shadow: 2px 2px 0px black; */
 }
 .colour.selected label {
   color: #01121c;
 }
 .colour[data-colour="R"].selected label {
-  background-color: #f9ac90;
-  background-color: #ff7b7b;
+  /* background-color: #f9ac90; */
+  /* background-color: #ff7b7b; */
+
+  /* text-shadow: 2px 2px 20px #ff7b7b, 1px 1px 3px #ff7b7b; */
+  /* background: transparent; */
+
+  color: #f9ac90;
 }
 .colour[data-colour="G"].selected label {
-  background-color: #9cd4af;
-  background-color: #7de49f;
+  /* background-color: #9cd4af; */
+  /* background-color: #7de49f; */
+
+  /* text-shadow: 2px 2px 20px #7de49f, 1px 1px 3px #7de49f; */
+  /* background: transparent; */
+
+  color: #9cd4af;
 }
 .colour[data-colour="B"].selected label {
-  background-color: #ccc3c0;
+  /* background-color: #ccc3c0; */
+
+  /* text-shadow: 2px 2px 20px #ccc3c0, 1px 1px 3px #ccc3c0; */
+  /* background: transparent; */
+
+  color: #ccc3c0;
 }
 .colour[data-colour="U"].selected label {
-  background-color: #abe1fa;
-  background-color: #75d3ff;
+  /* background-color: #abe1fa; */
+  /* background-color: #75d3ff; */
+
+  /* text-shadow: 2px 2px 20px #75d3ff, 1px 1px 3px #75d3ff; */
+  /* background: transparent; */
+
+  color: #75d3ff;
 }
 .colour[data-colour="W"].selected label {
-  background-color: #fffbd6;
-  background-color: #fff7b1;
+  /* background-color: #fffbd6; */
+  /* background-color: #fff7b1; */
+
+  /* text-shadow: 2px 2px 20px #fff7b1, 1px 1px 3px #fff7b1; */
+  /* background: transparent; */
+
+  color: #fff7b1;
 }
 .colour[data-colour="C"].selected label {
-  background-color: #cdc3c1;
+  /* background-color: #cdc3c1; */
+
+  /* text-shadow: 2px 2px 20px #cdc3c1, 1px 1px 3px #cdc3c1;
+  background: transparent; */
+
+  color: #cdc3c1;
 }
 
 .rarity[data-rarity="mythic"] label {
   color: #bf4427;
   color: #de822b;
-  /* color: #222;
+  /* color: var(--colour-input-grey);
   font-size: 0;
   background: linear-gradient(
     45deg,
