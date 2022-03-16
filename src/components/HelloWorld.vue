@@ -181,7 +181,8 @@ const handleTextUpload = async (e) => {
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       console.log(m);
-      cards[m[2]] = {
+      cards[m[3] + m[4]] = {
+        name: m[2],
         count: m[1],
         set: m[3],
         number: m[4],
@@ -195,6 +196,7 @@ const handleTextUpload = async (e) => {
     for (const m of matches) {
       console.log(m);
       cards[m[2]] = {
+        name: m[2],
         count: m[1],
         set: '',
         number: '',
@@ -252,10 +254,11 @@ const parseDSWeb = async (csv) => {
   let parsed = await Papa.parsePromise(csv);
   let cards = {};
   parsed.data.forEach(row => {
-    cards[row['Card Name']] = {
+    cards[row['Set Code'] + row['Card Number']] = {
+      name: row['Card Name'],
       count: 0,
       set: row['Set Code'],
-      number: row['Card Number'],
+      number: row['Card Number'].toString(),
     };
   });
   return cards;
@@ -267,11 +270,16 @@ const fetchCardData = async (cardList) => {
   try {
     Object.keys(cardList).forEach(key => {
       let _card = cardList[key];
-      let elem = { name: key };
-      if (_card['set'] !== '') {
-        elem['set'] = _card['set'];
+      let elem = {};
+      if (_card.set === '' && _card.number === '') {
+        elem.name = _card.name;
       }
-      // collector_number: elem['Card Number'].toString(),
+      if (_card.set !== '') {
+        elem.set = _card.set;
+      }
+      if (_card.number !== '') {
+        elem.collector_number = _card.number;
+      }
       ids.push(elem);
     });
     let cardData = [];
@@ -296,6 +304,7 @@ const fetchCardData = async (cardList) => {
   }
   finally {
     upload.active = false;
+    upload.count = 0;
     upload.progress = 0;
     upload.total = 0;
     upload.show = false;
