@@ -125,6 +125,9 @@ watch(filters, async (value) => {
 });
 
 db.collections.toCollection().primaryKeys().then(keys => {
+  if (keys.length === 0) {
+    return;
+  }
   cards.collections = keys;
   activeCollection.value = keys[0];
 });
@@ -140,15 +143,6 @@ caches.open('cardDataCache').then(async (cache) => {
   filterVals.tribes = json.data;
 });
 
-// db.cards.orderBy('keywords').uniqueKeys((keys) => {
-//   let keywords = new Set();
-//   keys.forEach(kws => {
-//     kws.forEach(kw => {
-//       keywords.add(kw)
-//     })
-//   })
-//   filterVals.keywords = [...keywords]
-// });
 async function post(url = '', data = {}) {
   const response = await fetch(url, {
     method: 'POST',
@@ -413,6 +407,7 @@ const fetchCardData = async (cardList) => {
           <Multiselect
             v-model="upload.format"
             :options="['DragonShield Web', 'DragonShield Mobile', 'MTGA', 'MTGO']"
+            :canClear="false"
           />
           <!-- <h3>Encoding</h3>
         <Multiselect
