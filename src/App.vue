@@ -25,6 +25,7 @@ body {
     inset 1px 1px 1px 0px rgba(255, 255, 255, 0.03);
   --default-border: none;
   --colour-input-grey: #221e26;
+  --colour-input-grey: #2e2933;
   --colour-light-font: #efefef;
   --colour-dark-grey: #110d12;
   --colour-accent: #938996;

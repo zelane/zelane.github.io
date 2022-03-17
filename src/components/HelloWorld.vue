@@ -22,20 +22,20 @@ db.version(1).stores({
 const colours = {
   Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
 };
-const rarities = ['mythic', 'rare', 'uncommon', 'common'];
+const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
 const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], allSets: null
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false
 });
 const allSets = reactive({ value: null });
 
 const filterCards = async (cards, _filters) => new Promise((resolve) => {
   let filtered = cards;
   filtered.sort((a, b) => {
+    // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
     if (!a.prices.eur) {
       return true;
     }
-
     return parseFloat(a.prices.eur) < parseFloat(b.prices.eur) ? 1 : -1;
   });
 
@@ -52,6 +52,10 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
     });
   }
   filtered = filtered.filter((card) => {
+    if (_filters.dupesOnly && card.count === 1) {
+      return false;
+    }
+
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
 
@@ -132,7 +136,7 @@ const showCards = async (_cards) => {
 const deleteCollection = async (name) => {
   await db.collections.delete(name);
   cards.collections.pop(name);
-  activeCollection.value = cards.collections.length > 0 ? cards.collections[0] : "";
+  activeCollection.value = "";
 };
 
 watch(activeCollection, x => loadCollection(x.value));
@@ -210,7 +214,6 @@ const handleTextUpload = async (e) => {
     const re = /([0-9]+) (.+) \((.+)\) ([0-9]+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
-      console.log(m);
       cards[m[3] + m[4]] = {
         name: m[2],
         count: m[1],
@@ -218,13 +221,11 @@ const handleTextUpload = async (e) => {
         number: m[4],
       };
     };
-    // console.log(matches);
   }
   else if (upload.format === 'MTGO') {
     const re = /([0-9]+) (.+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
-      console.log(m);
       cards[m[2]] = {
         name: m[2],
         count: m[1],
@@ -262,7 +263,6 @@ const handleFileUpload = async (e) => {
     fetchCardData(cardList);
   };
   let encoding = await checkEncoding(file);
-  console.log(encoding);
   reader.readAsText(file, encoding);
 };
 
@@ -286,8 +286,8 @@ const parseDSWeb = async (csv) => {
   parsed.data.forEach(row => {
     cards[row['Set Code'] + row['Card Number']] = {
       name: row['Card Name'],
-      count: 0,
-      set: row['Set Code'],
+      count: row['Quantity'],
+      set: row['Set Code'].toLowerCase(),
       number: row['Card Number'].toString(),
     };
   });
@@ -296,6 +296,7 @@ const parseDSWeb = async (csv) => {
 
 const fetchCardData = async (cardList) => {
   const ids = [];
+  const counts = {};
 
   try {
     Object.keys(cardList).forEach(key => {
@@ -303,12 +304,12 @@ const fetchCardData = async (cardList) => {
       let elem = {};
       if (_card.set === '' && _card.number === '') {
         elem.name = _card.name;
+        counts[_card.name] = _card.count;
       }
-      if (_card.set !== '') {
+      else {
         elem.set = _card.set;
-      }
-      if (_card.number !== '') {
         elem.collector_number = _card.number;
+        counts[_card.set + _card.number] = _card.count;
       }
       ids.push(elem);
     });
@@ -316,7 +317,11 @@ const fetchCardData = async (cardList) => {
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += 75) {
       const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
-      cardData = cardData.concat(resp.data);
+      let data = resp.data.map(c => {
+        c.count = counts[c.name] || counts[c.set + c.collector_number];
+        return c;
+      });
+      cardData = cardData.concat(data);
       upload.count = i;
       upload.progress = (i / ids.length) * 100;
       await new Promise((r) => setTimeout(r, 100));
@@ -346,8 +351,8 @@ const fetchCardData = async (cardList) => {
 <template>
   <div id="window">
     <div id="sidebar">
-      <h3>View Collection</h3>
       <div class="filter-group collections">
+        <h3>View Collection</h3>
         <Multiselect
           v-model="activeCollection.value"
           :options="cards.collections"
@@ -358,8 +363,8 @@ const fetchCardData = async (cardList) => {
         <button class="small remove" @click="deleteCollection(activeCollection.value)">-</button>
       </div>
 
-      <h3>View Set</h3>
       <div class="filter-group">
+        <h3>View Set</h3>
         <Multiselect
           v-model="allSets.value"
           :options="filterVals.allSets"
@@ -373,8 +378,8 @@ const fetchCardData = async (cardList) => {
 
       <hr />
 
-      <h3>Colours</h3>
       <div class="filter-group colours">
+        <h3>Colours</h3>
         <div
           class="input-group colour"
           :class="filters.colours.includes(code) ? 'selected' : ''"
@@ -387,8 +392,8 @@ const fetchCardData = async (cardList) => {
         </div>
       </div>
 
-      <h3>Rarity</h3>
       <div class="filter-group rarities">
+        <h3>Rarity</h3>
         <div
           class="input-group rarity"
           :data-rarity="rarity"
@@ -396,22 +401,22 @@ const fetchCardData = async (cardList) => {
           :key="rarity"
         >
           <input type="checkbox" v-model="filters.rarity" :value="rarity" :id="rarity" />
-          <label :for="rarity" class="icon icon-logo"></label>
+          <label :for="rarity" :title="rarity"></label>
         </div>
       </div>
 
-      <h3>Name</h3>
       <div class="filter-group">
+        <h3>Name</h3>
         <input type="search" v-model="filters.name" />
       </div>
 
-      <h3>Mana Cost</h3>
       <div class="filter-group mana">
+        <h3>Mana Cost</h3>
         <Slider v-model="filters.mana" :min="0" :max="20" />
       </div>
 
-      <h3>Keywords</h3>
       <div class="filter-group">
+        <h3>Keywords</h3>
         <Multiselect
           v-model="filters.keywords"
           :options="filterVals.keywords"
@@ -420,8 +425,8 @@ const fetchCardData = async (cardList) => {
         />
       </div>
 
-      <h3>Types</h3>
       <div class="filter-group">
+        <h3>Types</h3>
         <Multiselect
           v-model="filters.tribes"
           :options="filterVals.tribes"
@@ -431,13 +436,13 @@ const fetchCardData = async (cardList) => {
         />
       </div>
 
-      <h3>Card text</h3>
       <div class="filter-group">
+        <h3>Card text</h3>
         <input type="search" v-model="filters.cardText" />
       </div>
 
-      <h3>Set</h3>
       <div class="filter-group">
+        <h3>Set</h3>
         <Multiselect
           v-model="filters.sets"
           :options="filterVals.sets"
@@ -519,7 +524,7 @@ const fetchCardData = async (cardList) => {
             v-if="card.card_faces && card.card_faces[0].image_uris"
             :src="card.card_faces[1].image_uris.normal"
           />
-          <p class="name">{{ card.name }}</p>
+          <p class="name">{{ card.count }} {{ card.name }}</p>
           <p>{{ card.set_name }}</p>
           <p>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.prices.eur) }}</p>
 
@@ -533,10 +538,11 @@ const fetchCardData = async (cardList) => {
 
 <style scoped>
 hr {
-  margin: 40px 0;
-  border-color: var(--colour-light-grey);
+  margin: 20px 0;
+  border-color: var(--colour-dark-grey);
   opacity: 0.4;
-  border-width: 2px;
+  border-width: 1px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 #window {
@@ -551,10 +557,12 @@ hr {
 #sidebar {
   width: 420px;
   text-align: left;
-  padding: 50px 20px;
+  padding: 40px 20px;
   background-color: #171317;
-  padding-top: 60px;
   overflow: auto;
+  gap: 5px 0;
+  display: flex;
+  flex-direction: column;
 }
 .upload {
   position: relative;
@@ -610,7 +618,7 @@ hr {
 }
 .collections {
   display: flex;
-  gap: 10px;
+  gap: 5px;
 }
 .progress {
   grid-column: span 2;
@@ -625,11 +633,26 @@ hr {
   overflow: hidden;
 }
 
+.filter-group {
+  flex-flow: wrap;
+}
+.filter-group h3 {
+  font-family: "Beleren SmallCaps Bold";
+  /* font-family: "Spectral"; */
+  font-weight: 500;
+  font-size: 1.1em;
+  margin-bottom: 10px;
+  flex-basis: 100%;
+}
+.filter-group > input {
+  width: 100%;
+}
+
 .progress .bar {
   position: absolute;
   bottom: 0;
   height: 3px;
-  background-color: #621895;
+  background-color: var(--colour-accent);
   transition: all 0.3s;
   /* background: linear-gradient(
     90deg,
@@ -656,7 +679,10 @@ hr {
 .colours,
 .rarities {
   display: flex;
-  gap: 10px;
+  gap: 0 10px;
+}
+.rarities {
+  gap: 0 15px;
 }
 .colours input[type="checkbox"]:checked + label,
 .rarities input[type="checkbox"]:checked + label {
@@ -679,6 +705,10 @@ hr {
   font-size: 40px;
   text-align: center;
   text-shadow: 0px 0px 1px black;
+  border-radius: 50%;
+  height: 30px;
+  width: 30px;
+  opacity: 0.3;
 }
 .colour label {
   color: #938996;
@@ -749,7 +779,7 @@ hr {
 
 .rarity[data-rarity="mythic"] label {
   color: #bf4427;
-  color: #de822b;
+  background-color: #de822b;
   /* color: var(--colour-input-grey);
   font-size: 0;
   background: linear-gradient(
@@ -764,14 +794,17 @@ hr {
 }
 .rarity[data-rarity="rare"] label {
   color: #a58e4a;
-  color: #dbc98e;
+  background-color: #dbc98e;
 }
 .rarity[data-rarity="uncommon"] label {
   color: #707883;
-  color: #7a939d;
+  background-color: #7a939d;
 }
 .rarity[data-rarity="common"] label {
-  color: #efefef;
+  background-color: #efefef;
+}
+.rarity[data-rarity="special"] label {
+  background-color: #d8c6e1;
 }
 
 #main {
