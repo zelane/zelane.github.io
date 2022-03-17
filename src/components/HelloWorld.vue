@@ -36,7 +36,7 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
       return true;
     }
 
-    return parseFloat(a.prices.eur) < parseFloat(b.prices.eur);
+    return parseFloat(a.prices.eur) < parseFloat(b.prices.eur) ? 1 : -1;
   });
 
   if (_filters.cardText && _filters.cardText !== '') {
@@ -590,20 +590,13 @@ hr {
   grid-column: span 2;
   display: block;
   width: 100%;
-  background-color: #333;
+  background-color: var(--colour-input-grey);
   height: 200px;
 }
 .upload textarea {
   grid-column: 2;
   width: 100%;
   height: 300px;
-  background-color: #333;
-  border: none;
-  border-radius: var(--default-br);
-  color: #efefef;
-  font-family: "Spectral", Helvetica, Arial, sans-serif;
-  padding: 20px;
-  box-sizing: border-box;
 }
 .upload .buttons {
   grid-column: span 2;

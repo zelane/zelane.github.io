@@ -69,7 +69,7 @@ button,
   min-height: 40px;
   border-radius: var(--default-br);
   box-shadow: var(--default-shadow);
-  background-color: var(--input-grey);
+  background-color: var(--colour-input-grey);
   color: var(--colour-light-font);
   font-size: 18px;
   font-weight: 600;
@@ -77,17 +77,17 @@ button,
   text-align: center;
   cursor: pointer;
   transition: all 0.1s;
-  margin-top: 1px;
-  margin-bottom: 1px;
+  /* margin-top: 1px; */
+  /* margin-bottom: 1px; */
 }
 button:hover,
 button.small:hover,
 .button:hover,
 .button.small:hover {
-  margin-top: 2px;
-  margin-bottom: 0px;
-  box-shadow: 0px 1px 1px #000;
-  background-color: #292929;
+  /* margin-top: 2px; */
+  /* margin-bottom: 0px; */
+  /* box-shadow: 0px 1px 1px #000; */
+  background-color: #39343e;
 }
 button.small,
 .button.small {
@@ -101,6 +101,15 @@ button.small,
   font-family: "Beleren SmallCaps Bold";
   box-shadow: var(--default-shadow);
   color: #e5dbdc;
+}
+.upload textarea {
+  background-color: var(--colour-input-grey);
+  border: none;
+  border-radius: var(--default-br);
+  color: #efefef;
+  font-family: "Spectral", Helvetica, Arial, sans-serif;
+  padding: 20px;
+  box-sizing: border-box;
 }
 .slider-target {
   box-shadow: var(--default-shadow);
