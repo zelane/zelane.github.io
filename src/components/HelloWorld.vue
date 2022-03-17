@@ -23,10 +23,11 @@ const colours = {
   Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
 };
 const rarities = ['mythic', 'rare', 'uncommon', 'common'];
-const filterVals = reactive({ tribes: [], keywords: [], sets: [] });
+const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
 const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20],
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], allSets: null
 });
+const allSets = reactive({ value: null });
 
 const filterCards = async (cards, _filters) => new Promise((resolve) => {
   let filtered = cards;
@@ -94,7 +95,26 @@ const loadCollection = async (name) => {
     return;
   }
   let collection = await db.collections.get({ name: name });
-  allCards = collection.cards;
+  showCards(collection.cards);
+};
+
+const loadSet = async (setId) => {
+  let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
+    q: 'e:' + setId
+  });
+  let cards = [];
+  while (true) {
+    let json = await cachedGet(getCache, url);
+    cards = cards.concat(json.data);
+    if (!json.has_more) break;
+    url = json.next_page;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  showCards(cards);
+};
+
+const showCards = async (_cards) => {
+  allCards = _cards;
   cards.value = await filterCards(allCards, filters);
   const keywords = new Set();
   const sets = [];
@@ -106,6 +126,7 @@ const loadCollection = async (name) => {
   });
   filterVals.keywords = [...keywords];
   filterVals.sets = Object.keys(sets).map((key) => ({ set: key, setName: sets[key] }));
+
 };
 
 const deleteCollection = async (name) => {
@@ -132,18 +153,27 @@ db.collections.toCollection().primaryKeys().then(keys => {
   activeCollection.value = keys[0];
 });
 
-caches.open('cardDataCache').then(async (cache) => {
-  const typeRequest = new Request('https://api.scryfall.com/catalog/creature-types');
-  let response = await cache.match(typeRequest);
+const cachedGet = async (cache, url) => {
+  const request = new Request(url);
+  let response = await cache.match(request);
   if (!response) {
-    await cache.add(typeRequest);
-    response = await cache.match(typeRequest);
+    await cache.add(request);
+    response = await cache.match(request);
   }
   const json = await response.json();
-  filterVals.tribes = json.data;
+  return json;
+};
+
+let getCache = null;
+caches.open('cardDataCache').then(async (cache) => {
+  getCache = cache;
+  let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
+  filterVals.tribes = ts.data;
+  let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
+  filterVals.allSets = as.data;
 });
 
-async function post(url = '', data = {}) {
+const post = async (url = '', data = {}) => {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -152,7 +182,7 @@ async function post(url = '', data = {}) {
     body: JSON.stringify(data),
   });
   return response.json();
-}
+};
 
 const checkEncoding = async (file) => {
   let arrayBuffer = await file.arrayBuffer();
@@ -316,7 +346,7 @@ const fetchCardData = async (cardList) => {
 <template>
   <div id="window">
     <div id="sidebar">
-      <h3>Collection</h3>
+      <h3>View Collection</h3>
       <div class="filter-group collections">
         <Multiselect
           v-model="activeCollection.value"
@@ -327,6 +357,21 @@ const fetchCardData = async (cardList) => {
         <button class="small add" @click="upload.show = true">+</button>
         <button class="small remove" @click="deleteCollection(activeCollection.value)">-</button>
       </div>
+
+      <h3>View Set</h3>
+      <div class="filter-group">
+        <Multiselect
+          v-model="allSets.value"
+          :options="filterVals.allSets"
+          label="name"
+          valueProp="code"
+          :searchable="true"
+          mode="single"
+          @select="loadSet"
+        />
+      </div>
+
+      <hr />
 
       <h3>Colours</h3>
       <div class="filter-group colours">
@@ -487,6 +532,13 @@ const fetchCardData = async (cardList) => {
 </template>
 
 <style scoped>
+hr {
+  margin: 40px 0;
+  border-color: var(--colour-light-grey);
+  opacity: 0.4;
+  border-width: 2px;
+}
+
 #window {
   display: flex;
   position: absolute;

@@ -27,6 +27,7 @@ body {
   --colour-input-grey: #221e26;
   --colour-light-font: #efefef;
   --colour-dark-grey: #110d12;
+  --colour-accent: #938996;
 
   padding: 0;
   margin: 0;
