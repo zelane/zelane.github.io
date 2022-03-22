@@ -25,11 +25,13 @@ const colours = {
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
 const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, collection: ''
 });
 const allSets = reactive({ value: null });
+let loading = ref(false);
 
-const filterCards = async (cards, _filters) => new Promise((resolve) => {
+const filterCards = async (cards, _filters) => new Promise(async resolve => {
+  loading.value = true;
   let filtered = cards;
   filtered.sort((a, b) => {
     // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
@@ -51,6 +53,15 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
       filtered.push(item.item);
     });
   }
+
+  if (_filters.collection && _filters.collection !== '') {
+    const otherCollection = await db.collections.get({ name: _filters.collection });
+    const ids = otherCollection.cards.map(c => c.oracle_id);
+    filtered = filtered.filter(card => {
+      return ids.includes(card.oracle_id);
+    });
+  }
+
   filtered = filtered.filter((card) => {
     if (_filters.dupesOnly && card.count === 1) {
       return false;
@@ -87,7 +98,8 @@ const filterCards = async (cards, _filters) => new Promise((resolve) => {
 
     return true;
   });
-  resolve(filtered.slice(0, 200));
+  loading.value = false;
+  resolve(filtered.slice(0, 500));
 });
 let allCards = [];
 const cards = reactive({ collections: [], value: [] });
@@ -102,19 +114,26 @@ const loadCollection = async (name) => {
   showCards(collection.cards);
 };
 
+
 const loadSet = async (setId) => {
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
     q: 'e:' + setId
   });
   let cards = [];
-  while (true) {
-    let json = await cachedGet(getCache, url);
-    cards = cards.concat(json.data);
-    if (!json.has_more) break;
-    url = json.next_page;
-    await new Promise((r) => setTimeout(r, 100));
+  loading.value = true;
+  try {
+    while (true) {
+      let json = await cachedGet(getCache, url);
+      cards = cards.concat(json.data);
+      if (!json.has_more) break;
+      url = json.next_page;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    showCards(cards);
   }
-  showCards(cards);
+  finally {
+    loading.value = false;
+  }
 };
 
 const showCards = async (_cards) => {
@@ -173,6 +192,8 @@ caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
   filterVals.tribes = ts.data;
+  filterVals.tribes = filterVals.tribes.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
+  console.log(filterVals.tribes);
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
   filterVals.allSets = as.data;
 });
@@ -416,16 +437,6 @@ const fetchCardData = async (cardList) => {
       </div>
 
       <div class="filter-group">
-        <h3>Keywords</h3>
-        <Multiselect
-          v-model="filters.keywords"
-          :options="filterVals.keywords"
-          :searchable="true"
-          mode="tags"
-        />
-      </div>
-
-      <div class="filter-group">
         <h3>Types</h3>
         <Multiselect
           v-model="filters.tribes"
@@ -433,6 +444,16 @@ const fetchCardData = async (cardList) => {
           :searchable="true"
           mode="tags"
           :create-option="true"
+        />
+      </div>
+
+      <div class="filter-group">
+        <h3>Keywords</h3>
+        <Multiselect
+          v-model="filters.keywords"
+          :options="filterVals.keywords"
+          :searchable="true"
+          mode="tags"
         />
       </div>
 
@@ -452,9 +473,15 @@ const fetchCardData = async (cardList) => {
           mode="tags"
         />
       </div>
+
+      <div class="filter-group">
+        <h3>Other collection</h3>
+        <Multiselect v-model="filters.collection" :options="cards.collections" mode="single" />
+      </div>
     </div>
 
     <div id="main">
+      <div class="loader" v-if="loading">Loading</div>
       <div class="upload" v-if="upload.show">
         <button class="small close" @click="upload.show = false">
           <span>+</span>
@@ -563,6 +590,21 @@ hr {
   gap: 5px 0;
   display: flex;
   flex-direction: column;
+}
+#main {
+  position: relative;
+}
+.loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 99;
+  line-height: 100vh;
+  text-align: center;
+  font-size: 2em;
 }
 .upload {
   position: relative;
@@ -699,6 +741,7 @@ hr {
   opacity: 0.5;
   transition: all 0.1s;
   cursor: pointer;
+  /* box-shadow: var(--default-shadow); */
 }
 
 .rarity label {
