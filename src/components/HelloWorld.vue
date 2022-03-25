@@ -25,21 +25,34 @@ const colours = {
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
 const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, collection: ''
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}
 });
-const allSets = reactive({ value: null });
+const sorts = ['Mana', 'Price', 'Count'];
+const info = reactive({ count: 0, total_value: 0, zoom: 0 });
+const setIds = new Set();
 let loading = ref(false);
 
-const filterCards = async (cards, _filters) => new Promise(async resolve => {
-  loading.value = true;
-  let filtered = cards;
-  filtered.sort((a, b) => {
-    // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-    if (!a.prices.eur) {
+const dynamicSort = (a, b) => {
+  // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
+  if (filters.sort === 'Price') {
+
+    if (!a.price) {
       return true;
     }
-    return parseFloat(a.prices.eur) < parseFloat(b.prices.eur) ? 1 : -1;
-  });
+    return a.price < b.price ? 1 : -1;
+  }
+  else if (filters.sort === 'Mana') {
+    return parseFloat(a.cmc) < parseFloat(b.cmc) ? 1 : -1;
+  }
+  else if (filters.sort === 'Count') {
+    return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
+
+  }
+};
+
+const filterCards = async (cards, _filters) => new Promise(async resolve => {
+  let to = setTimeout(() => loading.value = true, 300);
+  let filtered = cards.sort(dynamicSort);
 
   if (_filters.cardText && _filters.cardText !== '') {
     const fuse = new Fuse(filtered, {
@@ -54,15 +67,31 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     });
   }
 
-  if (_filters.collection && _filters.collection !== '') {
-    const otherCollection = await db.collections.get({ name: _filters.collection });
+
+  for (const col of Object.keys(_filters.incCol)) {
+    if (!_filters.incCol[col]) continue;
+    const otherCollection = await db.collections.get({ name: col });
     const ids = otherCollection.cards.map(c => c.oracle_id);
     filtered = filtered.filter(card => {
       return ids.includes(card.oracle_id);
     });
   }
 
+  for (const col of Object.keys(_filters.excCol)) {
+    if (!_filters.excCol[col]) continue;
+    const otherCollection = await db.collections.get({ name: col });
+    const ids = otherCollection.cards.map(c => c.oracle_id);
+    filtered = filtered.filter(card => {
+      return !ids.includes(card.oracle_id);
+    });
+  }
+
+  info.count = 0;
+  info.total_value = 0;
   filtered = filtered.filter((card) => {
+    // return card.border_color == 'borderless';
+    // return card.frame == '2003';
+    // return card.full_art == true;
     if (_filters.dupesOnly && card.count === 1) {
       return false;
     }
@@ -96,10 +125,15 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     const hasMana = card.cmc >= _filters.mana[0] && card.cmc <= _filters.mana[1];
     if (!hasMana) return false;
 
+    info.total_value += card.price;
+    // info.count += parseInt(card.count);
     return true;
   });
+  info.total_value = parseInt(info.total_value);
+  info.count = filtered.length;
+  clearTimeout(to);
   loading.value = false;
-  resolve(filtered.slice(0, 500));
+  resolve(filtered.slice(0, 250));
 });
 let allCards = [];
 const cards = reactive({ collections: [], value: [] });
@@ -117,7 +151,8 @@ const loadCollection = async (name) => {
 
 const loadSet = async (setId) => {
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
-    q: 'e:' + setId
+    q: 'e:' + setId,
+    unique: 'prints'
   });
   let cards = [];
   loading.value = true;
@@ -138,10 +173,12 @@ const loadSet = async (setId) => {
 
 const showCards = async (_cards) => {
   allCards = _cards;
-  cards.value = await filterCards(allCards, filters);
   const keywords = new Set();
   const sets = [];
-  allCards.forEach((card) => {
+  let ex = 0.9;
+
+  allCards.forEach(card => {
+    card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
     card.keywords.forEach((kw) => {
       keywords.add(kw);
     });
@@ -149,7 +186,7 @@ const showCards = async (_cards) => {
   });
   filterVals.keywords = [...keywords];
   filterVals.sets = Object.keys(sets).map((key) => ({ set: key, setName: sets[key] }));
-
+  cards.value = await filterCards(allCards, filters);
 };
 
 const deleteCollection = async (name) => {
@@ -172,7 +209,7 @@ db.collections.toCollection().primaryKeys().then(keys => {
   if (keys.length === 0) {
     return;
   }
-  cards.collections = keys;
+  cards.collections = keys.sort();
   activeCollection.value = keys[0];
 });
 
@@ -187,14 +224,27 @@ const cachedGet = async (cache, url) => {
   return json;
 };
 
+const getEx = async () => {
+  const rate = await fetch('https://api.exchangerate.host/latest', {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': 'true'
+    },
+    // body: JSON.stringify(data),
+  });
+  console.log(rate);
+  return 0.9;
+};
+
 let getCache = null;
 caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
   filterVals.tribes = ts.data;
   filterVals.tribes = filterVals.tribes.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
-  console.log(filterVals.tribes);
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
+  as.data.forEach(set => setIds.add(set.code));
   filterVals.allSets = as.data;
 });
 
@@ -305,12 +355,28 @@ const parseDSWeb = async (csv) => {
   let parsed = await Papa.parsePromise(csv);
   let cards = {};
   parsed.data.forEach(row => {
-    cards[row['Set Code'] + row['Card Number']] = {
-      name: row['Card Name'],
-      count: row['Quantity'],
-      set: row['Set Code'].toLowerCase(),
-      number: row['Card Number'].toString(),
-    };
+    const setName = row['Set Name'];
+    let setCode = row['Set Code'].toLowerCase();
+
+    // Find set id for mismatched set ids
+    if (!setIds.has(setCode)) {
+      console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
+      cards[setCode + row['Card Number']] = {
+        name: row['Card Name'],
+        count: row['Quantity'],
+        set: '',
+        number: '',
+      };
+    }
+    else {
+      cards[setCode + row['Card Number']] = {
+        name: row['Card Name'],
+        count: row['Quantity'],
+        set: setCode,
+        number: row['Card Number'].toString(),
+      };
+
+    }
   });
   return cards;
 };
@@ -338,6 +404,9 @@ const fetchCardData = async (cardList) => {
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += 75) {
       const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
+      if (resp.not_found.length > 0) {
+        console.log(resp.not_found);
+      }
       let data = resp.data.map(c => {
         c.count = counts[c.name] || counts[c.set + c.collector_number];
         return c;
@@ -367,6 +436,18 @@ const fetchCardData = async (cardList) => {
   }
 };
 
+const exportList = async (e) => {
+  // let list = "";
+  // cards.value.forEach(card => {
+  //   list += card.count + ' ' + card.name + '\n';
+  // });
+  let list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
+  cards.value.forEach(card => {
+    list += `"${card.count}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
+  });
+  navigator.clipboard.writeText(list);
+};
+
 </script>
 
 <template>
@@ -378,26 +459,35 @@ const fetchCardData = async (cardList) => {
           v-model="activeCollection.value"
           :options="cards.collections"
           mode="single"
-          :canClear="false"
+          :can-clear="false"
         />
-        <button class="small add" @click="upload.show = true">+</button>
-        <button class="small remove" @click="deleteCollection(activeCollection.value)">-</button>
+        <button
+          class="small add"
+          @click="upload.show = true"
+        >
+          +
+        </button>
+        <button
+          class="small remove"
+          @click="deleteCollection(activeCollection.value)"
+        >
+          -
+        </button>
       </div>
 
       <div class="filter-group">
         <h3>View Set</h3>
         <Multiselect
-          v-model="allSets.value"
           :options="filterVals.allSets"
           label="name"
-          valueProp="code"
+          value-prop="code"
           :searchable="true"
           mode="single"
           @select="loadSet"
         />
       </div>
 
-      <hr />
+      <hr>
 
       <div class="filter-group colours">
         <h3>Colours</h3>
@@ -408,8 +498,16 @@ const fetchCardData = async (cardList) => {
           v-for="code in colours"
           :key="code"
         >
-          <input type="checkbox" v-model="filters.colours" :value="code" :id="code" />
-          <label :for="code" :class="'icon icon-' + code"></label>
+          <input
+            type="checkbox"
+            v-model="filters.colours"
+            :value="code"
+            :id="code"
+          >
+          <label
+            :for="code"
+            :class="'icon icon-' + code"
+          />
         </div>
       </div>
 
@@ -421,19 +519,34 @@ const fetchCardData = async (cardList) => {
           v-for="rarity in rarities"
           :key="rarity"
         >
-          <input type="checkbox" v-model="filters.rarity" :value="rarity" :id="rarity" />
-          <label :for="rarity" :title="rarity"></label>
+          <input
+            type="checkbox"
+            v-model="filters.rarity"
+            :value="rarity"
+            :id="rarity"
+          >
+          <label
+            :for="rarity"
+            :title="rarity"
+          />
         </div>
       </div>
 
       <div class="filter-group">
         <h3>Name</h3>
-        <input type="search" v-model="filters.name" />
+        <input
+          type="search"
+          v-model="filters.name"
+        >
       </div>
 
       <div class="filter-group mana">
         <h3>Mana Cost</h3>
-        <Slider v-model="filters.mana" :min="0" :max="20" />
+        <Slider
+          v-model="filters.mana"
+          :min="0"
+          :max="20"
+        />
       </div>
 
       <div class="filter-group">
@@ -459,7 +572,10 @@ const fetchCardData = async (cardList) => {
 
       <div class="filter-group">
         <h3>Card text</h3>
-        <input type="search" v-model="filters.cardText" />
+        <input
+          type="search"
+          v-model="filters.cardText"
+        >
       </div>
 
       <div class="filter-group">
@@ -468,32 +584,77 @@ const fetchCardData = async (cardList) => {
           v-model="filters.sets"
           :options="filterVals.sets"
           label="setName"
-          valueProp="set"
+          value-prop="set"
           :searchable="true"
           mode="tags"
         />
       </div>
 
-      <div class="filter-group">
-        <h3>Other collection</h3>
-        <Multiselect v-model="filters.collection" :options="cards.collections" mode="single" />
+      <div class="filter-group compare">
+        <h3>Compare</h3>
+        <div class="grid">
+          <template
+            v-for="col in cards.collections"
+            :key="col"
+          >
+            <div>{{ col }}</div>
+            <div>
+              <input
+                type="checkbox"
+                :id="col+'-inc'"
+                v-model="filters.incCol[col]"
+                :value="false"
+              >
+              <label
+                class="inc"
+                :for="col + '-inc'"
+              />
+            </div>
+            <div>
+              <input
+                type="checkbox"
+                :id="col+'-exc'"
+                v-model="filters.excCol[col]"
+                :value="false"
+              >
+              <label
+                class="exc"
+                :for="col + '-exc'"
+              />
+            </div>
+          </template>
+        </div>
       </div>
     </div>
 
     <div id="main">
-      <div class="loader" v-if="loading">Loading</div>
-      <div class="upload" v-if="upload.show">
-        <button class="small close" @click="upload.show = false">
+      <div
+        class="loader"
+        v-if="loading"
+      >
+        Loading
+      </div>
+      <div
+        class="upload"
+        v-if="upload.show"
+      >
+        <button
+          class="small close"
+          @click="upload.show = false"
+        >
           <span>+</span>
         </button>
         <div class="form">
           <h3>Name</h3>
-          <input type="text" v-model="upload.name" />
+          <input
+            type="text"
+            v-model="upload.name"
+          >
           <h3>Format</h3>
           <Multiselect
             v-model="upload.format"
             :options="['DragonShield Web', 'DragonShield Mobile', 'MTGA', 'MTGO']"
-            :canClear="false"
+            :can-clear="false"
           />
           <!-- <h3>Encoding</h3>
         <Multiselect
@@ -501,7 +662,7 @@ const fetchCardData = async (cardList) => {
           :options="['UTF-16LE', 'UTF-16BE', 'UTF-8', 'ascii']"
           />-->
           <template v-if="['MTGA', 'MTGO'].includes(upload.format)">
-            <textarea v-model="upload.text"></textarea>
+            <textarea v-model="upload.text" />
           </template>
 
           <!-- <div
@@ -524,37 +685,91 @@ const fetchCardData = async (cardList) => {
             ref="fileElem"
             type="file"
             :disabled="upload.active"
-          />
-          <div class="buttons" v-if="!upload.active && upload.format && (upload.text || fileElem)">
+          >
+          <div
+            class="buttons"
+            v-if="!upload.active && upload.format && (upload.text || fileElem)"
+          >
             <button
               @click="['MTGA', 'MTGO'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
-            >Upload</button>
+            >
+              Upload
+            </button>
           </div>
 
-          <div class="progress" v-if="upload.active">
+          <div
+            class="progress"
+            v-if="upload.active"
+          >
             <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
-            <div class="bar" :style="{ width: upload.progress + '%' }"></div>
+            <div
+              class="bar"
+              :style="{ width: upload.progress + '%' }"
+            />
           </div>
         </div>
       </div>
+      <div class="info-bar">
+        <span>Count: {{ info.count }}</span>
+        <span>Total Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
+        <span>
+          <Multiselect
+            v-model="filters.sort"
+            :options="sorts"
+            mode="single"
+            :can-clear="false"
+          />
+        </span>
+        <span>
+          <!-- <input type="number" v-model="info.zoom" /> -->
+          <Slider
+            :min="-5"
+            :max="5"
+            v-model="info.zoom"
+          />
+        </span>
+        <span>
+          <button @click="exportList">Export</button>
+        </span>
+      </div>
 
-      <div class="cards" v-if="!upload.show">
-        <div class="card" v-for="card in cards['value']" :key="card.id + card.foil">
-          <img v-if="card.image_uris" :src="card.image_uris.normal" />
+      <div
+        class="cards"
+        v-if="!upload.show"
+        :style="{ 'font-size': 18 + (info.zoom * 2) + 'px' }"
+      >
+        <div
+          class="card"
+          v-for="card in cards['value']"
+          :key="card.id + card.foil"
+        >
+          <img
+            v-if="card.image_uris"
+            :src="card.image_uris.normal"
+          >
           <img
             class="flip front"
             v-if="card.card_faces && card.card_faces[0].image_uris"
             :src="card.card_faces[0].image_uris.normal"
-          />
+          >
           <img
             class="flip back"
             v-if="card.card_faces && card.card_faces[0].image_uris"
             :src="card.card_faces[1].image_uris.normal"
-          />
-          <p class="name">{{ card.count }} {{ card.name }}</p>
+          >
+          <p class="name">
+            {{ card.count }} {{ card.name }}
+          </p>
           <p>{{ card.set_name }}</p>
-          <p>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.prices.eur) }}</p>
+          <p>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}</p>
 
+          <!-- <p>{{ card.frame }}</p> -->
+          <!-- <p>{{ card.full_art }}</p> -->
+          <!-- <p>{{ card.border_color }}</p> -->
+          <!-- <p>{{ card.promo }}</p> -->
+          <!-- <p>{{ card.reprint }}</p> -->
+          <!-- <p>{{ card.variation }}</p> -->
+          <!-- <p>{{ card.prices }}</p> -->
           <!-- <p>{{ card.prices.eur }}</p> -->
           <!-- <p>{{ card.rarity }}</p> -->
         </div>
@@ -571,7 +786,23 @@ hr {
   border-width: 1px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
 }
-
+.info-bar {
+  background-color: var(--colour-sidebar);
+  height: 50px;
+  position: sticky;
+  width: 100%;
+  text-align: center;
+  line-height: 50px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  top: 0;
+}
+.info-bar .multiselect,
+.info-bar .slider-target {
+  min-width: 8em;
+}
 #window {
   display: flex;
   position: absolute;
@@ -582,17 +813,21 @@ hr {
   overflow: hidden;
 }
 #sidebar {
-  width: 420px;
+  min-width: 380px;
   text-align: left;
   padding: 40px 20px;
-  background-color: #171317;
+  background-color: var(--colour-sidebar);
   overflow: auto;
   gap: 5px 0;
   display: flex;
   flex-direction: column;
 }
+
 #main {
   position: relative;
+  flex-grow: 1;
+  width: 100%;
+  overflow: auto;
 }
 .loader {
   position: absolute;
@@ -604,7 +839,7 @@ hr {
   z-index: 99;
   line-height: 100vh;
   text-align: center;
-  font-size: 2em;
+  font-size: 2rem;
 }
 .upload {
   position: relative;
@@ -668,8 +903,8 @@ hr {
   display: block;
   border-radius: var(--default-br);
   background-color: var(--colour-input-grey);
-  height: 40px;
-  line-height: 40px;
+  height: var(--height-input);
+  line-height: var(--height-input);
   text-align: center;
   font-family: "Beleren SmallCaps Bold";
   overflow: hidden;
@@ -682,7 +917,7 @@ hr {
   font-family: "Beleren SmallCaps Bold";
   /* font-family: "Spectral"; */
   font-weight: 500;
-  font-size: 1.1em;
+  font-size: 1rem;
   margin-bottom: 10px;
   flex-basis: 100%;
 }
@@ -696,21 +931,46 @@ hr {
   height: 3px;
   background-color: var(--colour-accent);
   transition: all 0.3s;
-  /* background: linear-gradient(
-    90deg,
-    rgba(255, 123, 123, 1) 0%,
-    rgba(255, 123, 123, 1) 20%,
-    rgba(125, 228, 159, 1) 20%,
-    rgba(125, 228, 159, 1) 40%,
-    rgba(204, 195, 192, 1) 40%,
-    rgba(204, 195, 192, 1) 60%,
-    rgba(171, 225, 250, 1) 60%,
-    rgba(171, 225, 250, 1) 80%,
-    rgba(255, 247, 177, 1) 80%,
-    rgba(255, 247, 177, 1) 100%
-  ); */
 }
 
+.compare .grid {
+  display: grid;
+  grid-template-columns: 10fr 1fr 1fr;
+  line-height: 1rem;
+  background-color: var(--colour-input-grey);
+  padding: 0.5rem;
+  max-height: 11rem;
+  overflow: auto;
+  gap: 1rem;
+}
+
+.compare input[type=checkbox] {
+  display: none;
+}
+.compare label {
+  display: block;
+  text-align: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+  line-height: 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--colour-dark-grey);
+  font-family: var(--font-magic);
+}
+.compare label.inc::before {
+  content: "+";
+}
+.compare label.exc::before {
+  content: "-";
+}
+.compare input[type=checkbox]:checked ~ label.inc{
+  color: var(--colour-green);
+}
+.compare input[type=checkbox]:checked ~ label.exc{
+  color: var(--colour-red);
+}
 .mana {
   padding: 0 10px;
 }
@@ -737,7 +997,7 @@ hr {
 .colour label,
 .rarity label {
   display: block;
-  width: 40px;
+  width: var(--height-input);
   opacity: 0.5;
   transition: all 0.1s;
   cursor: pointer;
@@ -745,7 +1005,7 @@ hr {
 }
 
 .rarity label {
-  font-size: 40px;
+  font-size: var(--height-input);
   text-align: center;
   text-shadow: 0px 0px 1px black;
   border-radius: 50%;
@@ -756,68 +1016,33 @@ hr {
 .colour label {
   color: #938996;
   background-color: transparent;
-  height: 40px;
-  width: 40px;
-  line-height: 40px;
+  height: var(--height-input);
+  width: var(--height-input);
+  line-height: var(--height-input);
   border-radius: 50%;
-  font-size: 35px;
+  font-size: calc(var(--height-input) - 5px);
   text-align: center;
-  /* box-shadow: 2px 2px 0px black; */
 }
 .colour.selected label {
   color: #01121c;
 }
 .colour[data-colour="R"].selected label {
-  /* background-color: #f9ac90; */
-  /* background-color: #ff7b7b; */
-
-  /* text-shadow: 2px 2px 20px #ff7b7b, 1px 1px 3px #ff7b7b; */
-  /* background: transparent; */
-
-  color: #f9ac90;
+  color: var(--colour-red);
 }
 .colour[data-colour="G"].selected label {
-  /* background-color: #9cd4af; */
-  /* background-color: #7de49f; */
-
-  /* text-shadow: 2px 2px 20px #7de49f, 1px 1px 3px #7de49f; */
-  /* background: transparent; */
-
-  color: #9cd4af;
+  color: var(--colour-green);
 }
 .colour[data-colour="B"].selected label {
-  /* background-color: #ccc3c0; */
-
-  /* text-shadow: 2px 2px 20px #ccc3c0, 1px 1px 3px #ccc3c0; */
-  /* background: transparent; */
-
-  color: #ccc3c0;
+  color: var(--colour-black);
 }
 .colour[data-colour="U"].selected label {
-  /* background-color: #abe1fa; */
-  /* background-color: #75d3ff; */
-
-  /* text-shadow: 2px 2px 20px #75d3ff, 1px 1px 3px #75d3ff; */
-  /* background: transparent; */
-
-  color: #75d3ff;
+  color: var(--colour-blue);
 }
 .colour[data-colour="W"].selected label {
-  /* background-color: #fffbd6; */
-  /* background-color: #fff7b1; */
-
-  /* text-shadow: 2px 2px 20px #fff7b1, 1px 1px 3px #fff7b1; */
-  /* background: transparent; */
-
-  color: #fff7b1;
+  color: var(--colour-white);
 }
 .colour[data-colour="C"].selected label {
-  /* background-color: #cdc3c1; */
-
-  /* text-shadow: 2px 2px 20px #cdc3c1, 1px 1px 3px #cdc3c1;
-  background: transparent; */
-
-  color: #cdc3c1;
+  color: var(--colour-less);
 }
 
 .rarity[data-rarity="mythic"] label {
@@ -849,22 +1074,15 @@ hr {
 .rarity[data-rarity="special"] label {
   background-color: #d8c6e1;
 }
-
-#main {
-  flex-grow: 1;
-  width: 100%;
-  overflow: auto;
-  padding: 50px 20px;
-}
 .cards {
-  display: flex;
-  justify-content: flex-start;
-  align-items: bottom;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
+  gap: 2em;
+  padding: 2rem;
 }
 .card {
-  width: 250px;
+  min-width: 15em;
+  /* flex-grow: 1; */
 }
 .card .flip.back {
   display: none;
@@ -875,17 +1093,21 @@ hr {
 .card:hover .flip.back {
   display: initial;
 }
+.card p {
+  font-size: .9em;
+  text-indent: .5rem;
+}
 .card .name {
   font-weight: bold;
   display: block;
-  font-size: 1.1em;
+  font-size: 1em;
   font-family: "Beleren Bold";
   line-height: 1;
   /* font-weight: 600; */
 }
 .card img {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 5%;
   box-shadow: 0px 2px 5px #000000f2;
 }
 @media (max-width: 640px) {
@@ -901,6 +1123,7 @@ hr {
     height: 40%;
     order: 1;
     width: 100%;
+    min-width: 0;
   }
   .cards {
     justify-content: center;
