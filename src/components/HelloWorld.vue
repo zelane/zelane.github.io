@@ -29,6 +29,7 @@ const filters = reactive({
 });
 const sorts = ['Mana', 'Price', 'Count'];
 const info = reactive({ count: 0, total_value: 0, zoom: 0 });
+const clipboard = reactive({show: false, cards: []});
 const setIds = new Set();
 let loading = ref(false);
 
@@ -437,12 +438,14 @@ const fetchCardData = async (cardList) => {
 };
 
 const exportList = async (e) => {
+  console.log(clipboard.cards)
   // let list = "";
   // cards.value.forEach(card => {
   //   list += card.count + ' ' + card.name + '\n';
   // });
   let list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
-  cards.value.forEach(card => {
+  clipboard.cards.forEach(card => {
+    console.log(card.name);
     list += `"${card.count}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
   });
   navigator.clipboard.writeText(list);
@@ -590,7 +593,7 @@ const exportList = async (e) => {
         />
       </div>
 
-      <div class="filter-group compare">
+      <div class="filter-group compare" v-if="cards.collections.length > 0">
         <h3>Compare</h3>
         <div class="grid">
           <template
@@ -709,6 +712,7 @@ const exportList = async (e) => {
           </div>
         </div>
       </div>
+
       <div class="info-bar">
         <span>Count: {{ info.count }}</span>
         <span>Total Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
@@ -728,9 +732,29 @@ const exportList = async (e) => {
             v-model="info.zoom"
           />
         </span>
-        <span>
-          <button @click="exportList">Export</button>
-        </span>
+      </div>
+
+      <div class="menu" />
+
+      <div
+        class="clipboard"
+        :class="{'show': clipboard.show}"
+        @click="clipboard.show = !clipboard.show"
+      >
+        <h3>Clipboard</h3>
+        <div class="clip-cards">
+          <div
+            class="clip-card"
+            v-for="card in clipboard.cards"
+            :key="'clip-' + card.name"
+          >
+            <p>1 {{ card.name }}</p> 
+          </div>
+        </div>
+        <div class="buttons">
+          <button @click="clipboard.cards = []">Clear</button>
+          <button @click="exportList">Copy</button>
+        </div>
       </div>
 
       <div
@@ -743,20 +767,23 @@ const exportList = async (e) => {
           v-for="card in cards['value']"
           :key="card.id + card.foil"
         >
-          <img
-            v-if="card.image_uris"
-            :src="card.image_uris.normal"
-          >
-          <img
-            class="flip front"
-            v-if="card.card_faces && card.card_faces[0].image_uris"
-            :src="card.card_faces[0].image_uris.normal"
-          >
-          <img
-            class="flip back"
-            v-if="card.card_faces && card.card_faces[0].image_uris"
-            :src="card.card_faces[1].image_uris.normal"
-          >
+          <div class="img">
+            <img
+              v-if="card.image_uris"
+              :src="card.image_uris.normal"
+            >
+            <img
+              class="flip front"
+              v-if="card.card_faces && card.card_faces[0].image_uris"
+              :src="card.card_faces[0].image_uris.normal"
+            >
+            <img
+              class="flip back"
+              v-if="card.card_faces && card.card_faces[0].image_uris"
+              :src="card.card_faces[1].image_uris.normal"
+            >
+            <button class="small clip" @click="clipboard.cards.push(card)">+</button>
+          </div>
           <p class="name">
             {{ card.count }} {{ card.name }}
           </p>
@@ -788,20 +815,48 @@ hr {
 }
 .info-bar {
   background-color: var(--colour-sidebar);
-  height: 50px;
+  height: 3rem;
   position: sticky;
   width: 100%;
   text-align: center;
-  line-height: 50px;
+  line-height: 3rem;
   display: flex;
   gap: 20px;
   align-items: center;
   justify-content: center;
   top: 0;
+  z-index: 2;
 }
 .info-bar .multiselect,
 .info-bar .slider-target {
   min-width: 8em;
+}
+.clipboard {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  top: 3rem;
+  bottom: 0;
+  right: 0;
+  width: 400px;
+  transform: translate(calc(100% - 2rem), 0);
+  background-color: var(--colour-sidebar);
+  transition: all 0.2s;
+  padding: 2rem;
+  color: transparent;
+  z-index: 1;
+}
+.clipboard.show {
+  transform: translate(0, 0);
+  color: var(--colour-light-font);
+}
+.clipboard .clip-cards {
+  flex-grow: 1;
+}
+.clipboard .buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
 }
 #window {
   display: flex;
@@ -827,7 +882,8 @@ hr {
   position: relative;
   flex-grow: 1;
   width: 100%;
-  overflow: auto;
+  height: 100%;
+  overflow: hidden;
 }
 .loader {
   position: absolute;
@@ -953,7 +1009,7 @@ hr {
   width: 1.5rem;
   height: 1.5rem;
   font-size: 1.5rem;
-  line-height: 1.5rem;
+  line-height: 1.7rem;
   border-radius: 4px;
   cursor: pointer;
   background-color: var(--colour-dark-grey);
@@ -1079,6 +1135,12 @@ hr {
   grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
   gap: 2em;
   padding: 2rem;
+  position: absolute;
+  top: 3rem;
+  left: 0;
+  right: 2rem;
+  bottom: 0;
+  overflow: auto;
 }
 .card {
   min-width: 15em;
@@ -1087,11 +1149,23 @@ hr {
 .card .flip.back {
   display: none;
 }
-.card:hover .flip.front {
+.card .img {
+  position: relative;
+}
+.card .img:hover .flip.front {
   display: none;
 }
-.card:hover .flip.back {
+.card .img:hover .flip.back {
   display: initial;
+}
+.card .img .clip {
+  display: none;
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+}
+.card .img:hover .clip {
+  display: block;
 }
 .card p {
   font-size: .9em;

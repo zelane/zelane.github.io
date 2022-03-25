@@ -21,6 +21,14 @@ import HelloWorld from './components/HelloWorld.vue';
 html {
   font-size: 16px;
 }
+::-webkit-scrollbar-thumb  {
+  background-color: var(--colour-input-grey);
+  width: 1rem;
+}
+::-webkit-scrollbar {
+  background-color: var(--colour-sidebar);
+  width: 1rem;
+}
 body {
   --default-fonts: "Spectral", Helvetica, Arial, sans-serif;
   --default-br: 1px;
