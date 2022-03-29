@@ -2,6 +2,7 @@
 import { reactive, ref, watch } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
+import Toggle from '@vueform/toggle';
 import Slider from '@vueform/slider';
 import Dexie from 'dexie';
 import Fuse from 'fuse.js';
@@ -15,17 +16,49 @@ const upload = reactive({
 // let upload = reactive({ show: false, name: null, file: null, text: null, encoding: null, format: null, active: true, progress: 50, count: 50, total: 100 })
 
 const db = new Dexie('mtg');
-db.version(1).stores({
-  collections: '&name',
+db.version(2).stores({
+  collections: '&name'
 });
 
 const colours = {
   Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
 };
+// [ "B", "G", "R", "U", "W" ]
+const twoColours = {
+    Azorius: ['U', 'W'],
+    Boros: ['R','W'],
+    Dimir: ['B', 'U'],
+    Golgari: ['B','G'],
+    Gruul: ['G', 'R'],
+    Izzet: ['R', 'U'],
+    Orzhov: ['B', 'W',],
+    Rakdos: ['B','R'],
+    Selesnya: ['G', 'W'],
+    Simic: ['G', 'U'],
+};
+const threeColours = {
+    Abzan: ['B', 'G', 'W'],
+    Bant: ['G', 'U', 'W'],
+    Esper: ['B', 'U', 'W'],
+    Grixis: ['B', 'R', 'U'],
+    Jeskai: ['R', 'U', 'W'],
+    Jund: ['B', 'G', 'R'],
+    Mardu: ['B', 'R', 'W'],
+    Naya: ['G', 'R', 'W'],
+    Sultai: ['B', 'G', 'U'],
+    Temur:  ['G', 'R', 'U'],
+};
+const fourColours = {
+    Glint: 'W',
+    Dune: 'U',
+    Ink: 'B',
+    Witch: 'R',
+    Yore: 'G',
+};
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
-const filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}
+let filters = reactive({
+  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
 });
 const sorts = ['Mana', 'Price', 'Count'];
 const info = reactive({ count: 0, total_value: 0, zoom: 0 });
@@ -91,6 +124,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
   info.total_value = 0;
   filtered = filtered.filter((card) => {
     // return card.border_color == 'borderless';
+    // if(card.border_color === 'borderless' || card.full_art === true) return false;
     // return card.frame == '2003';
     // return card.full_art == true;
     if (_filters.dupesOnly && card.count === 1) {
@@ -100,19 +134,22 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
 
-    const hasColour = _filters.colours.every((colour) => {
-      if (colour === 'C') {
-        return card.color_identity.length === 0;
-      }
-      return (card.color_identity || []).includes(colour);
-    });
-    if (!hasColour) return false;
+    const colourF = (f) => _filters.ors.colours ? _filters.colours.every(f) : _filters.colours.some(f);
+    if(_filters.colours.length > 0) {
+      const hasColour = colourF((colour) => {
+        if (colour === 'C') {
+          return card.color_identity.length === 0;
+        }
+        return (card.color_identity || []).includes(colour);
+      });
+      if (!hasColour) return false;
+    }
 
-    const hasKeyword = _filters.keywords.every((keyword) => (card.keywords || []).includes(keyword));
+    const hasKeyword = _filters.keywords.every(keyword => (card.keywords || []).includes(keyword));
     if (!hasKeyword) return false;
 
-    const hasTribe = _filters.tribes.every((tribe) => (card.type_line.toLowerCase() || '').includes(tribe.toLowerCase()));
-    if (!hasTribe) return false;
+    const hasTribe = _filters.tribes.some(tribe => (card.type_line.toLowerCase() || '').includes(tribe.toLowerCase()));
+    if (_filters.tribes.length > 0 && !hasTribe) return false;
 
     const hasRarity = _filters.rarity.length > 0 ? [..._filters.rarity].includes(card.rarity) : true;
     if (!hasRarity) return false;
@@ -134,7 +171,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
   info.count = filtered.length;
   clearTimeout(to);
   loading.value = false;
-  resolve(filtered.slice(0, 250));
+  resolve(filtered);
 });
 let allCards = [];
 const cards = reactive({ collections: [], value: [] });
@@ -151,12 +188,18 @@ const loadCollection = async (name) => {
 
 
 const loadSet = async (setId) => {
+  loadSearch('e:' + setId);
+};
+
+const loadSearch = async (query, unique='prints') => {
+  console.log(query);
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
-    q: 'e:' + setId,
-    unique: 'prints'
+    q: query + ' -border:silver -is:digital',
+    unique: unique
   });
   let cards = [];
   loading.value = true;
+  let count = 0;
   try {
     while (true) {
       let json = await cachedGet(getCache, url);
@@ -437,18 +480,40 @@ const fetchCardData = async (cardList) => {
   }
 };
 
-const exportList = async (e) => {
-  console.log(clipboard.cards)
-  // let list = "";
-  // cards.value.forEach(card => {
-  //   list += card.count + ' ' + card.name + '\n';
-  // });
-  let list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
-  clipboard.cards.forEach(card => {
-    console.log(card.name);
-    list += `"${card.count}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
-  });
+const exportList = async (format) => {
+  if(format === 'mtgo') {
+
+    let list = "";
+    cards.value.forEach(card => {
+      list += (card.count || 1) + ' ' + card.name + '\n';
+    });
+  }
+  else if (format === 'moxfield') {
+    let list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
+    clipboard.cards.forEach(card => {
+      list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
+    });
+  }
   navigator.clipboard.writeText(list);
+};
+
+const matchColours = (colours) => {
+  let _colours = [... colours].sort();
+  if(colours.length === 2) {
+    for(const [key, value] of Object.entries(twoColours)) {
+      if(_colours.every((v, i) => v === value[i])) return key;
+    }
+  }
+  else if(colours.length === 3) {
+    for(const [key, value] of Object.entries(threeColours)) {
+      if(_colours.every((v, i) => v === value[i])) return key;
+    }
+  }
+  else if(colours.length === 4) {
+    for(const [key, value] of Object.entries(fourColours)) {
+      if(!colours.includes(value)) return key;
+    }
+  }
 };
 
 </script>
@@ -493,7 +558,16 @@ const exportList = async (e) => {
       <hr>
 
       <div class="filter-group colours">
-        <h3>Colours</h3>
+        <div class="header">
+          <h3>Colours ({{ filters.colours.length > 1 ? matchColours(filters.colours) : '' }})</h3>
+          <div
+            class="bi-toggle"
+            :class="{active: filters.ors.colours}"
+            @click="filters.ors.colours=!filters.ors.colours"
+          >
+            {{ filters.ors.colours ? "And" : "Or" }}
+          </div>
+        </div>
         <div
           class="input-group colour"
           :class="filters.colours.includes(code) ? 'selected' : ''"
@@ -593,7 +667,10 @@ const exportList = async (e) => {
         />
       </div>
 
-      <div class="filter-group compare" v-if="cards.collections.length > 0">
+      <div
+        class="filter-group compare"
+        v-if="cards.collections.length > 0"
+      >
         <h3>Compare</h3>
         <div class="grid">
           <template
@@ -627,6 +704,19 @@ const exportList = async (e) => {
             </div>
           </template>
         </div>
+      </div>
+
+      <div class="filter-group">
+        <h3>
+          Scryfall Search <a
+            href="https://scryfall.com/docs/syntax"
+            target="_blank"
+          >?</a>
+        </h3>
+        <input
+          type="search"
+          @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
+        >
       </div>
     </div>
 
@@ -732,6 +822,12 @@ const exportList = async (e) => {
             v-model="info.zoom"
           />
         </span>
+        <button
+          class=""
+          @click="clipboard.cards = clipboard.cards.concat(cards.value)"
+        >
+          Clip All
+        </button>
       </div>
 
       <div class="menu" />
@@ -752,8 +848,15 @@ const exportList = async (e) => {
           </div>
         </div>
         <div class="buttons">
-          <button @click="clipboard.cards = []">Clear</button>
-          <button @click="exportList">Copy</button>
+          <button @click="clipboard.cards = []">
+            Clear
+          </button>
+          <button @click="exportList('mtgo')">
+            MTGO
+          </button>
+          <button @click="exportList('moxfield')">
+            Mox
+          </button>
         </div>
       </div>
 
@@ -764,7 +867,7 @@ const exportList = async (e) => {
       >
         <div
           class="card"
-          v-for="card in cards['value']"
+          v-for="card in cards['value'].slice(0, 250)"
           :key="card.id + card.foil"
         >
           <div class="img">
@@ -782,7 +885,12 @@ const exportList = async (e) => {
               v-if="card.card_faces && card.card_faces[0].image_uris"
               :src="card.card_faces[1].image_uris.normal"
             >
-            <button class="small clip" @click="clipboard.cards.push(card)">+</button>
+            <button
+              class="small clip"
+              @click="clipboard.cards.push(card)"
+            >
+              +
+            </button>
           </div>
           <p class="name">
             {{ card.count }} {{ card.name }}
@@ -832,6 +940,7 @@ hr {
   min-width: 8em;
 }
 .clipboard {
+  max-height: 100%;
   position: absolute;
   display: flex;
   flex-direction: column;
@@ -852,6 +961,7 @@ hr {
 }
 .clipboard .clip-cards {
   flex-grow: 1;
+  overflow: auto;
 }
 .clipboard .buttons {
   display: flex;
@@ -869,6 +979,7 @@ hr {
 }
 #sidebar {
   min-width: 380px;
+  width: 400px;
   text-align: left;
   padding: 40px 20px;
   background-color: var(--colour-sidebar);
@@ -969,11 +1080,19 @@ hr {
 .filter-group {
   flex-flow: wrap;
 }
+.filter-group .header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 .filter-group h3 {
   font-family: "Beleren SmallCaps Bold";
   /* font-family: "Spectral"; */
   font-weight: 500;
   font-size: 1rem;
+}
+.filter-group > h3 {
   margin-bottom: 10px;
   flex-basis: 100%;
 }
@@ -1046,7 +1165,7 @@ hr {
 .rarities input[type="checkbox"]:checked + label {
   opacity: 1;
 }
-.colours input[type="checkbox"],
+.colours .input-group input[type="checkbox"],
 .rarities input[type="checkbox"] {
   display: none;
 }

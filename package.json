@@ -10,6 +10,7 @@
   "dependencies": {
     "@vueform/multiselect": "^2.3.3",
     "@vueform/slider": "^2.0.9",
+    "@vueform/toggle": "^2.0.1",
     "dexie": "^3.2.1",
     "fuse.js": "^6.5.3",
     "papaparse": "^5.3.1",

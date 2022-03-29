@@ -10,6 +10,7 @@ import HelloWorld from './components/HelloWorld.vue';
 
 <style src="@vueform/multiselect/themes/default.css"></style>
 <style src="@vueform/slider/themes/default.css"></style>
+<style src="@vueform/toggle/themes/default.css"></style>
 <style>
 @import "./assets/fonts/index.css";
 @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=PT+Serif:wght@400;700&family=Spectral:wght@300;400;500&display=swap");
@@ -41,6 +42,7 @@ body {
   --colour-light-font: #efefef;
   --colour-dark-grey: #110d12;
   --colour-accent: #938996;
+  --colour-off-white: #e5dbdc;
 
   --colour-red: #f9ac90;
   --colour-green: #9cd4af;
@@ -62,13 +64,12 @@ body {
   --slider-bg: #918295;
   --slider-connect-bg: var(--colour-input-grey);
   --slider-radius: var(--default-br);
-  --slider-handle-bg: #e5dbdc;
+  --slider-handle-bg: var(--colour-off-white);
   --slider-handle-height: 2.1rem;
   --slider-handle-width: 2.1rem;
   --slider-handle-radius: 2px;
   --slider-handle-shadow: var(--default-shadow);
   --slider-handle-ring-width: 0px;
-  --slider-tooltip-bg: #10b981;
   --slider-tooltip-font-size: 1rem;
   --slider-tooltip-bg: transparent;
   --slider-tooltip-color: var(--colour-input-grey);
@@ -91,6 +92,26 @@ body {
   /* --ms-option-line-height: 1; */
   /* --ms-max-height: var(--height-input); */
   /* --ms-border-width: 0; */
+
+  --toggle-height: 1.5rem;
+  --toggle-width: 4rem;
+  --toggle-font-size: .8rem;
+  --toggle-bg-on: var(--colour-input-grey);
+  --toggle-bg-off: var(--colour-input-grey);
+  --toggle-text-on: var(--colour-light-font);
+  --toggle-text-off: var(--colour-light-font);
+  --toggle-border: 2px solid var(--colour-input-grey);
+  --toggle-border-on: 0;
+  --toggle-border-off: 0;
+  --toggle-ring-width: 0;
+  --toggle-handle-enabled: var(--colour-off-white);
+}
+.bi-toggle {
+  background-color: var(--colour-input-grey);
+  padding: .5rem 1rem;
+  border-radius: 50px;
+  cursor: pointer;
+  user-select: none;
 }
 .multiselect-dropdown {
   box-shadow: var(--default-shadow);
