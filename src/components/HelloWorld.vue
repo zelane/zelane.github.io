@@ -481,15 +481,14 @@ const fetchCardData = async (cardList) => {
 };
 
 const exportList = async (format) => {
+  let list = "";
   if(format === 'mtgo') {
-
-    let list = "";
     cards.value.forEach(card => {
       list += (card.count || 1) + ' ' + card.name + '\n';
     });
   }
   else if (format === 'moxfield') {
-    let list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
+    list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
     clipboard.cards.forEach(card => {
       list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
     });
