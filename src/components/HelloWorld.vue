@@ -2,7 +2,6 @@
 import { reactive, ref, watch } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
-import Toggle from '@vueform/toggle';
 import Slider from '@vueform/slider';
 import Dexie from 'dexie';
 import Fuse from 'fuse.js';
@@ -173,10 +172,10 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
   loading.value = false;
   resolve(filtered);
 });
+
 let allCards = [];
 const cards = reactive({ collections: [], value: [] });
 let activeCollections = reactive({ value: [] });
-
 
 const loadCollections = async (names) => {
   if (names === []) {
@@ -198,7 +197,6 @@ const loadCollections = async (names) => {
   }
   showCards([...cards.values()]);
 };
-
 
 const loadSet = async (setId) => {
   loadSearch('e:' + setId);
@@ -279,19 +277,6 @@ const cachedGet = async (cache, url) => {
   return json;
 };
 
-const getEx = async () => {
-  const rate = await fetch('https://api.exchangerate.host/latest', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': 'true'
-    },
-    // body: JSON.stringify(data),
-  });
-  console.log(rate);
-  return 0.9;
-};
-
 let getCache = null;
 caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
@@ -342,7 +327,7 @@ const handleTextUpload = async (e) => {
     for (const m of matches) {
       cards[m[3] + m[4]] = {
         name: m[2],
-        count: m[1],
+        count: parseInt(m[1]),
         set: m[3],
         number: m[4],
       };
@@ -354,20 +339,13 @@ const handleTextUpload = async (e) => {
     for (const m of matches) {
       cards[m[2]] = {
         name: m[2],
-        count: m[1],
+        count: parseInt(m[1]),
         set: '',
         number: '',
       };
     }
   }
-  fetchCardData(cards);
-};
-
-const fileElem = ref(null);
-
-const onFileChange = e => {
-  e.preventDefault();
-  console.log(e.dataTransfer.items[0].getAsFile());
+  updateCollection(upload.name, cards);
 };
 
 const handleFileUpload = async (e) => {
@@ -386,10 +364,17 @@ const handleFileUpload = async (e) => {
 
   reader.onload = async () => {
     let cardList = await parser(reader.result);
-    fetchCardData(cardList);
+    updateCollection(upload.name, cardList);
   };
   let encoding = await checkEncoding(file);
   reader.readAsText(file, encoding);
+};
+
+const fileElem = ref(null);
+
+const onFileChange = e => {
+  e.preventDefault();
+  console.log(e.dataTransfer.items[0].getAsFile());
 };
 
 Papa.parsePromise = (file) => {
@@ -418,7 +403,7 @@ const parseDSWeb = async (csv) => {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
       cards[setCode + row['Card Number']] = {
         name: row['Card Name'],
-        count: row['Quantity'],
+        count: parseInt(row['Quantity']),
         set: '',
         number: '',
       };
@@ -426,7 +411,7 @@ const parseDSWeb = async (csv) => {
     else {
       cards[setCode + row['Card Number']] = {
         name: row['Card Name'],
-        count: row['Quantity'],
+        count: parseInt(row['Quantity']),
         set: setCode,
         number: row['Card Number'].toString(),
       };
@@ -436,13 +421,42 @@ const parseDSWeb = async (csv) => {
   return cards;
 };
 
+const updateCollection = async (name, cardList, append=true) => {
+  let cardData = [];
+
+  // If collection exists and append, only add new cards, sum counts
+  if(append && cards.collections.includes(upload.name)) {
+    const collection = await db.collections.get({ name: upload.name });
+    cardData = collection.cards;
+    for(const [key, card] of Object.entries(cardList)) {
+      let existing = collection.cards.filter(c => {
+        return (card.set === '' || (card.set === c.set && card.number === c.collector_number)) || c.name === card.name;
+      });
+      if(existing.length > 0) {
+        existing[0].count = card.count;
+        delete cardList[key];
+      }
+    }
+  }
+
+  if(cardList) {
+    const newData = await fetchCardData(cardList);
+    cardData = cardData.concat(newData);
+  }
+  await db.collections.put({ 'name': name, 'cards': cardData });
+  if (!cards.collections.includes(name)) {
+    cards.collections.push(name);
+  }
+  activeCollections.value = [name];
+};
+
 const fetchCardData = async (cardList) => {
   const ids = [];
   const counts = {};
-
   try {
-    Object.keys(cardList).forEach(key => {
-      let _card = cardList[key];
+    let cardData = [];
+
+    for(const [key, _card] of Object.entries(cardList)) {
       let elem = {};
       if (_card.set === '' && _card.number === '') {
         elem.name = _card.name;
@@ -454,8 +468,8 @@ const fetchCardData = async (cardList) => {
         counts[_card.set + _card.number] = _card.count;
       }
       ids.push(elem);
-    });
-    let cardData = [];
+    };
+
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += 75) {
       const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
@@ -472,15 +486,10 @@ const fetchCardData = async (cardList) => {
       await new Promise((r) => setTimeout(r, 100));
     }
     upload.progress = 100;
-    let name = upload.name;
-    db.collections.put({ 'name': name, 'cards': cardData });
-    if (!cards.collections.includes(name)) {
-      cards.collections.push(name);
-    }
-    activeCollections.value = [name];
+    return cardData;
   }
-  catch {
-
+  catch(e) {
+    console.error(e);
   }
   finally {
     upload.active = false;
