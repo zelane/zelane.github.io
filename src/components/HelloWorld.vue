@@ -175,15 +175,28 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
 });
 let allCards = [];
 const cards = reactive({ collections: [], value: [] });
-let activeCollection = reactive({ value: "" });
+let activeCollections = reactive({ value: [] });
 
 
-const loadCollection = async (name) => {
-  if (name === "") {
+const loadCollections = async (names) => {
+  if (names === []) {
     return;
   }
-  let collection = await db.collections.get({ name: name });
-  showCards(collection.cards);
+  let cards = new Map();
+  for(const name of names) {
+    let collection = await db.collections.get({ name: name });
+    for(const card of collection.cards) {
+      if(cards.has(card.id)) {
+        let ex = cards.get(card.id);
+        ex.count = parseInt(ex.count) + parseInt(card.count);
+        cards.set(card.id, ex);
+      }
+      else {
+        cards.set(card.id, card);
+      }
+    }
+  }
+  showCards([...cards.values()]);
 };
 
 
@@ -192,14 +205,12 @@ const loadSet = async (setId) => {
 };
 
 const loadSearch = async (query, unique='prints') => {
-  console.log(query);
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
     q: query + ' -border:silver -is:digital',
     unique: unique
   });
   let cards = [];
   loading.value = true;
-  let count = 0;
   try {
     while (true) {
       let json = await cachedGet(getCache, url);
@@ -236,10 +247,10 @@ const showCards = async (_cards) => {
 const deleteCollection = async (name) => {
   await db.collections.delete(name);
   cards.collections.pop(name);
-  activeCollection.value = "";
+  activeCollections.value = [];
 };
 
-watch(activeCollection, x => loadCollection(x.value));
+watch(activeCollections, x => loadCollections(x.value));
 
 let to = null;
 watch(filters, async (value) => {
@@ -254,7 +265,7 @@ db.collections.toCollection().primaryKeys().then(keys => {
     return;
   }
   cards.collections = keys.sort();
-  activeCollection.value = keys[0];
+  activeCollections.value = [keys[0]];
 });
 
 const cachedGet = async (cache, url) => {
@@ -466,7 +477,7 @@ const fetchCardData = async (cardList) => {
     if (!cards.collections.includes(name)) {
       cards.collections.push(name);
     }
-    activeCollection.value = name;
+    activeCollections.value = [name];
   }
   catch {
 
@@ -523,9 +534,9 @@ const matchColours = (colours) => {
       <div class="filter-group collections">
         <h3>View Collection</h3>
         <Multiselect
-          v-model="activeCollection.value"
+          v-model="activeCollections.value"
           :options="cards.collections"
-          mode="single"
+          mode="tags"
           :can-clear="false"
         />
         <button
@@ -867,7 +878,7 @@ const matchColours = (colours) => {
         <div
           class="card"
           v-for="card in cards['value'].slice(0, 250)"
-          :key="card.id + card.foil"
+          :key="card.id"
         >
           <div class="img">
             <img
