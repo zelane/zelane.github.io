@@ -326,7 +326,7 @@ const handleTextUpload = async (e) => {
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       cards[m[3] + m[4]] = {
-        name: m[2],
+        name: m[2].split(' // ')[0],
         count: parseInt(m[1]),
         set: m[3],
         number: m[4],
@@ -338,7 +338,7 @@ const handleTextUpload = async (e) => {
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       cards[m[2]] = {
-        name: m[2],
+        name: m[2].split(' // ')[0],
         count: parseInt(m[1]),
         set: '',
         number: '',
@@ -423,6 +423,7 @@ const parseDSWeb = async (csv) => {
 
 const updateCollection = async (name, cardList, append=true) => {
   let cardData = [];
+  console.log(cardList);
 
   // If collection exists and append, only add new cards, sum counts
   if(append && cards.collections.includes(upload.name)) {
@@ -430,15 +431,17 @@ const updateCollection = async (name, cardList, append=true) => {
     cardData = collection.cards;
     for(const [key, card] of Object.entries(cardList)) {
       let existing = collection.cards.filter(c => {
-        return (card.set === '' || (card.set === c.set && card.number === c.collector_number)) || c.name === card.name;
+        if(card.set !== '' && card.set === c.set && card.number === c.collector_number) return True;
+        return c.name === card.name;
       });
       if(existing.length > 0) {
+        console.log("Found", existing);
         existing[0].count = card.count;
         delete cardList[key];
       }
     }
   }
-
+  console.log(cardList);
   if(cardList) {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
@@ -546,7 +549,7 @@ const matchColours = (colours) => {
           v-model="activeCollections.value"
           :options="cards.collections"
           mode="tags"
-          :can-clear="false"
+          :searchable="true"
         />
         <button
           class="small add"
@@ -556,7 +559,7 @@ const matchColours = (colours) => {
         </button>
         <button
           class="small remove"
-          @click="deleteCollection(activeCollection.value)"
+          @click="deleteCollection(activeCollections.value[0])"
         >
           -
         </button>
