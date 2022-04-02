@@ -4,9 +4,7 @@ import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
 import Slider from '@vueform/slider';
 import Dexie from 'dexie';
-import Fuse from 'fuse.js';
-
-// defineProps({});
+import Filters from './Filters.vue';
 
 const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const upload = reactive({
@@ -18,184 +16,34 @@ const db = new Dexie('mtg');
 db.version(2).stores({
   collections: '&name'
 });
-
-const colours = {
-  Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
-};
-// [ "B", "G", "R", "U", "W" ]
-const twoColours = {
-    Azorius: ['U', 'W'],
-    Boros: ['R','W'],
-    Dimir: ['B', 'U'],
-    Golgari: ['B','G'],
-    Gruul: ['G', 'R'],
-    Izzet: ['R', 'U'],
-    Orzhov: ['B', 'W',],
-    Rakdos: ['B','R'],
-    Selesnya: ['G', 'W'],
-    Simic: ['G', 'U'],
-};
-const threeColours = {
-    Abzan: ['B', 'G', 'W'],
-    Bant: ['G', 'U', 'W'],
-    Esper: ['B', 'U', 'W'],
-    Grixis: ['B', 'R', 'U'],
-    Jeskai: ['R', 'U', 'W'],
-    Jund: ['B', 'G', 'R'],
-    Mardu: ['B', 'R', 'W'],
-    Naya: ['G', 'R', 'W'],
-    Sultai: ['B', 'G', 'U'],
-    Temur:  ['G', 'R', 'U'],
-};
-const fourColours = {
-    Glint: 'W',
-    Dune: 'U',
-    Ink: 'B',
-    Witch: 'R',
-    Yore: 'G',
-};
-const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
-const filterVals = reactive({ tribes: [], keywords: [], sets: [], allSets: [] });
-let filters = reactive({
-  colours: [], rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
-});
-const sorts = ['Mana', 'Price', 'Count'];
+const filterVals = reactive({ allSets: [] });
 const info = reactive({ count: 0, total_value: 0, zoom: 0 });
 const clipboard = reactive({show: false, cards: []});
 const setIds = new Set();
 let loading = ref(false);
 
-const dynamicSort = (a, b) => {
-  // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-  if (filters.sort === 'Price') {
-
-    if (!a.price) {
-      return true;
-    }
-    return a.price < b.price ? 1 : -1;
-  }
-  else if (filters.sort === 'Mana') {
-    return parseFloat(a.cmc) < parseFloat(b.cmc) ? 1 : -1;
-  }
-  else if (filters.sort === 'Count') {
-    return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-
-  }
-};
-
-const filterCards = async (cards, _filters) => new Promise(async resolve => {
-  let to = setTimeout(() => loading.value = true, 300);
-  let filtered = cards.sort(dynamicSort);
-
-  if (_filters.cardText && _filters.cardText !== '') {
-    const fuse = new Fuse(filtered, {
-      ignoreLocation: true,
-      threshold: 0.5,
-      findAllMatches: true,
-      keys: ['oracle_text', 'card_faces.oracle_text'],
-    });
-    filtered = [];
-    fuse.search(_filters.cardText).forEach((item) => {
-      filtered.push(item.item);
-    });
-  }
-
-
-  for (const col of Object.keys(_filters.incCol)) {
-    if (!_filters.incCol[col]) continue;
-    const otherCollection = await db.collections.get({ name: col });
-    const ids = otherCollection.cards.map(c => c.oracle_id);
-    filtered = filtered.filter(card => {
-      return ids.includes(card.oracle_id);
-    });
-  }
-
-  for (const col of Object.keys(_filters.excCol)) {
-    if (!_filters.excCol[col]) continue;
-    const otherCollection = await db.collections.get({ name: col });
-    const ids = otherCollection.cards.map(c => c.oracle_id);
-    filtered = filtered.filter(card => {
-      return !ids.includes(card.oracle_id);
-    });
-  }
-
-  info.count = 0;
-  info.total_value = 0;
-  filtered = filtered.filter((card) => {
-    // return card.border_color == 'borderless';
-    // if(card.border_color === 'borderless' || card.full_art === true) return false;
-    // return card.frame == '2003';
-    // return card.full_art == true;
-    if (_filters.dupesOnly && card.count === 1) {
-      return false;
-    }
-
-    const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
-    if (!hasName) return false;
-
-    const colourF = (f) => _filters.ors.colours ? _filters.colours.every(f) : _filters.colours.some(f);
-    if(_filters.colours.length > 0) {
-      const hasColour = colourF((colour) => {
-        if (colour === 'C') {
-          return card.color_identity.length === 0;
-        }
-        return (card.color_identity || []).includes(colour);
-      });
-      if (!hasColour) return false;
-    }
-
-    const hasKeyword = _filters.keywords.every(keyword => (card.keywords || []).includes(keyword));
-    if (!hasKeyword) return false;
-
-    const hasTribe = _filters.tribes.some(tribe => (card.type_line.toLowerCase() || '').includes(tribe.toLowerCase()));
-    if (_filters.tribes.length > 0 && !hasTribe) return false;
-
-    const hasRarity = _filters.rarity.length > 0 ? [..._filters.rarity].includes(card.rarity) : true;
-    if (!hasRarity) return false;
-
-    let hasSet = true;
-    if (_filters.sets.length > 0) {
-      hasSet = _filters.sets.some((set) => card.set === set);
-    }
-    if (!hasSet) return false;
-
-    const hasMana = card.cmc >= _filters.mana[0] && card.cmc <= _filters.mana[1];
-    if (!hasMana) return false;
-
-    info.total_value += card.price;
-    // info.count += parseInt(card.count);
-    return true;
-  });
-  info.total_value = parseInt(info.total_value);
-  info.count = filtered.length;
-  clearTimeout(to);
-  loading.value = false;
-  resolve(filtered);
-});
-
-let allCards = [];
-const cards = reactive({ collections: [], value: [] });
+const cards = reactive({ collections: [], all: [], filtered: [], sort: 'Price' });
 let activeCollections = reactive({ value: [] });
 
 const loadCollections = async (names) => {
   if (names === []) {
     return;
   }
-  let cards = new Map();
+  let cardMap = new Map();
   for(const name of names) {
     let collection = await db.collections.get({ name: name });
     for(const card of collection.cards) {
-      if(cards.has(card.id)) {
-        let ex = cards.get(card.id);
+      if(cardMap.has(card.id)) {
+        let ex = cardMap.get(card.id);
         ex.count = parseInt(ex.count) + parseInt(card.count);
-        cards.set(card.id, ex);
+        cardMap.set(card.id, ex);
       }
       else {
-        cards.set(card.id, card);
+        cardMap.set(card.id, card);
       }
     }
   }
-  showCards([...cards.values()]);
+  cards.all = [...cardMap.values()];
 };
 
 const loadSet = async (setId) => {
@@ -217,29 +65,11 @@ const loadSearch = async (query, unique='prints') => {
       url = json.next_page;
       await new Promise((r) => setTimeout(r, 100));
     }
-    showCards(cards);
+    cards.all = cards;
   }
   finally {
     loading.value = false;
   }
-};
-
-const showCards = async (_cards) => {
-  allCards = _cards;
-  const keywords = new Set();
-  const sets = [];
-  let ex = 0.9;
-
-  allCards.forEach(card => {
-    card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
-    card.keywords.forEach((kw) => {
-      keywords.add(kw);
-    });
-    sets[card.set] = card.set_name;
-  });
-  filterVals.keywords = [...keywords];
-  filterVals.sets = Object.keys(sets).map((key) => ({ set: key, setName: sets[key] }));
-  cards.value = await filterCards(allCards, filters);
 };
 
 const deleteCollection = async (name) => {
@@ -250,13 +80,12 @@ const deleteCollection = async (name) => {
 
 watch(activeCollections, x => loadCollections(x.value));
 
-let to = null;
-watch(filters, async (value) => {
-  clearTimeout(to);
-  to = setTimeout(async () => {
-    cards.value = await filterCards(allCards, value);
-  }, 500);
-});
+const filtersChanged = async (filteredCards, count, value) => {
+  info.count = count;
+  info.total_value = value;
+  cards.filtered = filteredCards;
+  loading.value = false;
+};
 
 db.collections.toCollection().primaryKeys().then(keys => {
   if (keys.length === 0) {
@@ -280,9 +109,6 @@ const cachedGet = async (cache, url) => {
 let getCache = null;
 caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
-  let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
-  filterVals.tribes = ts.data;
-  filterVals.tribes = filterVals.tribes.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
   as.data.forEach(set => setIds.add(set.code));
   filterVals.allSets = as.data;
@@ -372,11 +198,6 @@ const handleFileUpload = async (e) => {
 
 const fileElem = ref(null);
 
-const onFileChange = e => {
-  e.preventDefault();
-  console.log(e.dataTransfer.items[0].getAsFile());
-};
-
 Papa.parsePromise = (file) => {
   return new Promise((complete, error) => {
     Papa.parse(file, {
@@ -431,7 +252,7 @@ const updateCollection = async (name, cardList, append=true) => {
     cardData = collection.cards;
     for(const [key, card] of Object.entries(cardList)) {
       let existing = collection.cards.filter(c => {
-        if(card.set !== '' && card.set === c.set && card.number === c.collector_number) return True;
+        if(card.set !== '' && card.set === c.set && card.number === c.collector_number) return true;
         return c.name === card.name;
       });
       if(existing.length > 0) {
@@ -441,7 +262,6 @@ const updateCollection = async (name, cardList, append=true) => {
       }
     }
   }
-  console.log(cardList);
   if(cardList) {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
@@ -506,7 +326,7 @@ const fetchCardData = async (cardList) => {
 const exportList = async (format) => {
   let list = "";
   if(format === 'mtgo') {
-    cards.value.forEach(card => {
+    clipboard.cards.forEach(card => {
       list += (card.count || 1) + ' ' + card.name + '\n';
     });
   }
@@ -517,25 +337,6 @@ const exportList = async (format) => {
     });
   }
   navigator.clipboard.writeText(list);
-};
-
-const matchColours = (colours) => {
-  let _colours = [... colours].sort();
-  if(colours.length === 2) {
-    for(const [key, value] of Object.entries(twoColours)) {
-      if(_colours.every((v, i) => v === value[i])) return key;
-    }
-  }
-  else if(colours.length === 3) {
-    for(const [key, value] of Object.entries(threeColours)) {
-      if(_colours.every((v, i) => v === value[i])) return key;
-    }
-  }
-  else if(colours.length === 4) {
-    for(const [key, value] of Object.entries(fourColours)) {
-      if(!colours.includes(value)) return key;
-    }
-  }
 };
 
 </script>
@@ -574,159 +375,19 @@ const matchColours = (colours) => {
           :searchable="true"
           mode="single"
           @select="loadSet"
+          @loading="loading.value = true"
         />
       </div>
 
       <hr>
-
-      <div class="filter-group colours">
-        <div class="header">
-          <h3>Colours ({{ filters.colours.length > 1 ? matchColours(filters.colours) : '' }})</h3>
-          <div
-            class="bi-toggle"
-            :class="{active: filters.ors.colours}"
-            @click="filters.ors.colours=!filters.ors.colours"
-          >
-            {{ filters.ors.colours ? "And" : "Or" }}
-          </div>
-        </div>
-        <div
-          class="input-group colour"
-          :class="filters.colours.includes(code) ? 'selected' : ''"
-          :data-colour="code"
-          v-for="code in colours"
-          :key="code"
-        >
-          <input
-            type="checkbox"
-            v-model="filters.colours"
-            :value="code"
-            :id="code"
-          >
-          <label
-            :for="code"
-            :class="'icon icon-' + code"
-          />
-        </div>
-      </div>
-
-      <div class="filter-group rarities">
-        <h3>Rarity</h3>
-        <div
-          class="input-group rarity"
-          :data-rarity="rarity"
-          v-for="rarity in rarities"
-          :key="rarity"
-        >
-          <input
-            type="checkbox"
-            v-model="filters.rarity"
-            :value="rarity"
-            :id="rarity"
-          >
-          <label
-            :for="rarity"
-            :title="rarity"
-          />
-        </div>
-      </div>
-
-      <div class="filter-group">
-        <h3>Name</h3>
-        <input
-          type="search"
-          v-model="filters.name"
-        >
-      </div>
-
-      <div class="filter-group mana">
-        <h3>Mana Cost</h3>
-        <Slider
-          v-model="filters.mana"
-          :min="0"
-          :max="20"
-        />
-      </div>
-
-      <div class="filter-group">
-        <h3>Types</h3>
-        <Multiselect
-          v-model="filters.tribes"
-          :options="filterVals.tribes"
-          :searchable="true"
-          mode="tags"
-          :create-option="true"
-        />
-      </div>
-
-      <div class="filter-group">
-        <h3>Keywords</h3>
-        <Multiselect
-          v-model="filters.keywords"
-          :options="filterVals.keywords"
-          :searchable="true"
-          mode="tags"
-        />
-      </div>
-
-      <div class="filter-group">
-        <h3>Card text</h3>
-        <input
-          type="search"
-          v-model="filters.cardText"
-        >
-      </div>
-
-      <div class="filter-group">
-        <h3>Set</h3>
-        <Multiselect
-          v-model="filters.sets"
-          :options="filterVals.sets"
-          label="setName"
-          value-prop="set"
-          :searchable="true"
-          mode="tags"
-        />
-      </div>
-
-      <div
-        class="filter-group compare"
-        v-if="cards.collections.length > 0"
-      >
-        <h3>Compare</h3>
-        <div class="grid">
-          <template
-            v-for="col in cards.collections"
-            :key="col"
-          >
-            <div>{{ col }}</div>
-            <div>
-              <input
-                type="checkbox"
-                :id="col+'-inc'"
-                v-model="filters.incCol[col]"
-                :value="false"
-              >
-              <label
-                class="inc"
-                :for="col + '-inc'"
-              />
-            </div>
-            <div>
-              <input
-                type="checkbox"
-                :id="col+'-exc'"
-                v-model="filters.excCol[col]"
-                :value="false"
-              >
-              <label
-                class="exc"
-                :for="col + '-exc'"
-              />
-            </div>
-          </template>
-        </div>
-      </div>
+      
+      <Filters
+        @change="filtersChanged"
+        :cards="cards.all"
+        :collections="cards.collections"
+        :db="db"
+        :sort="cards.sort"
+      />
 
       <div class="filter-group">
         <h3>
@@ -771,23 +432,10 @@ const matchColours = (colours) => {
             :options="['DragonShield Web', 'DragonShield Mobile', 'MTGA', 'MTGO']"
             :can-clear="false"
           />
-          <!-- <h3>Encoding</h3>
-        <Multiselect
-          v-model="upload.encoding"
-          :options="['UTF-16LE', 'UTF-16BE', 'UTF-8', 'ascii']"
-          />-->
+
           <template v-if="['MTGA', 'MTGO'].includes(upload.format)">
             <textarea v-model="upload.text" />
           </template>
-
-          <!-- <div
-            class="file"
-            for="upload"
-            @drop="onFileChange"
-            @dragenter.prevent
-            @dragover.prevent
-            @dragover="e => e.preventDefault()"
-          ></div>-->
 
           <label
             class="button"
@@ -830,8 +478,8 @@ const matchColours = (colours) => {
         <span>Total Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
         <span>
           <Multiselect
-            v-model="filters.sort"
-            :options="sorts"
+            v-model="cards.sort"
+            :options="['Mana', 'Price', 'Count']"
             mode="single"
             :can-clear="false"
           />
@@ -889,7 +537,7 @@ const matchColours = (colours) => {
       >
         <div
           class="card"
-          v-for="card in cards['value'].slice(0, 250)"
+          v-for="card in cards.filtered.slice(0, 250)"
           :key="card.id"
         >
           <div class="img">
@@ -1099,177 +747,12 @@ hr {
   overflow: hidden;
 }
 
-.filter-group {
-  flex-flow: wrap;
-}
-.filter-group .header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.filter-group h3 {
-  font-family: "Beleren SmallCaps Bold";
-  /* font-family: "Spectral"; */
-  font-weight: 500;
-  font-size: 1rem;
-}
-.filter-group > h3 {
-  margin-bottom: 10px;
-  flex-basis: 100%;
-}
-.filter-group > input {
-  width: 100%;
-}
-
 .progress .bar {
   position: absolute;
   bottom: 0;
   height: 3px;
   background-color: var(--colour-accent);
   transition: all 0.3s;
-}
-
-.compare .grid {
-  display: grid;
-  grid-template-columns: 10fr 1fr 1fr;
-  line-height: 1rem;
-  background-color: var(--colour-input-grey);
-  padding: 0.5rem;
-  max-height: 11rem;
-  overflow: auto;
-  gap: 1rem;
-}
-
-.compare input[type=checkbox] {
-  display: none;
-}
-.compare label {
-  display: block;
-  text-align: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  font-size: 1.5rem;
-  line-height: 1.7rem;
-  border-radius: 4px;
-  cursor: pointer;
-  background-color: var(--colour-dark-grey);
-  font-family: var(--font-magic);
-}
-.compare label.inc::before {
-  content: "+";
-}
-.compare label.exc::before {
-  content: "-";
-}
-.compare input[type=checkbox]:checked ~ label.inc{
-  color: var(--colour-green);
-}
-.compare input[type=checkbox]:checked ~ label.exc{
-  color: var(--colour-red);
-}
-.mana {
-  padding: 0 10px;
-}
-.mana input {
-  min-width: 0;
-}
-
-.colours,
-.rarities {
-  display: flex;
-  gap: 0 10px;
-}
-.rarities {
-  gap: 0 15px;
-}
-.colours input[type="checkbox"]:checked + label,
-.rarities input[type="checkbox"]:checked + label {
-  opacity: 1;
-}
-.colours .input-group input[type="checkbox"],
-.rarities input[type="checkbox"] {
-  display: none;
-}
-.colour label,
-.rarity label {
-  display: block;
-  width: var(--height-input);
-  opacity: 0.5;
-  transition: all 0.1s;
-  cursor: pointer;
-  /* box-shadow: var(--default-shadow); */
-}
-
-.rarity label {
-  font-size: var(--height-input);
-  text-align: center;
-  text-shadow: 0px 0px 1px black;
-  border-radius: 50%;
-  height: 30px;
-  width: 30px;
-  opacity: 0.3;
-}
-.colour label {
-  color: #938996;
-  background-color: transparent;
-  height: var(--height-input);
-  width: var(--height-input);
-  line-height: var(--height-input);
-  border-radius: 50%;
-  font-size: calc(var(--height-input) - 5px);
-  text-align: center;
-}
-.colour.selected label {
-  color: #01121c;
-}
-.colour[data-colour="R"].selected label {
-  color: var(--colour-red);
-}
-.colour[data-colour="G"].selected label {
-  color: var(--colour-green);
-}
-.colour[data-colour="B"].selected label {
-  color: var(--colour-black);
-}
-.colour[data-colour="U"].selected label {
-  color: var(--colour-blue);
-}
-.colour[data-colour="W"].selected label {
-  color: var(--colour-white);
-}
-.colour[data-colour="C"].selected label {
-  color: var(--colour-less);
-}
-
-.rarity[data-rarity="mythic"] label {
-  color: #bf4427;
-  background-color: #de822b;
-  /* color: var(--colour-input-grey);
-  font-size: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(191, 122, 39, 1) 0%,
-    rgba(191, 68, 39, 1) 100%
-  );
-  border-radius: 50%;
-  height: 40px;
-  width: 40px;
-  display: block; */
-}
-.rarity[data-rarity="rare"] label {
-  color: #a58e4a;
-  background-color: #dbc98e;
-}
-.rarity[data-rarity="uncommon"] label {
-  color: #707883;
-  background-color: #7a939d;
-}
-.rarity[data-rarity="common"] label {
-  background-color: #efefef;
-}
-.rarity[data-rarity="special"] label {
-  background-color: #d8c6e1;
 }
 .cards {
   display: grid;
