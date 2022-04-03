@@ -1,11 +1,9 @@
 <script setup>
-// This starter template is using Vue 3 <script setup> SFCs
-// Check out https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup
-import HelloWorld from './components/HelloWorld.vue';
+import Page from './components/Page.vue';
 </script>
 
 <template>
-  <HelloWorld />
+  <Page />
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>
@@ -30,7 +28,7 @@ html {
   background-color: var(--colour-sidebar);
   width: 1rem;
 }
-body {
+:root {
   --default-fonts: "Spectral", Helvetica, Arial, sans-serif;
   --default-br: 1px;
   --default-shadow: 3px 3px 4px 0px rgba(0, 0, 0, 0.15),
@@ -54,12 +52,6 @@ body {
   --font-magic: "Beleren SmallCaps Bold";
 
   --height-input: 2.5rem;
-
-  padding: 0;
-  margin: 0;
-  color: #efefef;
-  background-color: #100c0f;
-  background-color: var(--colour-dark-grey);
   --slider-height: 2rem;
   --slider-bg: #918295;
   --slider-connect-bg: var(--colour-input-grey);
@@ -106,6 +98,14 @@ body {
   --toggle-ring-width: 0;
   --toggle-handle-enabled: var(--colour-off-white);
 }
+body {
+
+  padding: 0;
+  margin: 0;
+  color: #efefef;
+  background-color: #100c0f;
+  background-color: var(--colour-dark-grey);
+}
 .bi-toggle {
   background-color: var(--colour-input-grey);
   padding: .5rem 1rem;
@@ -116,6 +116,10 @@ body {
 .multiselect-dropdown {
   box-shadow: var(--default-shadow);
 }
+.multiselect-single-label {
+  padding-right: 1rem !important;
+}
+
 button,
 .button {
   font-family: var(--default-fonts);
@@ -135,10 +139,7 @@ button,
   /* margin-top: 1px; */
   /* margin-bottom: 1px; */
 }
-button:hover,
-button.small:hover,
-.button:hover,
-.button.small:hover {
+:is(button, button.small, .button, .button.small):hover {
   /* margin-top: 2px; */
   /* margin-bottom: 0px; */
   /* box-shadow: 0px 1px 1px #000; */

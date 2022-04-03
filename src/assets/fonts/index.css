@@ -36,11 +36,11 @@
 
 @font-face {
   font-family: 'icomoon';
-  src:  url('./icons/icomoon.eot?h9c7hr');
-  src:  url('./icons/icomoon.eot?h9c7hr#iefix') format('embedded-opentype'),
-    url('./icons/icomoon.ttf?h9c7hr') format('truetype'),
-    url('./icons/icomoon.woff?h9c7hr') format('woff'),
-    url('./icons/icomoon.svg?h9c7hr#icomoon') format('svg');
+  src:  url('./icons/icomoon.eot?asd21d');
+  src:  url('./icons/icomoon.eot?asd21d#iefix') format('embedded-opentype'),
+    url('./icons/icomoon.ttf?asd21d') format('truetype'),
+    url('./icons/icomoon.woff?asd21d') format('woff'),
+    url('./icons/icomoon.svg?asd21d#icomoon') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -60,7 +60,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 .icon-B:before {
   content: "\e900";
 }
@@ -81,4 +80,85 @@
 }
 .icon-W:before {
   content: "\e906";
+}
+.icon-library_books:before {
+  content: "\e907";
+}
+.icon-add:before {
+  content: "\e908";
+}
+.icon-clear:before {
+  content: "\e909";
+}
+.icon-content_copy:before {
+  content: "\e90a";
+}
+.icon-content_paste:before {
+  content: "\e90b";
+}
+.icon-remove:before {
+  content: "\e90c";
+}
+.icon-sort:before {
+  content: "\e90d";
+}
+.icon-format_list_bulleted:before {
+  content: "\e90e";
+}
+.icon-file_upload:before {
+  content: "\e90f";
+}
+.icon-keyboard_arrow_down:before {
+  content: "\e910";
+}
+.icon-keyboard_arrow_left:before {
+  content: "\e911";
+}
+.icon-keyboard_arrow_right:before {
+  content: "\e912";
+}
+.icon-keyboard_arrow_up:before {
+  content: "\e913";
+}
+.icon-arrow_back:before {
+  content: "\e914";
+}
+.icon-arrow_drop_down:before {
+  content: "\e915";
+}
+.icon-arrow_drop_up:before {
+  content: "\e916";
+}
+.icon-arrow_forward:before {
+  content: "\e917";
+}
+.icon-menu:before {
+  content: "\e918";
+}
+.icon-arrow_upward:before {
+  content: "\e919";
+}
+.icon-subdirectory_arrow_left:before {
+  content: "\e91a";
+}
+.icon-subdirectory_arrow_right:before {
+  content: "\e91b";
+}
+.icon-arrow_downward:before {
+  content: "\e91c";
+}
+.icon-delete:before {
+  content: "\e91d";
+}
+.icon-search:before {
+  content: "\e91e";
+}
+.icon-settings:before {
+  content: "\e91f";
+}
+.icon-drive_folder_upload:before {
+  content: "\e920";
+}
+.icon-menu_open:before {
+  content: "\e921";
 }
