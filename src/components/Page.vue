@@ -5,6 +5,7 @@ import Dexie from 'dexie';
 import Filters from './Filters.vue';
 import CardParser from './CardParser.vue';
 import { deepUnref } from 'vue-deepunref';
+import CardList from './CardList.vue';
 
 const db = new Dexie('mtg');
 db.version(2).stores({
@@ -13,11 +14,12 @@ db.version(2).stores({
 const filterVals = reactive({ allSets: [] });
 const info = reactive({ count: 0, total_value: 0, zoom: 0 });
 const clipboard = reactive({cards: []});
-const ui = reactive({upload: false, clipboard: false, menu: false, random: {}, selector: 'collection'});
-const setIds = new Set();
+const ui = reactive({upload: false, clipboard: false, prints: false, sidebarShow: false, sidebar:"clipboard", menu: false, random: {}, selector: 'collection'});
+const setIds = new Map();
 let loading = ref(false);
+let setLoading = ref(false);
 
-const cards = reactive({ collections: [], all: [], filtered: [], sort: 'Price' });
+const cards = reactive({ collections: [], all: [], filtered: [], sort: 'Price', prints: [] });
 let activeCollections = reactive({ value: [] });
 
 const cachedGet = async (cache, url) => {
@@ -79,6 +81,33 @@ const loadSearch = async (query, unique='prints') => {
   }
 };
 
+const loadPrints = async (cardName, unique='prints') => {
+  let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
+    q: `!"${cardName}" -border:silver -is:digital`,
+    unique: unique
+  });
+  let _cards = [];
+  ui.sidebar = 'prints';
+  ui.sidebarShow = true;
+  setLoading.value = true;
+  try {
+    while (true) {
+      let json = await cachedGet(getCache, url);
+      _cards = _cards.concat(json.data);
+      if (!json.has_more) break;
+      url = json.next_page;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    _cards.forEach(card => {
+      card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * 0.9 || 0);
+    });
+    cards.prints = _cards.sort((a,b) => a.price < b.price ? 1 : -1);
+  }
+  finally {
+    setLoading.value = false;
+  }
+};
+
 const deleteCollections = async (names) => {
   if(confirm(`Are you sure you want to delete ${names.join(', ')}?`)) {
     names.map(async name => {
@@ -113,7 +142,7 @@ let getCache = null;
 caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
-  as.data.forEach(set => setIds.add(set.code));
+  as.data.forEach(set => setIds.set(set.name, set.code));
   filterVals.allSets = as.data;
 });
 
@@ -129,7 +158,12 @@ const exportList = async (format) => {
   let list = "";
   if(format === 'mtgo') {
     clipboard.cards.forEach(card => {
-      list += (card.count || 1) + ' ' + card.name + '\n';
+      list += `${card.count || 1} ${card.name} \n`;
+    });
+  }
+  else if(format === 'mkm') {
+    clipboard.cards.forEach(card => {
+      list += `${card.count || 1} ${card.name} (${card.set_name})\n`;
     });
   }
   else if (format === 'moxfield') {
@@ -145,7 +179,6 @@ const addToSet = async (set, newCards) => {
   let collection = await db.collections.get({ name: set });
   for(const newCard of newCards) {
     let existing = collection.cards.filter(card => card.id === newCard.id);
-    console.log(existing);
     if(existing.length === 0) {
       collection.cards.push({... deepUnref(newCard)});
     }
@@ -157,6 +190,15 @@ const addToSet = async (set, newCards) => {
   if(activeCollections.value.includes(set)) {
     cards.all = cards.all.concat(newCard);
   }
+};
+
+const groupBySet = (cards) => {
+  const grouped = cards.reduce((map,card) => {
+    const current = map.get(card.set_name);
+    map.set(card.set_name, current ? current + 1 : 1);
+    return map;
+  }, new Map());
+  return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
 };
 
 </script>
@@ -223,21 +265,17 @@ const addToSet = async (set, newCards) => {
       />
     </div>
 
-    <div id="main">
-      <div
-        class="loader"
-        v-if="loading"
-      >
-        Loading
-      </div>
-      
+    <div
+      id="main"
+      @click="ui.sidebarShow = false"
+    >
       <CardParser
         v-if="ui.upload"
         @change="updateCollection"
         @close="ui.upload=false"
         :db="db"
         :collections="cards.collections"
-        :set-ids="setIds"
+        :set-ids="new Set(setIds.values())"
       />
 
       <div class="info-bar">
@@ -246,73 +284,19 @@ const addToSet = async (set, newCards) => {
         
         <span
           class="clip"
-          @click="ui.clipboard = !ui.clipboard"
+          @click.stop="() => {ui.sidebar = 'clipboard'; ui.sidebarShow = !ui.sidebarShow}"
         >
           <span class="icon icon-content_paste" />
           <span>{{ clipboard.cards.length }}</span>
         </span>
 
-        <!-- <span class="selector-selector">
-          <Multiselect
-            v-model="ui.selector"
-            :options="['collection', 'set', 'search']"
-            mode="single"
-            :can-clear="false"
-          />
+        <span class="info">
+          <a
+            href="#"
+            @click.stop="{ui.sidebar = 'info'; ui.sidebarShow = !ui.sidebarShow}"
+          >Sets</a>
         </span>
 
-        <span
-          class="selector collections"
-          v-show="ui.selector === 'collection'"
-        >
-          <Multiselect
-            v-model="activeCollections.value"
-            :options="cards.collections"
-            mode="tags"
-            :searchable="true"
-          >
-            <template #option="{ option }">
-              <div class="collection">
-                <span>{{ option.label }}</span>
-                <a
-                  href=""
-                  @click="deleteCollections([option.value])"
-                >Del</a>
-              </div>
-            </template>
-          </Multiselect>
-          <button
-            class="small add"
-            @click="ui.upload = true"
-          >
-            +
-          </button>
-        </span>
-
-        <span
-          class="selector set"
-          v-show="ui.selector === 'set'"
-        >
-          <Multiselect
-            :options="filterVals.allSets"
-            label="name"
-            value-prop="code"
-            :searchable="true"
-            mode="single"
-            @select="loadSet"
-            @loading="loading.value = true"
-          />
-        </span>
-
-        <span
-          class="selector search"
-          v-show="ui.selector === 'search'"
-        >
-          <input
-            type="search"
-            @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
-          >
-        </span> -->
 
         <span class="sort">
           <Multiselect
@@ -322,7 +306,12 @@ const addToSet = async (set, newCards) => {
             :can-clear="false"
           />
         </span>
-
+        <span class="zoom">
+          <input
+            type="number"
+            v-model="info.zoom"
+          >
+        </span>
         <!-- <span>
           <Slider
             :min="-5"
@@ -334,122 +323,125 @@ const addToSet = async (set, newCards) => {
 
 
       <div
-        class="clipboard"
-        :class="{'show': ui.clipboard}"
+        class="sidepanel"
+        :class="{'show': ui.sidebarShow}"
       >
         <div
           class="menu"
-          @click="ui.clipboard = !ui.clipboard"
+          @click.stop="ui.sidebarShow = !ui.sidebarShow"
         >
           <span class="icon icon-content_paste" />
           <span>{{ clipboard.cards.length }}</span>
         </div>
-        
-        <h3>Clipboard {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(clipboard.cards.reduce((sum, a) => sum += a.price, 0)) }}</h3>
-        <div class="clip-cards">
-          <div
-            class="clip-card"
-            v-for="card in clipboard.cards"
-            :key="'clip-' + card.name"
-          >
-            <p>1 {{ card.name }}</p> 
-          </div>
-        </div>
-        <div class="buttons">
-          <div
-            class="menu-button"
-          >
-            <button 
-              @click="ui.random.clipExports = !ui.random.clipExports"
-            >
-              Export
-            </button>
-            <div
-              class="v-menu"
-              :class="{show: ui.random.clipExports}"
-            >
-              <button @click="exportList('mtgo')">
-                MTGO
-              </button>
-              <button @click="exportList('moxfield')">
-                Mox
-              </button>
-            </div>
-          </div>
-          
-          <div
-            class="menu-button"
-          >
-            <button 
-              @click="ui.random.addToSet = !ui.random.addToSet"
-            >
-              Add to set
-            </button>
-            <div
-              class="v-menu"
-              :class="{show: ui.random.addToSet}"
-            >
-              <button v-for="col in activeCollections.value" @click="addToSet(col, clipboard.cards)" :key="col">
-                {{ col }}
-              </button>
-            </div>
-          </div>
-          <button @click="clipboard.cards = clipboard.cards.concat(cards.filtered)">
-            Clip All
-          </button>
-          <button @click="clipboard.cards = []">
-            Clear
-          </button>
-        </div>
-      </div>
 
-      <div
-        class="cards"
-        v-if="!ui.upload"
-        :style="{ 'font-size': 18 + (info.zoom * 2) + 'px' }"
-      >
         <div
-          class="card"
-          v-for="card in cards.filtered.slice(0, 500)"
-          :key="card.id"
+          class="prints"
+          v-show="ui.sidebar === 'prints'"
         >
-          <div class="img">
-            <img
-              v-if="card.image_uris"
-              :src="card.image_uris.normal"
-            >
-            <img
-              class="flip front"
-              v-if="card.card_faces && card.card_faces[0].image_uris"
-              :src="card.card_faces[0].image_uris.normal"
-            >
-            <img
-              class="flip back"
-              v-if="card.card_faces && card.card_faces[0].image_uris"
-              :src="card.card_faces[1].image_uris.normal"
-            >
-            <button
-              class="small clip icon icon-add"
-              @click="clipboard.cards.push(card)"
-            />
-          </div>
-          <p class="name">
-            {{ card.count }} {{ card.name }}
-          </p>
-          <p>{{ card.set_name }} [{{ card.set }}]</p>
-          <p>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}</p>
+          <h3>Prints</h3>
+          <CardList
+            :cards="cards.prints"
+            :loading="setLoading"
+            :zoom="1"
+            @clip="card => clipboard.cards.push(card)"
+          />
+        </div>
 
-          <!-- <p>{{ card.frame }}</p> -->
-          <!-- <p>{{ card.full_art }}</p> -->
-          <!-- <p>{{ card.border_color }}</p> -->
-          <!-- <p>{{ card.promo }}</p> -->
-          <!-- <p>{{ card.reprint }}</p> -->
-          <!-- <p>{{ card.variation }}</p> -->
-          <!-- <p>{{ card.prices }}</p> -->
-          <!-- <p>{{ card.prices.eur }}</p> -->
-          <!-- <p>{{ card.rarity }}</p> -->
+        <div
+          class="info"
+          v-if="ui.sidebar === 'info'"
+        >
+          <h3>Selection info</h3>
+          <div class="sets">
+            <div
+              v-for="[set, count] in groupBySet(cards.filtered).entries()"
+              :key="set"
+            >
+              {{ count }} <a
+                href="#"
+                @click="setIds.get(set)"
+              >{{ set }} {{ setIds.get(set) }}</a>
+            </div>
+          </div>
+        </div>
+        
+        <div
+          class="clipboard"
+          v-show="ui.sidebar === 'clipboard'"
+        >
+          <h3>Clipboard {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(clipboard.cards.reduce((sum, a) => sum += a.price, 0)) }}</h3>
+          <div class="clip-cards">
+            <div
+              class="clip-card"
+              v-for="card in clipboard.cards"
+              :key="'clip-' + card.name"
+            >
+              <p>{{ card.count }}x {{ card.name }} ({{ card.set }})</p> 
+            </div>
+          </div>
+          <div class="buttons">
+            <div
+              class="menu-button"
+            >
+              <button 
+                @click="ui.random.clipExports = !ui.random.clipExports"
+              >
+                Export
+              </button>
+              <div
+                class="v-menu"
+                :class="{show: ui.random.clipExports}"
+              >
+                <button @click="exportList('mtgo')">
+                  MTGO
+                </button>
+                <button @click="exportList('mkm')">
+                  MKM + Set
+                </button>
+                <button @click="exportList('moxfield')">
+                  Mox
+                </button>
+              </div>
+            </div>
+            
+            <div
+              class="menu-button"
+            >
+              <button 
+                @click="ui.random.addToSet = !ui.random.addToSet"
+              >
+                Add to set
+              </button>
+              <div
+                class="v-menu"
+                :class="{show: ui.random.addToSet}"
+              >
+                <button
+                  v-for="col in activeCollections.value"
+                  @click="addToSet(col, clipboard.cards)"
+                  :key="col"
+                >
+                  {{ col }}
+                </button>
+              </div>
+            </div>
+            <button @click="clipboard.cards = clipboard.cards.concat(cards.filtered)">
+              Clip All
+            </button>
+            <button @click="clipboard.cards = []">
+              Clear
+            </button>
+          </div>
         </div>
       </div>
+      <CardList
+        :cards="cards.filtered"
+        :zoom="info.zoom"
+        :loading="loading"
+        @clip="card => clipboard.cards.push(card)"
+        @view-prints="cardName => loadPrints(cardName)"
+        v-if="ui.upload === false"
+      />
     </div>
   </div>
 </template>
@@ -475,20 +467,12 @@ hr {
   top: 0;
   z-index: 2;
 }
+.info-bar .zoom input {
+  max-width: 4rem;
+}
 .info-bar .multiselect,
 .info-bar .slider-target {
   min-width: 6em;
-}
-.info-bar .selector-selector {
-  min-width: 8em;
-}
-/* .selector.collections .multiselect-dropdown {
-  overflow-y: auto !important;
-} */
-.collection {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
 }
 select {
   background-color: var(--colour-input-grey);
@@ -501,15 +485,10 @@ select {
   font-family: var(--default-fonts);
   font-size: 1rem;;
   /* appearance: none; */
-  /* font: -moz-pull-down-menu; */
 }
 option {
-  /* font: -moz-pull-down-menu; */
   font-family: var(--default-fonts);
   line-height: 2rem;
-}
-.info-bar .selector {
-  width: 20rem;
 }
 .info-bar .clip {
   display: flex;
@@ -567,11 +546,9 @@ option {
   transform: translate(0, 0);
 }
 
-.clipboard {
+.sidepanel {
   max-height: 100%;
   position: absolute;
-  display: flex;
-  flex-direction: column;
   top: 3rem;
   bottom: 0;
   right: 0;
@@ -583,8 +560,25 @@ option {
   z-index: 2;
   color: var(--colour-light-font);
 }
-.clipboard.show {
+.sidepanel.show {
   transform: translate(0, 0);
+}
+.sidepanel .info {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.sidepanel .info .sets {
+  overflow: auto;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+.clipboard {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 .clipboard .clip-cards {
   flex-grow: 1;
@@ -625,75 +619,9 @@ option {
   height: 100%;
   overflow: hidden;
 }
-.loader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 99;
-  line-height: 100vh;
-  text-align: center;
-  font-size: 2rem;
-}
 .collections {
   display: flex;
   gap: 5px;
-}
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
-  gap: 2em;
-  padding: 2rem;
-  position: absolute;
-  top: 3rem;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow: auto;
-}
-.card {
-  min-width: 15em;
-	content-visibility: auto;
-}
-.card .flip.back {
-  display: none;
-}
-.card .img {
-  position: relative;
-}
-.card .img:hover .flip.front {
-  display: none;
-}
-.card .img:hover .flip.back {
-  display: initial;
-}
-.card .img .clip {
-  display: none;
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-}
-.card .img:hover .clip {
-  display: block;
-}
-.card p {
-  font-size: .9em;
-  text-indent: .5rem;
-}
-.card .name {
-  font-weight: bold;
-  display: block;
-  font-size: 1em;
-  font-family: "Beleren Bold";
-  line-height: 1;
-  /* font-weight: 600; */
-}
-.card img {
-  width: 100%;
-  border-radius: 5%;
-  box-shadow: 0px 2px 5px #000000f2;
 }
 @media (max-width: 640px) {
   #window {
@@ -709,13 +637,6 @@ option {
     order: 1;
     width: 100%;
     min-width: 0;
-  }
-  .cards {
-    justify-content: center;
-	  scroll-snap-type: y mandatory;
-  }
-  .card {
-    scroll-snap-align: start;
   }
 }
 </style>

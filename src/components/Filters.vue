@@ -28,7 +28,7 @@ const emit = defineEmits(['change', 'loading']);
 let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [] });
 
 let filters = reactive({
-  colours: {colours:[], or: false}, rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: [0, 20], dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
+  colours: {colours:[], or: false}, rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: {value: [0, 20], min: 0, max: 20}, price:{value: [0, null], min: 0, max: 100}, dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
 });
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
@@ -147,8 +147,11 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     }
     if (!hasSet) return false;
 
-    const hasMana = card.cmc >= _filters.mana[0] && card.cmc <= _filters.mana[1];
+    const hasMana = card.cmc >= _filters.mana.value[0] && card.cmc <= _filters.mana.value[1];
     if (!hasMana) return false;
+
+    const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
+    if (!haPrice) return false;
 
     total_value += card.price;
     // info.count += parseInt(card.count);
@@ -164,9 +167,17 @@ watch(() => prop.cards, async (a, b) => {
   const _keywords = new Set();
   const _sets = [];
   let ex = 0.9;
+  // let priceMin = 1000;
+  // let priceMax = 0;
 
   a.forEach(card => {
     card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
+    // if(card.price > priceMax) {
+    //   priceMax = card.price;
+    // }
+    // if(card.price < priceMin) {
+    //   priceMin = card.price;
+    // }
     card.keywords.forEach((kw) => {
       _keywords.add(kw);
     });
@@ -176,6 +187,8 @@ watch(() => prop.cards, async (a, b) => {
   vars.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
 
   let [filtered, count, value] = await filterCards(a, filters);
+  // filters.price.value[0] = priceMin;
+  // filters.price.value[1] = priceMax;
   emit('change', filtered, count, value);
 });
 
@@ -254,10 +267,21 @@ watch(filters, async () => {
     <div class="filter-group mana">
       <h3>Mana Cost</h3>
       <Slider
-        v-model="filters.mana"
-        :min="0"
-        :max="20"
+        v-model="filters.mana.value"
+        :min="filters.mana.min"
+        :max="filters.mana.max"
       />
+    </div>
+
+    <div class="filter-group price">
+      <h3>Avg Price</h3>
+      <input type="number" v-model="filters.price.value[0]" placeholder="Min">
+      <input type="number" v-model="filters.price.value[1]" placeholder="Max">
+      <!-- <Slider
+        v-model="filters.price.value"
+        :min="filters.price.min"
+        :max="filters.price.max"
+      /> -->
     </div>
 
     <div class="filter-group">
@@ -408,6 +432,15 @@ watch(filters, async () => {
 }
 .mana input {
   min-width: 0;
+}
+
+.price {
+  display: grid;
+  gap: 0 .5rem;
+  grid-template-columns: auto auto;
+}
+.price h3 {
+  grid-column: span 2;
 }
 
 .colours,
