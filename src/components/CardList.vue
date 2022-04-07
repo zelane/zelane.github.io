@@ -18,6 +18,7 @@
   >
     <div
       class="card"
+      :class="{foil: card.is_foil}"
       v-for="card in props.cards.slice(0, 500)"
       :key="card.id"
     >
@@ -50,14 +51,14 @@
         </div>
       </div>
       <p class="name">
-        {{ card.count }} {{ card.name }}
+        {{ card.count }} {{ card.name }} {{ card.is_foil ? '☆' : '' }}
       </p>
       <p>{{ card.set_name }}</p>
       <p>
         {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}
         <span class="set">{{ card.set }}:{{ card.collector_number }}</span>
       </p>
-
+      <!-- <p>{{ card.foil }}</p> -->
       <!-- <p>{{ card.frame }}</p> -->
       <!-- <p>{{ card.full_art }}</p> -->
       <!-- <p>{{ card.border_color }}</p> -->
@@ -142,7 +143,43 @@
 .card img {
   width: 100%;
   border-radius: 5%;
+}
+.card .img {
   box-shadow: 0px 2px 5px #000000f2;
+  border-radius: 5%;
+}
+.card.foil .img::after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
+  border-radius: 5%;
+}
+/* @supports (mix-blend-mode: hard-light) {
+  .card.foil .img::after {
+    background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
+    mix-blend-mode: hard-light;
+    opacity: 1;
+  }
+} */
+@supports (mix-blend-mode: multiply) {
+  .card.foil .img::after {
+    background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);
+    mix-blend-mode: multiply;
+    opacity: .6;
+  }
+}
+.sidepanel .cards {
+  grid-template-columns: auto;
+  padding: 3rem;
+}
+.sidepanel .card {
+  min-width: 100%;
 }
 
 @media (max-width: 640px) {

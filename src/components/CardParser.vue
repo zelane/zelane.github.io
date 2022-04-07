@@ -7,7 +7,7 @@ import Multiselect from '@vueform/multiselect';
 
 const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const upload = reactive({
-  name: null, file: null, text: null, encoding: null, format: null, active: false, progress: 0, count: 0, total: 0
+  name: null, file: null, text: null, append: true, encoding: null, format: null, active: false, progress: 0, count: 0, total: 0
 });
 // let upload = reactive({ name: null, file: null, text: null, encoding: null, format: null, active: true, progress: 50, count: 50, total: 100 })
 
@@ -52,10 +52,11 @@ const handleTextUpload = async (e) => {
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       cards[m[3] + m[4]] = {
-        name: m[2].split(' // ')[0],
+        name: m[2].split(' // ')[0].trim(),
         count: parseInt(m[1]),
         set: m[3],
         number: m[4],
+        foil: false,
       };
     };
   }
@@ -64,10 +65,27 @@ const handleTextUpload = async (e) => {
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       cards[m[2]] = {
-        name: m[2].split(' // ')[0],
-        count: parseInt(m[1]),
+        name: m[2].split(' // ')[0].trim(),
+        count: parseInt(m[1]) || 1,
         set: '',
         number: '',
+        foil: false,
+      };
+    }
+  }
+  else if (upload.format === 'MKM Email') {
+    const re = /([0-9]+)x ([a-zA-Z ]+)/g;
+    const matches = upload.text.matchAll(re);
+    for (const m of matches) {
+      // if(m[2].includes('Token')) {
+
+      // }
+      cards[m[2]] = {
+        name: m[2].replace(" Token", "").trim(),
+        count: parseInt(m[1]) || 1,
+        set: '',
+        number: '',
+        foil: false,
       };
     }
   }
@@ -127,6 +145,7 @@ const parseDSWeb = async (csv) => {
         count: parseInt(row['Quantity']),
         set: '',
         number: '',
+        foil: row['Printing'] === 'Foil'
       };
     }
     else {
@@ -135,6 +154,7 @@ const parseDSWeb = async (csv) => {
         count: parseInt(row['Quantity']),
         set: setCode,
         number: row['Card Number'].toString(),
+        foil: row['Printing'] === 'Foil'
       };
 
     }
@@ -145,6 +165,7 @@ const parseDSWeb = async (csv) => {
 const fetchCardData = async (cardList) => {
   const ids = [];
   const counts = {};
+  const foils = new Set();
   try {
     let cardData = [];
 
@@ -158,6 +179,7 @@ const fetchCardData = async (cardList) => {
         elem.set = _card.set;
         elem.collector_number = _card.number;
         counts[_card.set + _card.number] = _card.count;
+        if(_card.foil) foils.add(_card.set + _card.number);
       }
       ids.push(elem);
     };
@@ -169,7 +191,8 @@ const fetchCardData = async (cardList) => {
         console.log(resp.not_found);
       }
       let data = resp.data.map(c => {
-        c.count = counts[c.name] || counts[c.set + c.collector_number];
+        c.count = counts[c.name] || (counts[c.set + c.collector_number] || 1);
+        c.is_foil = foils.has(c.set + c.collector_number);
         return c;
       });
       cardData = cardData.concat(data);
@@ -192,15 +215,20 @@ const fetchCardData = async (cardList) => {
   }
 };
 
-const updateCollection = async (name, cardList, append = true) => {
+const updateCollection = async (name, cardList, append = null) => {
   let cardData = [];
-
+  if(!append) {
+    append = upload.append;
+  }
   // If collection exists and append, only add new cards, sum counts
   if (append && props.collections.includes(name)) {
     const collection = await props.db.collections.get({ name: name });
     cardData = collection.cards;
     for (const [key, card] of Object.entries(cardList)) {
       let existing = collection.cards.filter(c => {
+        if(c === undefined) {
+          return false;
+        }
         if (card.set !== '' && card.set === c.set && card.number === c.collector_number) return true;
         return c.name === card.name;
       });
@@ -235,11 +263,16 @@ const updateCollection = async (name, cardList, append = true) => {
       <h3>Format</h3>
       <Multiselect
         v-model="upload.format"
-        :options="['DragonShield Web', 'DragonShield Mobile', 'MTGA', 'MTGO']"
+        :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO']"
         :can-clear="false"
       />
 
-      <template v-if="['MTGA', 'MTGO'].includes(upload.format)">
+      <div>
+        <label for="append">Append?</label>
+        <input id="append" type="checkbox" v-model="upload.append">
+      </div>
+
+      <template v-if="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format)">
         <textarea v-model="upload.text" />
       </template>
 
@@ -260,7 +293,7 @@ const updateCollection = async (name, cardList, append = true) => {
         v-if="!upload.active && upload.format && (upload.text || fileElem)"
       >
         <button
-          @click="['MTGA', 'MTGO'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
+          @click="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
         >
           Upload
         </button>

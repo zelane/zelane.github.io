@@ -11,11 +11,11 @@ const db = new Dexie('mtg');
 db.version(2).stores({
   collections: '&name'
 });
-const filterVals = reactive({ allSets: [] });
 const info = reactive({ count: 0, total_value: 0, zoom: 0 });
-const clipboard = reactive({cards: []});
+const clipboard = reactive({cards: new Map()});
 const ui = reactive({upload: false, clipboard: false, prints: false, sidebarShow: false, sidebar:"clipboard", menu: false, random: {}, selector: 'collection'});
-const setIds = new Map();
+const filters = reactive({sets: []});
+const sets = new Map();
 let loading = ref(false);
 let setLoading = ref(false);
 
@@ -42,6 +42,9 @@ const loadCollections = async (names) => {
   for(const name of names) {
     let collection = await db.collections.get({ name: name });
     for(const card of collection.cards) {
+      if(card === undefined) {
+        continue;
+      }
       if(cardMap.has(card.id)) {
         let ex = cardMap.get(card.id);
         ex.count = parseInt(ex.count) + parseInt(card.count);
@@ -134,7 +137,7 @@ db.collections.toCollection().primaryKeys().then(keys => {
   if (keys.length === 0) {
     return;
   }
-  cards.collections = keys.sort();
+  cards.collections = keys;
   activeCollections.value = [keys[0]];
 });
 
@@ -142,8 +145,7 @@ let getCache = null;
 caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
-  as.data.forEach(set => setIds.set(set.name, set.code));
-  filterVals.allSets = as.data;
+  as.data.forEach(set => sets.set(set.code, set));
 });
 
 const updateCollection = async (name, cardData) => {
@@ -157,20 +159,20 @@ const updateCollection = async (name, cardData) => {
 const exportList = async (format) => {
   let list = "";
   if(format === 'mtgo') {
-    clipboard.cards.forEach(card => {
+    for(const card of clipboard.cards.values()) {
       list += `${card.count || 1} ${card.name} \n`;
-    });
+    };
   }
   else if(format === 'mkm') {
-    clipboard.cards.forEach(card => {
+    for(const card of clipboard.cards.values()) {
       list += `${card.count || 1} ${card.name} (${card.set_name})\n`;
-    });
+    };
   }
   else if (format === 'moxfield') {
     list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
-    clipboard.cards.forEach(card => {
+    for(const card of clipboard.cards.values()) {
       list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
-    });
+    };
   }
   navigator.clipboard.writeText(list);
 };
@@ -183,7 +185,7 @@ const addToSet = async (set, newCards) => {
       collection.cards.push({... deepUnref(newCard)});
     }
     else {
-      existing[0].count += newCard.count;
+      existing[0].count += newCard.count || 1;
     }
   }
   await db.collections.put(collection);
@@ -194,11 +196,27 @@ const addToSet = async (set, newCards) => {
 
 const groupBySet = (cards) => {
   const grouped = cards.reduce((map,card) => {
-    const current = map.get(card.set_name);
-    map.set(card.set_name, current ? current + 1 : 1);
+    const current = map.get(card.set);
+    map.set(card.set, current ? current + 1 : 1);
     return map;
   }, new Map());
   return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
+};
+
+const clipCards = (cards, countAll=false) => {
+  cards.forEach(card => {
+    let clipcard = clipboard.cards.get(card.id);
+    // if(!card.count) card.count = 1;
+    if(!card.price) card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * 0.9 || 0);
+    if(!clipcard) {
+      clipcard = {...card};
+      if(!card.count) clipcard.count = 1;
+    }
+    else {
+      clipcard.count += countAll ? (card.count || 1) : 1;
+    }
+    clipboard.cards.set(clipcard.id, clipcard);
+  });
 };
 
 </script>
@@ -210,7 +228,7 @@ const groupBySet = (cards) => {
         <h3>View Collection</h3>
         <Multiselect
           v-model="activeCollections.value"
-          :options="cards.collections"
+          :options="cards.collections.sort()"
           mode="tags"
           :searchable="true"
         />
@@ -231,10 +249,10 @@ const groupBySet = (cards) => {
       <div class="filter-group">
         <h3>View Set</h3>
         <Multiselect
-          :options="filterVals.allSets"
+          :options="[...sets.values()]"
+          :searchable="true"
           label="name"
           value-prop="code"
-          :searchable="true"
           mode="single"
           @select="loadSet"
           @loading="loading.value = true"
@@ -262,12 +280,12 @@ const groupBySet = (cards) => {
         :collections="cards.collections"
         :db="db"
         :sort="cards.sort"
+        :filters="filters"
       />
     </div>
 
     <div
       id="main"
-      @click="ui.sidebarShow = false"
     >
       <CardParser
         v-if="ui.upload"
@@ -275,7 +293,7 @@ const groupBySet = (cards) => {
         @close="ui.upload=false"
         :db="db"
         :collections="cards.collections"
-        :set-ids="new Set(setIds.values())"
+        :set-ids="new Set(sets.keys())"
       />
 
       <div class="info-bar">
@@ -287,7 +305,7 @@ const groupBySet = (cards) => {
           @click.stop="() => {ui.sidebar = 'clipboard'; ui.sidebarShow = !ui.sidebarShow}"
         >
           <span class="icon icon-content_paste" />
-          <span>{{ clipboard.cards.length }}</span>
+          <span>{{ clipboard.cards.size }}</span>
         </span>
 
         <span class="info">
@@ -331,7 +349,7 @@ const groupBySet = (cards) => {
           @click.stop="ui.sidebarShow = !ui.sidebarShow"
         >
           <span class="icon icon-content_paste" />
-          <span>{{ clipboard.cards.length }}</span>
+          <span>{{ clipboard.cards.size }}</span>
         </div>
 
         <div
@@ -343,7 +361,7 @@ const groupBySet = (cards) => {
             :cards="cards.prints"
             :loading="setLoading"
             :zoom="1"
-            @clip="card => clipboard.cards.push(card)"
+            @clip="card => clipCards([card])"
           />
         </div>
 
@@ -354,13 +372,18 @@ const groupBySet = (cards) => {
           <h3>Selection info</h3>
           <div class="sets">
             <div
+              class="set"
               v-for="[set, count] in groupBySet(cards.filtered).entries()"
               :key="set"
             >
-              {{ count }} <a
+              <img :src="sets.get(set).icon_svg_uri">
+              <a
                 href="#"
-                @click="setIds.get(set)"
-              >{{ set }} {{ setIds.get(set) }}</a>
+                @click="filters.sets=[set]"
+              >
+                {{ sets.get(set).name }}</a>
+              
+              <span>{{ count }}</span> 
             </div>
           </div>
         </div>
@@ -369,11 +392,11 @@ const groupBySet = (cards) => {
           class="clipboard"
           v-show="ui.sidebar === 'clipboard'"
         >
-          <h3>Clipboard {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(clipboard.cards.reduce((sum, a) => sum += a.price, 0)) }}</h3>
+          <h3>Clipboard {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format([... clipboard.cards.values()].reduce((sum, a) => sum += a.price * a.count, 0)) }}</h3>
           <div class="clip-cards">
             <div
               class="clip-card"
-              v-for="card in clipboard.cards"
+              v-for="card in clipboard.cards.values()"
               :key="'clip-' + card.name"
             >
               <p>{{ card.count }}x {{ card.name }} ({{ card.set }})</p> 
@@ -417,7 +440,7 @@ const groupBySet = (cards) => {
                 :class="{show: ui.random.addToSet}"
               >
                 <button
-                  v-for="col in activeCollections.value"
+                  v-for="col in cards.collections"
                   @click="addToSet(col, clipboard.cards)"
                   :key="col"
                 >
@@ -425,23 +448,28 @@ const groupBySet = (cards) => {
                 </button>
               </div>
             </div>
-            <button @click="clipboard.cards = clipboard.cards.concat(cards.filtered)">
+            <button @click="clipCards(cards.filtered, true)">
               Clip All
             </button>
-            <button @click="clipboard.cards = []">
+            <button @click="clipboard.cards.clear()">
               Clear
             </button>
           </div>
         </div>
       </div>
-      <CardList
-        :cards="cards.filtered"
-        :zoom="info.zoom"
-        :loading="loading"
-        @clip="card => clipboard.cards.push(card)"
-        @view-prints="cardName => loadPrints(cardName)"
-        v-if="ui.upload === false"
-      />
+
+      <div 
+        @click="ui.sidebarShow = false"
+      >
+        <CardList
+          :cards="cards.filtered"
+          :zoom="info.zoom"
+          :loading="loading"
+          @clip="card => clipCards([card])"
+          @view-prints="cardName => loadPrints(cardName)"
+          v-if="ui.upload === false"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -539,6 +567,18 @@ option {
   z-index: 1;
   gap: 10px;
   background-color: var(--colour-sidebar);
+  max-height: 50vh;
+  overflow: auto;
+  position: absolute;
+  bottom: 3.5rem;
+  /* max-width: 17rem; */
+  right: 0;
+}
+.menu-button .v-menu button {
+  max-width: 17rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .menu-button .v-menu.show {
   opacity: 1;
@@ -556,7 +596,6 @@ option {
   transform: translate(100%, 0);
   background-color: var(--colour-sidebar);
   transition: all 0.2s;
-  padding: 1rem 2rem;
   z-index: 2;
   color: var(--colour-light-font);
 }
@@ -571,14 +610,36 @@ option {
 }
 .sidepanel .info .sets {
   overflow: auto;
-  line-height: 1.5;
+  line-height: 1.8;
   flex-grow: 1;
+  padding: 1rem 1rem;
+}
+.sets .set {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .5rem;
+}
+.sets .set a {
+  flex-grow: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.sets .set img {
+  height: 1.2rem;
+  min-width: 44px;
+  filter: invert(50%) sepia(100%) saturate(285%) hue-rotate(227deg) brightness(105%) contrast(100%);
+}
+.prints {
+  padding: 1rem 2rem;
 }
 .clipboard {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: 1rem 2rem;
 }
 .clipboard .clip-cards {
   flex-grow: 1;

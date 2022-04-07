@@ -49,7 +49,8 @@ html {
   --colour-white: #fff7b1;
   --colour-less: #cdc3c1;
 
-  --font-magic: "Beleren SmallCaps Bold";
+  --font-magic: "Beleren Bold";
+  --font-magic-smallcaps: "Beleren SmallCaps Bold";
 
   --height-input: 2.5rem;
   --slider-height: 2rem;
@@ -71,6 +72,7 @@ html {
   --slider-tooltip-distance: -2.1rem;
   --slider-tooltip-arrow-size: 0px;
 
+  --ms-max-height: 25vh;
   --ms-radius: var(--default-br);
   --ms-bg: var(--colour-input-grey);
   --ms-dropdown-bg: var(--colour-input-grey);
@@ -105,6 +107,12 @@ body {
   color: #efefef;
   background-color: #100c0f;
   background-color: var(--colour-dark-grey);
+}
+a {
+  text-decoration: none;
+  color: #c49dcb;
+  font-family: var(--font-magic);
+  font-weight: 500;
 }
 .bi-toggle {
   background-color: var(--colour-input-grey);
@@ -154,7 +162,7 @@ button.small,
   line-height: var(--height-input);
   font-size: 1.5rem;
   background-color: var(--colour-input-grey);
-  font-family: "Beleren SmallCaps Bold";
+  font-family: var(--font-magic-smallcaps);
   box-shadow: var(--default-shadow);
   color: #e5dbdc;
 }
@@ -212,6 +220,7 @@ input[type="number"] {
 .multiselect-dropdown {
   background-color: var(--colour-input-grey);
   border: var(--default-border);
+  max-height: var(--ms-max-height);
 }
 .multiselect-option {
   background-color: var(--colour-input-grey);

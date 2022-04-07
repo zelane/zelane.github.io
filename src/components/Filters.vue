@@ -20,19 +20,32 @@ const prop = defineProps({
   },
   db: {
     type: Object,
-    default: () => { }
+    default: () => {}
   },
+  filters: {
+    type: Object,
+    default: () => {}
+  }
 });
 const emit = defineEmits(['change', 'loading']);
 
 let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [] });
 
 let filters = reactive({
-  colours: {colours:[], or: false}, rarity: [], keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: {value: [0, 20], min: 0, max: 20}, price:{value: [0, null], min: 0, max: 100}, dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
+  colours: {colours:[], or: false}, rarity: [], foils: false, keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: {value: [0, 20], min: 0, max: 20}, price:{value: [0, null], min: 0, max: 100}, dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
 });
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 
+watch(prop.filters, (f) => {
+  // console.log({...f});
+  filters.sets = f.sets;
+  // for(const [k, v] of Object.entries(f)) {
+  //   if(v) {
+  //     filters[k] = v;
+  //   }
+  // }
+});
 
 const cachedGet = async (cache, url) => {
   const request = new Request(url);
@@ -44,10 +57,8 @@ const cachedGet = async (cache, url) => {
   const json = await response.json();
   return json;
 };
-
-let getCache = null;
+;
 caches.open('cardDataCache').then(async (cache) => {
-  getCache = cache;
   let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
   vars.tribes = ts.data;
   vars.tribes = vars.tribes.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
@@ -58,7 +69,6 @@ caches.open('cardDataCache').then(async (cache) => {
 const dynamicSort = (a, b) => {
   // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
   if (filters.sort === 'Price') {
-
     if (!a.price) {
       return true;
     }
@@ -68,6 +78,9 @@ const dynamicSort = (a, b) => {
     return parseFloat(a.cmc) < parseFloat(b.cmc) ? 1 : -1;
   }
   else if (filters.sort === 'Count') {
+    if(parseFloat(a.count) === parseFloat(b.count)) {
+      return a.price < b.price ? 1 : -1;
+    }
     return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
 
   }
@@ -118,6 +131,8 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if (_filters.dupesOnly && card.count === 1) {
       return false;
     }
+    const isFoil = !_filters.foils || card.is_foil;
+    if(!isFoil) return false;
 
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
@@ -153,7 +168,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
     if (!haPrice) return false;
 
-    total_value += card.price;
+    total_value += card.price * (card.count || 1);
     // info.count += parseInt(card.count);
     return true;
   });
@@ -171,7 +186,15 @@ watch(() => prop.cards, async (a, b) => {
   // let priceMax = 0;
 
   a.forEach(card => {
-    card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
+    if(!card.prices) {
+      card.price = 0;
+    }
+    else if(card.is_foil) {
+      card.price = parseFloat(card.prices.eur_foil || parseFloat(card.prices.usd_foil) * ex || 0);
+    }
+    else {
+      card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
+    }
     // if(card.price > priceMax) {
     //   priceMax = card.price;
     // }
@@ -183,6 +206,9 @@ watch(() => prop.cards, async (a, b) => {
     });
     _sets[card.set] = card.set_name;
   });
+  // Have to clear filters that depend on dynamic filters, could just load all options?
+  filters.keywords = [];
+  filters.sets = [];
   vars.keywords = [..._keywords];
   vars.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
 
@@ -362,6 +388,11 @@ watch(filters, async () => {
           </div>
         </template>
       </div>
+    </div>
+
+    <div class="filter-group">
+      <h3>Foils</h3>
+      <input type="checkbox" v-model="filters.foils">
     </div>
   </div>
 </template>
