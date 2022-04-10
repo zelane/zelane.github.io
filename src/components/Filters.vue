@@ -146,7 +146,6 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
       });
       if (!hasColour) return false;
     }
-
     const hasKeyword = _filters.keywords.every(keyword => (card.keywords || []).includes(keyword));
     if (!hasKeyword) return false;
 
@@ -201,6 +200,9 @@ watch(() => prop.cards, async (a, b) => {
     // if(card.price < priceMin) {
     //   priceMin = card.price;
     // }
+    if(!card.keywords) {
+      return
+    }
     card.keywords.forEach((kw) => {
       _keywords.add(kw);
     });
@@ -355,7 +357,10 @@ watch(filters, async () => {
       class="filter-group compare"
       v-if="collections.length > 0"
     >
-      <h3>Compare</h3>
+      <div class="header">
+        <h3>Compare</h3>
+        <a  href="#" @click="() => {filters.incCol = {}; filters.excCol = {};}">X</a>
+      </div>
       <div class="grid">
         <template
           v-for="col in collections"

@@ -11,9 +11,19 @@ const db = new Dexie('mtg');
 db.version(2).stores({
   collections: '&name'
 });
-const info = reactive({ count: 0, total_value: 0, zoom: 0 });
+const info = reactive({ count: 0, total_value: 0 });
 const clipboard = reactive({cards: new Map()});
-const ui = reactive({upload: false, clipboard: false, prints: false, sidebarShow: false, sidebar:"clipboard", menu: false, random: {}, selector: 'collection'});
+const ui = reactive({
+  upload: false, 
+  clipboard: false, 
+  prints: false, 
+  sidebarShow: false, 
+  sidebar:"clipboard", 
+  menu: false, 
+  random: {},
+  cards: 'collection',
+  zoom: 0
+});
 const filters = reactive({sets: []});
 const sets = new Map();
 let loading = ref(false);
@@ -163,6 +173,12 @@ const exportList = async (format) => {
       list += `${card.count || 1} ${card.name} \n`;
     };
   }
+  else if(format === 'mtga') {
+    // 1 Ainok Bond-Kin (mb1) 13
+    for(const card of clipboard.cards.values()) {
+      list += `${card.count || 1} ${card.name} (${card.set}) ${card.collector_number}\n`;
+    };
+  }
   else if(format === 'mkm') {
     for(const card of clipboard.cards.values()) {
       list += `${card.count || 1} ${card.name} (${card.set_name})\n`;
@@ -180,6 +196,7 @@ const exportList = async (format) => {
 const addToSet = async (set, newCards) => {
   let collection = await db.collections.get({ name: set });
   for(const newCard of newCards) {
+    console.log(newCard);
     let existing = collection.cards.filter(card => card.id === newCard.id);
     if(existing.length === 0) {
       collection.cards.push({... deepUnref(newCard)});
@@ -219,12 +236,83 @@ const clipCards = (cards, countAll=false) => {
   });
 };
 
+const setMenu = item => {
+  if(item === ui.sidebar) ui.sidebarShow = !ui.sidebarShow;
+  else {
+    ui.sidebarShow = true;
+    ui.sidebar = item;
+  }
+};
+
+const setCards = item => {
+  if(ui.cards === item) return;
+  ui.cards = item;
+  if(item === 'collection') {
+    loadCollections(activeCollections.value);
+  }
+  else if(item === 'set') {
+    if(ui.set) loadSet(ui.set);
+  }
+  else if(item === 'search') {
+    if(ui.search) loadSearch(ui.search);
+  }
+};
+
 </script>
 
 <template>
   <div id="window">
     <div id="sidebar">
-      <div class="filter-group collections">
+      <div class="filter-group cards">
+        <h3>Cards</h3>
+        <div class="selector">
+          <a href="#" @click="setCards('collection')">Collection</a>
+          <a href="#" @click="setCards('set')">Set</a>
+          <a href="#" @click="setCards('search')">Search</a>
+        </div>
+        <div class="view">
+          <div class="item"  v-if="ui.cards === 'collection'">
+            <Multiselect
+              v-model="activeCollections.value"
+              :options="cards.collections.sort()"
+              mode="tags"
+              :searchable="true"
+            />
+            <button
+              class="small add"
+              @click="ui.upload = true"
+            >
+              +
+            </button>
+            <button
+              class="small remove"
+              @click="deleteCollections(activeCollections.value)"
+            >
+              -
+            </button>
+          </div>
+          <div class="item" v-if="ui.cards === 'set'">
+            <Multiselect
+              v-model="ui.set"
+              :options="[...sets.values()]"
+              :searchable="true"
+              label="name"
+              value-prop="code"
+              mode="single"
+              @select="loadSet"
+              @loading="loading.value = true"
+            />
+          </div>
+          <div class="item" v-if="ui.cards === 'search'">
+            <input
+              type="search"
+              v-model="ui.search"
+              @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
+            >
+          </div>
+        </div>
+      </div>
+      <!-- <div class="filter-group collections">
         <h3>View Collection</h3>
         <Multiselect
           v-model="activeCollections.value"
@@ -232,31 +320,10 @@ const clipCards = (cards, countAll=false) => {
           mode="tags"
           :searchable="true"
         />
-        <button
-          class="small add"
-          @click="ui.upload = true"
-        >
-          +
-        </button>
-        <button
-          class="small remove"
-          @click="deleteCollections(activeCollections.value)"
-        >
-          -
-        </button>
       </div>
 
       <div class="filter-group">
         <h3>View Set</h3>
-        <Multiselect
-          :options="[...sets.values()]"
-          :searchable="true"
-          label="name"
-          value-prop="code"
-          mode="single"
-          @select="loadSet"
-          @loading="loading.value = true"
-        />
       </div>
       
       <div class="filter-group">
@@ -270,9 +337,9 @@ const clipCards = (cards, countAll=false) => {
           type="search"
           @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
         >
-      </div>
+      </div> -->
 
-      <hr>
+      <!-- <hr> -->
       
       <Filters
         @change="filtersChanged"
@@ -299,21 +366,6 @@ const clipCards = (cards, countAll=false) => {
       <div class="info-bar">
         <span>Count: {{ info.count }}</span>
         <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
-        
-        <span
-          class="clip"
-          @click.stop="() => {ui.sidebar = 'clipboard'; ui.sidebarShow = !ui.sidebarShow}"
-        >
-          <span class="icon icon-content_paste" />
-          <span>{{ clipboard.cards.size }}</span>
-        </span>
-
-        <span class="info">
-          <a
-            href="#"
-            @click.stop="{ui.sidebar = 'info'; ui.sidebarShow = !ui.sidebarShow}"
-          >Sets</a>
-        </span>
 
 
         <span class="sort">
@@ -323,12 +375,6 @@ const clipCards = (cards, countAll=false) => {
             mode="single"
             :can-clear="false"
           />
-        </span>
-        <span class="zoom">
-          <input
-            type="number"
-            v-model="info.zoom"
-          >
         </span>
         <!-- <span>
           <Slider
@@ -346,10 +392,44 @@ const clipCards = (cards, countAll=false) => {
       >
         <div
           class="menu"
-          @click.stop="ui.sidebarShow = !ui.sidebarShow"
         >
-          <span class="icon icon-content_paste" />
-          <span>{{ clipboard.cards.size }}</span>
+          <div
+            class="item clip" 
+            @click.stop="setMenu('clipboard')"
+          >
+            <span class="icon icon-content_paste" />
+            <span>{{ clipboard.cards.size }}</span>
+          </div>
+          <div
+            class="item prints" 
+            @click.stop="setMenu('prints')"
+          >
+            <span class="icon icon-content_copy" />
+            <span />
+          </div>
+          
+          <div
+            class="item settings" 
+            @click.stop="setMenu('settings')"
+          >
+            <span class="icon icon-settings" />
+            <span />
+          </div>
+        </div>
+
+        <div
+          class="settings"
+          v-show="ui.sidebar === 'settings'"
+        >
+          <h3>Settings</h3>
+          <span class="zoom">
+            <label for="zoom">Zoom</label>
+            <input
+              id="zoom"
+              type="number"
+              v-model="ui.zoom"
+            >
+          </span>
         </div>
 
         <div
@@ -418,6 +498,9 @@ const clipCards = (cards, countAll=false) => {
                 <button @click="exportList('mtgo')">
                   MTGO
                 </button>
+                <button @click="exportList('mtga')">
+                  MTGA
+                </button>
                 <button @click="exportList('mkm')">
                   MKM + Set
                 </button>
@@ -441,7 +524,7 @@ const clipCards = (cards, countAll=false) => {
               >
                 <button
                   v-for="col in cards.collections"
-                  @click="addToSet(col, clipboard.cards)"
+                  @click="addToSet(col, clipboard.cards.values())"
                   :key="col"
                 >
                   {{ col }}
@@ -463,7 +546,7 @@ const clipCards = (cards, countAll=false) => {
       >
         <CardList
           :cards="cards.filtered"
-          :zoom="info.zoom"
+          :zoom="ui.zoom"
           :loading="loading"
           @clip="card => clipCards([card])"
           @view-prints="cardName => loadPrints(cardName)"
@@ -475,12 +558,24 @@ const clipCards = (cards, countAll=false) => {
 </template>
 
 <style scoped>
-hr {
-  margin: 20px 0;
-  border-color: var(--colour-dark-grey);
-  opacity: 0.4;
-  border-width: 1px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+.filter-group.cards{
+  display: flex;
+}
+
+.cards .selector {
+  display: flex;
+  gap: .5rem;
+  line-height: 2rem;
+  width: 100%;
+}
+.cards .view {
+  width: 100%;
+}
+.cards .view .item {
+  width: 100%;
+}
+.cards .view .item input {
+  width: 100%;
 }
 .info-bar {
   background-color: var(--colour-sidebar);
@@ -530,20 +625,25 @@ option {
   left: 0;
   bottom: 50px;
   z-index: 2;
-  cursor: pointer;
   user-select: none;
-  background-color: var(--colour-input-grey);
-  box-shadow: var(--default-shadow);
+  transform: translate(-100%, 0);
+  left: 0px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: .5rem 0;
+}
+.menu .item {
   padding: 1rem 1rem;
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
-  transform: translate(-100%, 0);
-  left: 0px;
+  background-color: var(--colour-input-grey);
+  box-shadow: var(--default-shadow);
+  cursor: pointer;
 }
-.menu span {
+.menu .item span {
   vertical-align: middle;
 }
-.menu .icon {
+.menu .item .icon {
   margin-right: .5rem;
   font-size: 1.2em;
 }

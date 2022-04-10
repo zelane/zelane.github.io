@@ -229,8 +229,12 @@ const updateCollection = async (name, cardList, append = null) => {
         if(c === undefined) {
           return false;
         }
-        if (card.set !== '' && card.set === c.set && card.number === c.collector_number) return true;
-        return c.name === card.name;
+        if(card.set !== '') {
+          return card.set === c.set && card.number === c.collector_number;
+        }
+        else {
+          return c.name === card.name;
+        }
       });
       if (existing.length > 0) {
         existing[0].count = card.count;
