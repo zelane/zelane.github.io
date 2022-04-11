@@ -41,6 +41,7 @@ html {
   --colour-dark-grey: #110d12;
   --colour-accent: #938996;
   --colour-off-white: #e5dbdc;
+  --colour-anchor: #c49dcb;
 
   --colour-red: #f9ac90;
   --colour-green: #9cd4af;
@@ -110,7 +111,7 @@ body {
 }
 a {
   text-decoration: none;
-  color: #c49dcb;
+  color: var(--colour-anchor);
   font-family: var(--font-magic);
   font-weight: 500;
 }
@@ -231,5 +232,25 @@ hr {
   opacity: 0.4;
   border-width: 1px;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+h3 {
+  padding: 0;
+  margin: 0;
+  margin-bottom: .5rem;
+}
+.action {
+  display: block;
+  text-align: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 1.5rem;
+  line-height: 1.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: var(--colour-dark-grey);
+  font-family: var(--font-magic);
+}
+.action.icon {
+  font-size: 1rem;
 }
 </style>

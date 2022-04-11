@@ -76,7 +76,7 @@ const matchColours = (colours) => {
 <template>
   <div class="filter-group colours">
     <div class="header">
-      <h3>Colours {{ value.colours.length > 1 ? `(${matchColours(value.colours)})` : '' }}</h3>
+      <h3> {{ value.colours.length > 1 ? `${matchColours(value.colours)}` : '' }}</h3>
       <div
         class="bi-toggle"
         :class="{ active: value.or }"
@@ -85,6 +85,7 @@ const matchColours = (colours) => {
         {{ value.or ? "And" : "Or" }}
       </div>
     </div>
+    
     <div
       class="input-group colour"
       :class="value.colours.includes(code) ? 'selected' : ''"

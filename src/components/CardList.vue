@@ -39,7 +39,7 @@
         >
         <div class="buttons">
           <button
-            class="small prints icon icon-library_books"
+            class="small prints icon icon-prints"
             @click.stop="emit('viewPrints', card.name);"
             title="View all prints"
           />
@@ -119,11 +119,11 @@
   position: absolute;
   bottom: 1rem;
   right: 1rem;
+  flex-direction: column;
+  gap: .5rem;
 }
 .card .img:hover .buttons {
   display: flex;
-  flex-direction: column;
-  gap: .5rem;
 }
 .card p {
   font-size: .9em;
@@ -183,12 +183,22 @@
 }
 
 @media (max-width: 640px) {
+  #main .cards {
+    padding: 0 10vw;
+
+  }
   .cards {
     justify-content: center;
 	  scroll-snap-type: y mandatory;
   }
   .card {
     scroll-snap-align: start;
+  }
+  .card img {
+    /* aspect-ratio: .72; */
+  }
+  .card .buttons {
+    display: flex !important;
   }
 }
 </style>

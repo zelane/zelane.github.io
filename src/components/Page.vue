@@ -125,8 +125,8 @@ const deleteCollections = async (names) => {
   if(confirm(`Are you sure you want to delete ${names.join(', ')}?`)) {
     names.map(async name => {
       await db.collections.delete(name);
-      cards.collections.pop(name);
-      activeCollections.value.pop(name);
+      cards.collections.splice(cards.collections.indexOf(name), 1);
+      activeCollections.value.splice(activeCollections.value.indexOf(name), 1);
     });
   }
   else {
@@ -148,6 +148,7 @@ db.collections.toCollection().primaryKeys().then(keys => {
     return;
   }
   cards.collections = keys;
+  cards.collections.sort();
   activeCollections.value = [keys[0]];
 });
 
@@ -163,6 +164,7 @@ const updateCollection = async (name, cardData) => {
   if (!cards.collections.includes(name)) {
     cards.collections.push(name);
   }
+  cards.collections.sort();
   activeCollections.value = [name];
 };
 
@@ -264,34 +266,36 @@ const setCards = item => {
   <div id="window">
     <div id="sidebar">
       <div class="filter-group cards">
-        <h3>Cards</h3>
-        <div class="selector">
-          <a href="#" @click="setCards('collection')">Collection</a>
-          <a href="#" @click="setCards('set')">Set</a>
-          <a href="#" @click="setCards('search')">Search</a>
+        <!-- <h3>Cards</h3> -->
+        <div class="selector tabs">
+          <a
+            href="#"
+            v-for="name in ['collection', 'set', 'search']"
+            :key="name"
+            @click="setCards(name)"
+            :class="{selected: ui.cards === name}"
+          >{{ name }}</a>
         </div>
         <div class="view">
-          <div class="item"  v-if="ui.cards === 'collection'">
+          <div
+            class="item collection"
+            v-if="ui.cards === 'collection'"
+          >
             <Multiselect
               v-model="activeCollections.value"
-              :options="cards.collections.sort()"
+              :options="cards.collections"
               mode="tags"
               :searchable="true"
             />
             <button
-              class="small add"
-              @click="ui.upload = true"
-            >
-              +
-            </button>
-            <button
-              class="small remove"
-              @click="deleteCollections(activeCollections.value)"
-            >
-              -
-            </button>
+              class="small add icon icon-settings"
+              @click="ui.upload = !ui.upload"
+            />
           </div>
-          <div class="item" v-if="ui.cards === 'set'">
+          <div
+            class="item"
+            v-if="ui.cards === 'set'"
+          >
             <Multiselect
               v-model="ui.set"
               :options="[...sets.values()]"
@@ -303,7 +307,10 @@ const setCards = item => {
               @loading="loading.value = true"
             />
           </div>
-          <div class="item" v-if="ui.cards === 'search'">
+          <div
+            class="item"
+            v-if="ui.cards === 'search'"
+          >
             <input
               type="search"
               v-model="ui.search"
@@ -312,34 +319,6 @@ const setCards = item => {
           </div>
         </div>
       </div>
-      <!-- <div class="filter-group collections">
-        <h3>View Collection</h3>
-        <Multiselect
-          v-model="activeCollections.value"
-          :options="cards.collections.sort()"
-          mode="tags"
-          :searchable="true"
-        />
-      </div>
-
-      <div class="filter-group">
-        <h3>View Set</h3>
-      </div>
-      
-      <div class="filter-group">
-        <h3>
-          Scryfall Search <a
-            href="https://scryfall.com/docs/syntax"
-            target="_blank"
-          >?</a>
-        </h3>
-        <input
-          type="search"
-          @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
-        >
-      </div> -->
-
-      <!-- <hr> -->
       
       <Filters
         @change="filtersChanged"
@@ -358,6 +337,7 @@ const setCards = item => {
         v-if="ui.upload"
         @change="updateCollection"
         @close="ui.upload=false"
+        @delete="deleteCollections"
         :db="db"
         :collections="cards.collections"
         :set-ids="new Set(sets.keys())"
@@ -394,26 +374,17 @@ const setCards = item => {
           class="menu"
         >
           <div
-            class="item clip" 
-            @click.stop="setMenu('clipboard')"
+            class="item" 
+            @click.stop="setMenu(name)"
+            v-for="name in ['clipboard', 'prints', 'settings']"
+            :key="name"
+            :class="name"
           >
-            <span class="icon icon-content_paste" />
-            <span>{{ clipboard.cards.size }}</span>
-          </div>
-          <div
-            class="item prints" 
-            @click.stop="setMenu('prints')"
-          >
-            <span class="icon icon-content_copy" />
-            <span />
-          </div>
-          
-          <div
-            class="item settings" 
-            @click.stop="setMenu('settings')"
-          >
-            <span class="icon icon-settings" />
-            <span />
+            <span
+              class="icon"
+              :class="'icon-' + name"
+            />
+            <!-- <span>{{ clipboard.cards.size }}</span> -->
           </div>
         </div>
 
@@ -562,17 +533,39 @@ const setCards = item => {
   display: flex;
 }
 
-.cards .selector {
+.cards .tabs {
   display: flex;
   gap: .5rem;
+  gap: 1rem;
   line-height: 2rem;
   width: 100%;
+  text-transform: capitalize;
+  margin-bottom: .5rem;
+  transition: all 0.2s;
+}
+.tabs a {
+  /* padding: 0 1rem; */
+  /* border-bottom: 2px solid var(--colour-input-grey); */
+  color: var(--colour-light-font);
+}
+.tabs a.selected {
+  border-top-right-radius: 2px;
+  border-top-left-radius: 2px;
+  /* background: var(--colour-input-grey); */
+  /* box-shadow: var(--default-shadow); */
+  /* color: var(--colour-light-font); */
+  color: var(--colour-anchor);
+  border-bottom-color: var(--colour-anchor);
 }
 .cards .view {
   width: 100%;
 }
 .cards .view .item {
   width: 100%;
+}
+.view .collection {
+  display: flex;
+  gap: .5rem;
 }
 .cards .view .item input {
   width: 100%;
@@ -644,7 +637,7 @@ option {
   vertical-align: middle;
 }
 .menu .item .icon {
-  margin-right: .5rem;
+  /* margin-right: .5rem; */
   font-size: 1.2em;
 }
 .menu-button {
@@ -693,6 +686,7 @@ option {
   bottom: 0;
   right: 0;
   width: 400px;
+  max-width: calc(100vw - 3rem);
   transform: translate(100%, 0);
   background-color: var(--colour-sidebar);
   transition: all 0.2s;
@@ -768,7 +762,7 @@ option {
   padding: 40px 20px;
   background-color: var(--colour-sidebar);
   overflow: auto;
-  gap: 5px 0;
+  gap: 1.5rem 0;
   display: flex;
   flex-direction: column;
 }
@@ -789,15 +783,20 @@ option {
     flex-direction: column;
   }
   #main {
-    height: 60%;
     order: 0;
     width: 100%;
+    height: auto;
   }
   #sidebar {
-    height: 40%;
+    height: 30vh;
     order: 1;
     width: 100%;
     min-width: 0;
+    padding: 5vw;
+	  /* scroll-snap-type: y mandatory; */
   }
+  /* .filter-group {
+    scroll-snap-align: start;
+  } */
 }
 </style>

@@ -32,7 +32,21 @@ const emit = defineEmits(['change', 'loading']);
 let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [] });
 
 let filters = reactive({
-  colours: {colours:[], or: false}, rarity: [], foils: false, keywords: [], tribes: [], name: '', cardText: '', sets: [], mana: {value: [0, 20], min: 0, max: 20}, price:{value: [0, null], min: 0, max: 100}, dupesOnly: false, sort: 'Price', incCol: {}, excCol: {}, ors: {}
+  colours: {colours:[], or: false}, 
+  rarity: [], 
+  foils: false, 
+  keywords: [], 
+  tribes: [], 
+  name: '', 
+  cardText: '', 
+  sets: [], 
+  mana: {value: [null, null], min: 0, max: 20}, 
+  price:{value: [null, null], min: 0, max: 100}, 
+  dupesOnly: false, 
+  sort: 'Price', 
+  incCol: {}, 
+  excCol: {}, 
+  ors: {}
 });
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
@@ -161,7 +175,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     }
     if (!hasSet) return false;
 
-    const hasMana = card.cmc >= _filters.mana.value[0] && card.cmc <= _filters.mana.value[1];
+    const hasMana = card.cmc >= (_filters.mana.value[0] || 0) && card.cmc <= (_filters.mana.value[1] || 20);
     if (!hasMana) return false;
 
     const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
@@ -200,9 +214,9 @@ watch(() => prop.cards, async (a, b) => {
     // if(card.price < priceMin) {
     //   priceMin = card.price;
     // }
-    if(!card.keywords) {
-      return
-    }
+    // if(card.keywords === undefined) {
+      // return;
+    // }
     card.keywords.forEach((kw) => {
       _keywords.add(kw);
     });
@@ -260,145 +274,172 @@ watch(filters, async () => {
 </script>
 
 <template>
-  <div>
-    <Colours v-model="filters.colours" />
+  <Colours v-model="filters.colours" />
 
-    <div class="filter-group rarities">
-      <h3>Rarity</h3>
-      <div
-        class="input-group rarity"
-        :data-rarity="rarity"
-        v-for="rarity in rarities"
-        :key="rarity"
-      >
-        <input
-          type="checkbox"
-          v-model="filters.rarity"
-          :value="rarity"
-          :id="rarity"
-        >
-        <label
-          :for="rarity"
-          :title="rarity"
-        />
-      </div>
-    </div>
-
-    <div class="filter-group">
-      <h3>Name</h3>
+  <div class="filter-group rarities">
+    <div
+      class="input-group rarity"
+      :data-rarity="rarity"
+      v-for="rarity in rarities"
+      :key="rarity"
+    >
       <input
-        type="search"
-        v-model="filters.name"
+        type="checkbox"
+        v-model="filters.rarity"
+        :value="rarity"
+        :id="rarity"
       >
+      <label
+        :for="rarity"
+        :title="rarity"
+      />
     </div>
+  </div>
 
-    <div class="filter-group mana">
+  <!-- <div class="filter-group mana">
       <h3>Mana Cost</h3>
       <Slider
         v-model="filters.mana.value"
         :min="filters.mana.min"
         :max="filters.mana.max"
       />
-    </div>
+    </div> -->
 
-    <div class="filter-group price">
-      <h3>Avg Price</h3>
-      <input type="number" v-model="filters.price.value[0]" placeholder="Min">
-      <input type="number" v-model="filters.price.value[1]" placeholder="Max">
-      <!-- <Slider
+  <div class="filter-group">
+    <input
+      type="search"
+      v-model="filters.name"
+      placeholder="Name"
+    >
+  </div>
+
+  <div class="filter-group mana">
+    <input
+      type="number"
+      v-model="filters.mana.value[0]"
+      placeholder="Mana (min)"
+    >
+    <input
+      type="number"
+      v-model="filters.mana.value[1]"
+      placeholder="Mana (max)"
+    >
+    <!-- <Slider
         v-model="filters.price.value"
         :min="filters.price.min"
         :max="filters.price.max"
       /> -->
-    </div>
+  </div>
 
-    <div class="filter-group">
-      <h3>Types</h3>
-      <Multiselect
-        v-model="filters.tribes"
-        :options="vars.tribes"
-        :searchable="true"
-        mode="tags"
-        :create-option="true"
-      />
-    </div>
-
-    <div class="filter-group">
-      <h3>Keywords</h3>
-      <Multiselect
-        v-model="filters.keywords"
-        :options="vars.keywords"
-        :searchable="true"
-        mode="tags"
-      />
-    </div>
-
-    <div class="filter-group">
-      <h3>Card text</h3>
-      <input
-        type="search"
-        v-model="filters.cardText"
-      >
-    </div>
-
-    <div class="filter-group">
-      <h3>Set</h3>
-      <Multiselect
-        v-model="filters.sets"
-        :options="vars.sets"
-        label="setName"
-        value-prop="set"
-        :searchable="true"
-        mode="tags"
-      />
-    </div>
-
-    <div
-      class="filter-group compare"
-      v-if="collections.length > 0"
+  <div class="filter-group price">
+    <input
+      type="number"
+      v-model="filters.price.value[0]"
+      placeholder="Price (min)"
     >
-      <div class="header">
-        <h3>Compare</h3>
-        <a  href="#" @click="() => {filters.incCol = {}; filters.excCol = {};}">X</a>
-      </div>
-      <div class="grid">
-        <template
-          v-for="col in collections"
-          :key="col"
-        >
-          <div>{{ col }}</div>
-          <div>
-            <input
-              type="checkbox"
-              :id="col + '-inc'"
-              v-model="filters.incCol[col]"
-              :value="false"
-            >
-            <label
-              class="inc"
-              :for="col + '-inc'"
-            />
-          </div>
-          <div>
-            <input
-              type="checkbox"
-              :id="col + '-exc'"
-              v-model="filters.excCol[col]"
-              :value="false"
-            >
-            <label
-              class="exc"
-              :for="col + '-exc'"
-            />
-          </div>
-        </template>
-      </div>
-    </div>
+    <input
+      type="number"
+      v-model="filters.price.value[1]"
+      placeholder="Price (max)"
+    >
+    <!-- <Slider
+        v-model="filters.price.value"
+        :min="filters.price.min"
+        :max="filters.price.max"
+      /> -->
+  </div>
+  <div class="filter-group">
+    <Multiselect
+      v-model="filters.tribes"
+      :options="vars.tribes"
+      :searchable="true"
+      mode="tags"
+      :create-option="true"
+      placeholder="Types"
+    />
+  </div>
 
-    <div class="filter-group">
-      <h3>Foils</h3>
-      <input type="checkbox" v-model="filters.foils">
+  <div class="filter-group">
+    <Multiselect
+      v-model="filters.keywords"
+      :options="vars.keywords"
+      :searchable="true"
+      mode="tags"
+      placeholder="Keywords"
+    />
+  </div>
+
+  <div class="filter-group">
+    <input
+      type="search"
+      v-model="filters.cardText"
+      placeholder="Card text"
+    >
+  </div>
+
+  <div class="filter-group">
+    <Multiselect
+      v-model="filters.sets"
+      :options="vars.sets"
+      label="setName"
+      value-prop="set"
+      :searchable="true"
+      mode="tags"
+      placeholder="Sets"
+    />
+  </div>
+
+  <div
+    class="filter-group compare"
+    v-if="collections.length > 0"
+  >
+    <div class="header">
+      <h3>Compare</h3>
+      <a
+        href="#"
+        @click="() => {filters.incCol = {}; filters.excCol = {};}"
+      >X</a>
     </div>
+    <div class="grid">
+      <template
+        v-for="col in collections"
+        :key="col"
+      >
+        <div>{{ col }}</div>
+        <div>
+          <input
+            type="checkbox"
+            :id="col + '-inc'"
+            v-model="filters.incCol[col]"
+            :value="false"
+          >
+          <label
+            class="inc"
+            :for="col + '-inc'"
+          />
+        </div>
+        <div>
+          <input
+            type="checkbox"
+            :id="col + '-exc'"
+            v-model="filters.excCol[col]"
+            :value="false"
+          >
+          <label
+            class="exc"
+            :for="col + '-exc'"
+          />
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <div class="filter-group">
+    <h3>Foils</h3>
+    <input
+      type="checkbox"
+      v-model="filters.foils"
+    >
   </div>
 </template>
 
@@ -463,33 +504,36 @@ watch(filters, async () => {
 .compare input[type="checkbox"]:checked ~ label.exc {
   color: var(--colour-red);
 }
-.mana {
+/* .mana {
   padding: 0 10px;
 }
 .mana input {
   min-width: 0;
-}
+} */
 
-.price {
+.price, .mana {
   display: grid;
   gap: 0 .5rem;
   grid-template-columns: auto auto;
 }
-.price h3 {
+.price h3, .mana h3 {
   grid-column: span 2;
 }
 
 .colours,
 .rarities {
   display: flex;
-  gap: 0 10px;
+  gap: 0 .5rem;
 }
 .rarities {
-  gap: 0 15px;
+  gap: 0 .5rem;
 }
 .colours input[type="checkbox"]:checked + label,
 .rarities input[type="checkbox"]:checked + label {
   opacity: 1;
+}
+.rarities .input-group {
+  min-width: 40px;
 }
 .colours .input-group input[type="checkbox"],
 .rarities input[type="checkbox"] {
@@ -513,6 +557,7 @@ watch(filters, async () => {
   height: 30px;
   width: 30px;
   opacity: 0.3;
+  margin: auto;
 }
 .colour label {
   color: #938996;
@@ -575,4 +620,8 @@ watch(filters, async () => {
 .rarity[data-rarity="special"] label {
   background-color: #d8c6e1;
 }
+
+@media (max-width: 640px) {
+}
+
 </style>

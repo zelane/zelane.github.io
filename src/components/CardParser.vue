@@ -7,12 +7,25 @@ import Multiselect from '@vueform/multiselect';
 
 const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const upload = reactive({
-  name: null, file: null, text: null, append: true, encoding: null, format: null, active: false, progress: 0, count: 0, total: 0
+  name: null, 
+  file: null, 
+  text: "1 Golgari Signet\n1 Hornet Nest ", 
+  append: true, 
+  encoding: null, 
+  format: "MTGO", 
+  active: false, 
+  progress: 0, 
+  count: 0, 
+  total: 0
+});
+const ui = reactive({
+  name: null,
+  upload: false,
 });
 // let upload = reactive({ name: null, file: null, text: null, encoding: null, format: null, active: true, progress: 50, count: 50, total: 100 })
 
 const props = defineProps({ db: Object, collections: Array, setIds: Set });
-const emit = defineEmits(['change', 'close']);
+const emit = defineEmits(['change', 'delete', 'close']);
 
 const post = async (url = '', data = {}) => {
   const response = await fetch(url, {
@@ -246,6 +259,7 @@ const updateCollection = async (name, cardList, append = null) => {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
   }
+  console.log(name, cardData);
   emit('change', name, cardData);
 };
 </script>
@@ -258,8 +272,36 @@ const updateCollection = async (name, cardList, append = null) => {
     >
       <span>+</span>
     </button>
-    <div class="form">
-      <h3>Name</h3>
+
+    <div class="collections">
+      <div
+        class="collection"
+        v-for="col in props.collections"
+        :key="col"
+      >
+        <div>{{ col }}</div>
+        <!-- <a
+          class="action icon icon-arrow_downward"
+        /> -->
+        <a
+          class="action"
+          @click="upload.name = col"
+        >+</a>
+        <a
+          class="action"
+          @click="emit('delete', [col])"
+        >-</a>
+      </div>
+    </div>
+    <a
+      href="#"
+      @click="upload.name = ' '"
+    >New collection</a>
+    <div
+      class="form"
+      v-if="upload.name"
+    >
+      <h3>{{ props.collections.includes(upload.name) ? "Add to" : "Name" }}</h3>
       <input
         type="text"
         v-model="upload.name"
@@ -271,10 +313,14 @@ const updateCollection = async (name, cardList, append = null) => {
         :can-clear="false"
       />
 
-      <div>
+      <!-- <div>
         <label for="append">Append?</label>
-        <input id="append" type="checkbox" v-model="upload.append">
-      </div>
+        <input
+          id="append"
+          type="checkbox"
+          v-model="upload.append"
+        >
+      </div> -->
 
       <template v-if="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format)">
         <textarea v-model="upload.text" />
@@ -318,6 +364,27 @@ const updateCollection = async (name, cardList, append = null) => {
 </template>
 
 <style scoped>
+
+.collections {
+  background-color: var(--colour-input-grey);
+  width: 100%;
+  height: 20vh;
+  overflow: auto;
+}
+.collection {
+  display: flex;
+  gap: 1rem;
+  width: 100%;
+  flex-direction: row;
+  height: 3rem;
+  align-items: center;
+  padding: 1rem;
+  color: var(--colour-light-text);
+}
+.collection div:first-child {
+  flex-grow: 1;
+  font-weight: 500;
+}
 .progress {
   grid-column: span 2;
   position: relative;
@@ -350,9 +417,7 @@ const updateCollection = async (name, cardList, append = null) => {
   gap: 20px;
 }
 .upload .close {
-  position: absolute;
-  top: 0;
-  right: 0;
+  margin-left: 100%;
 }
 .upload .close span {
   display: block;
@@ -360,7 +425,7 @@ const updateCollection = async (name, cardList, append = null) => {
 }
 .upload .form {
   display: grid;
-  grid-template-columns: 1fr 10fr;
+  grid-template-columns: 1fr 5fr;
   gap: 20px;
   width: 100%;
   align-items: center;
