@@ -266,54 +266,55 @@ const updateCollection = async (name, cardList, append = null) => {
 
 <template>
   <div class="upload">
-    <button
-      class="small close"
-      @click="emit('close')"
-    >
-      <span>+</span>
-    </button>
-
-    <div class="collections">
-      <div
-        class="collection"
-        v-for="col in props.collections"
-        :key="col"
+    <div class="flex">
+      <button
+        class="small close"
+        @click="emit('close')"
       >
-        <div>{{ col }}</div>
-        <!-- <a
+        <span>+</span>
+      </button>
+
+      <div class="collections">
+        <div
+          class="collection"
+          v-for="col in props.collections"
+          :key="col"
+        >
+          <div>{{ col }}</div>
+          <!-- <a
           class="action icon icon-arrow_downward"
         /> -->
-        <a
-          class="action"
-          @click="upload.name = col"
-        >+</a>
-        <a
-          class="action"
-          @click="emit('delete', [col])"
-        >-</a>
+          <a
+            class="action"
+            @click="upload.name = col"
+          >+</a>
+          <a
+            class="action"
+            @click="emit('delete', [col])"
+          >-</a>
+        </div>
       </div>
-    </div>
-    <a
-      href="#"
-      @click="upload.name = ' '"
-    >New collection</a>
-    <div
-      class="form"
-      v-if="upload.name"
-    >
-      <h3>{{ props.collections.includes(upload.name) ? "Add to" : "Name" }}</h3>
-      <input
-        type="text"
-        v-model="upload.name"
+      <a
+        href="#"
+        @click="upload.name = ' '"
+      >New collection</a>
+      <div
+        class="form"
+        v-if="upload.name"
       >
-      <h3>Format</h3>
-      <Multiselect
-        v-model="upload.format"
-        :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO']"
-        :can-clear="false"
-      />
+        <h3>{{ props.collections.includes(upload.name) ? "Add to" : "Name" }}</h3>
+        <input
+          type="text"
+          v-model="upload.name"
+        >
+        <h3>Format</h3>
+        <Multiselect
+          v-model="upload.format"
+          :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO']"
+          :can-clear="false"
+        />
 
-      <!-- <div>
+        <!-- <div>
         <label for="append">Append?</label>
         <input
           id="append"
@@ -322,42 +323,43 @@ const updateCollection = async (name, cardList, append = null) => {
         >
       </div> -->
 
-      <template v-if="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format)">
-        <textarea v-model="upload.text" />
-      </template>
+        <template v-if="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format)">
+          <textarea v-model="upload.text" />
+        </template>
 
-      <label
-        class="button"
-        for="file-input"
-        v-if="['DragonShield Web', 'DragonShield Mobile'].includes(upload.format)"
-      >Choose file</label>
-      <input
-        v-if="upload.format === 'DragonShield Web'"
-        id="file-input"
-        ref="fileElem"
-        type="file"
-        :disabled="upload.active"
-      >
-      <div
-        class="buttons"
-        v-if="!upload.active && upload.format && (upload.text || fileElem)"
-      >
-        <button
-          @click="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
+        <label
+          class="button"
+          for="file-input"
+          v-if="['DragonShield Web', 'DragonShield Mobile'].includes(upload.format)"
+        >Choose file</label>
+        <input
+          v-if="upload.format === 'DragonShield Web'"
+          id="file-input"
+          ref="fileElem"
+          type="file"
+          :disabled="upload.active"
         >
-          Upload
-        </button>
-      </div>
-
-      <div
-        class="progress"
-        v-if="upload.active"
-      >
-        <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
         <div
-          class="bar"
-          :style="{ width: upload.progress + '%' }"
-        />
+          class="buttons"
+          v-if="!upload.active && upload.format && (upload.text || fileElem)"
+        >
+          <button
+            @click="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
+          >
+            Upload
+          </button>
+        </div>
+
+        <div
+          class="progress"
+          v-if="upload.active"
+        >
+          <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
+          <div
+            class="bar"
+            :style="{ width: upload.progress + '%' }"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -365,16 +367,36 @@ const updateCollection = async (name, cardList, append = null) => {
 
 <style scoped>
 
+.upload {
+  position: absolute;
+  padding: 1rem;
+  inset: 0;
+  overflow: auto;
+}
+.flex {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+}
+.close {
+  align-self: flex-end;
+}
+.close span {
+  display: block;
+  transform: rotate(45deg);
+}
 .collections {
   background-color: var(--colour-input-grey);
-  width: 100%;
-  height: 20vh;
+  height: 20rem;
   overflow: auto;
+  width: 100%;
+  max-width: 640px;
 }
 .collection {
   display: flex;
   gap: 1rem;
-  width: 100%;
   flex-direction: row;
   height: 3rem;
   align-items: center;
@@ -384,6 +406,39 @@ const updateCollection = async (name, cardList, append = null) => {
 .collection div:first-child {
   flex-grow: 1;
   font-weight: 500;
+}
+.form {
+  display: grid;
+  grid-template-columns: 1fr 5fr;
+  gap: 20px;
+  width: 100%;
+  max-width: 640px;
+  align-items: center;
+}
+/* .upload input[type="file"] {
+  display: none;
+} */
+.file {
+  grid-column: span 2;
+  display: block;
+  width: 100%;
+  background-color: var(--colour-input-grey);
+  height: 200px;
+}
+textarea {
+  grid-column: 2;
+  width: 100%;
+  height: 300px;
+}
+.buttons {
+  grid-column: span 2;
+  text-align: center;
+}
+input[type="file"] {
+  display: none;
+}
+label {
+  grid-column: 2;
 }
 .progress {
   grid-column: span 2;
@@ -404,55 +459,5 @@ const updateCollection = async (name, cardList, append = null) => {
   height: 3px;
   background-color: var(--colour-accent);
   transition: all 0.3s;
-}
-.upload {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  max-width: 640px;
-  margin: auto;
-  gap: 20px;
-}
-.upload .close {
-  margin-left: 100%;
-}
-.upload .close span {
-  display: block;
-  transform: rotate(45deg);
-}
-.upload .form {
-  display: grid;
-  grid-template-columns: 1fr 5fr;
-  gap: 20px;
-  width: 100%;
-  align-items: center;
-}
-/* .upload input[type="file"] {
-  display: none;
-} */
-.upload .file {
-  grid-column: span 2;
-  display: block;
-  width: 100%;
-  background-color: var(--colour-input-grey);
-  height: 200px;
-}
-.upload textarea {
-  grid-column: 2;
-  width: 100%;
-  height: 300px;
-}
-.upload .buttons {
-  grid-column: span 2;
-  text-align: center;
-}
-.upload input[type="file"] {
-  display: none;
-}
-.upload label {
-  grid-column: 2;
 }
 </style>

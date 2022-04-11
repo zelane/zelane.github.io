@@ -343,7 +343,7 @@ const setCards = item => {
         :set-ids="new Set(sets.keys())"
       />
 
-      <div class="info-bar">
+      <div class="info-bar" v-if="!ui.upload">
         <span>Count: {{ info.count }}</span>
         <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
 
@@ -368,6 +368,7 @@ const setCards = item => {
 
       <div
         class="sidepanel"
+        v-if="!ui.upload"
         :class="{'show': ui.sidebarShow}"
       >
         <div
