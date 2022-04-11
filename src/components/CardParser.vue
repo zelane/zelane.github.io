@@ -274,7 +274,7 @@ const updateCollection = async (name, cardList, append = null) => {
         <span>+</span>
       </button>
 
-      <div class="collections">
+      <div class="collections" v-if="props.collections.length > 0">
         <div
           class="collection"
           v-for="col in props.collections"
@@ -389,7 +389,7 @@ const updateCollection = async (name, cardList, append = null) => {
 }
 .collections {
   background-color: var(--colour-input-grey);
-  height: 20rem;
+  max-height: 20rem;
   overflow: auto;
   width: 100%;
   max-width: 640px;
