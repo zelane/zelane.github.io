@@ -32,9 +32,14 @@ let setLoading = ref(false);
 const cards = reactive({ collections: [], all: [], filtered: [], sort: 'Price', prints: [] });
 let activeCollections = reactive({ value: [] });
 
-const cachedGet = async (cache, url) => {
+const cachedGet = async (cache, url, force=false) => {
   // url = encodeURI(url);
-  const request = new Request(url);
+  const request = new Request(url, {
+    'cache': force === true ? 'reload' : 'default'
+  });
+  if(force === true) {
+    await cache.delete(request);
+  }
   let response = await cache.match(request);
   if (!response) {
     await cache.add(request);
@@ -68,11 +73,11 @@ const loadCollections = async (names) => {
   cards.all = [...cardMap.values()];
 };
 
-const loadSet = async (setId) => {
-  loadSearch('e:' + setId);
+const loadSet = async (setId, force=false) => {
+  loadSearch('e:' + setId, 'prints', force);
 };
 
-const loadSearch = async (query, unique='prints') => {
+const loadSearch = async (query, unique='prints', force=false) => {
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
     q: `${query} -border:silver -is:digital`,
     unique: unique
@@ -81,7 +86,7 @@ const loadSearch = async (query, unique='prints') => {
   loading.value = true;
   try {
     while (true) {
-      let json = await cachedGet(getCache, url);
+      let json = await cachedGet(getCache, url, force);
       _cards = _cards.concat(json.data);
       if (!json.has_more) break;
       url = json.next_page;
@@ -198,7 +203,6 @@ const exportList = async (format) => {
 const addToSet = async (set, newCards) => {
   let collection = await db.collections.get({ name: set });
   for(const newCard of newCards) {
-    console.log(newCard);
     let existing = collection.cards.filter(card => card.id === newCard.id);
     if(existing.length === 0) {
       collection.cards.push({... deepUnref(newCard)});
@@ -256,7 +260,7 @@ const setCards = item => {
     if(ui.set) loadSet(ui.set);
   }
   else if(item === 'search') {
-    if(ui.search) loadSearch(ui.search);
+    if(ui.search) loadSearch(ui.search, 'cards');
   }
 };
 
@@ -306,6 +310,7 @@ const setCards = item => {
               @select="loadSet"
               @loading="loading.value = true"
             />
+            <button class="small icon icon-refresh" @click="loadSet(ui.set, true)"></button>
           </div>
           <div
             class="item"
@@ -316,6 +321,7 @@ const setCards = item => {
               v-model="ui.search"
               @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
             >
+            <a href="https://scryfall.com/docs/syntax" target="_blank" class="button small">?</a> 
           </div>
         </div>
       </div>
@@ -351,7 +357,7 @@ const setCards = item => {
         <span class="sort">
           <Multiselect
             v-model="cards.sort"
-            :options="['Mana', 'Price', 'Count']"
+            :options="['Mana', 'Price', 'Count', 'Released']"
             mode="single"
             :can-clear="false"
           />
@@ -564,7 +570,7 @@ const setCards = item => {
 .cards .view .item {
   width: 100%;
 }
-.view .collection {
+.view .item {
   display: flex;
   gap: .5rem;
 }

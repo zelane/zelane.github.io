@@ -56,7 +56,8 @@
       <p>{{ card.set_name }}</p>
       <p>
         {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}
-        <span class="set">{{ card.set }}:{{ card.collector_number }}</span>
+        <a :href="card.purchase_uris.cardmarket" target="_blank" class="set">{{ card.set }}:{{ card.collector_number }}</a>
+        <!-- <a :href="card.purchase_uris.cardmarket" target="_blank"></a> -->
       </p>
       <!-- <p>{{ card.foil }}</p> -->
       <!-- <p>{{ card.frame }}</p> -->

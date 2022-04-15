@@ -44,6 +44,7 @@ let filters = reactive({
   price:{value: [null, null], min: 0, max: 100}, 
   dupesOnly: false, 
   sort: 'Price', 
+  group: false,
   incCol: {}, 
   excCol: {}, 
   ors: {}
@@ -96,7 +97,11 @@ const dynamicSort = (a, b) => {
       return a.price < b.price ? 1 : -1;
     }
     return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-
+  }
+  else if (filters.sort === 'Released') {
+    let ad = new Date(a.released_at + "T00:00:00");
+    let bd = new Date(b.released_at + "T00:00:00");
+    return ad.getTime() > bd.getTime() ? 1 : -1;
   }
 };
 
@@ -137,12 +142,17 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
 
   let count = 0;
   let total_value = 0;
+  let distinctNames = new Set();
   filtered = filtered.filter((card) => {
     // return card.border_color == 'borderless';
     // if(card.border_color === 'borderless' || card.full_art === true) return false;
     // return card.frame == '2003';
     // return card.full_art == true;
-    if (_filters.dupesOnly && card.count === 1) {
+    if(_filters.group === true && distinctNames.has(card.name)) {
+      return false;
+    }
+    distinctNames.add(card.name);
+    if (_filters.dupesOnly === true && card.count === 1) {
       return false;
     }
     const isFoil = !_filters.foils || card.is_foil;
@@ -199,11 +209,12 @@ watch(() => prop.cards, async (a, b) => {
   // let priceMax = 0;
 
   a.forEach(card => {
-    if(!card.prices) {
+    if(card.prices === undefined) {
       card.price = 0;
     }
-    else if(card.is_foil) {
+    else if(card.is_foil || (card.prices.eur === null && card.prices.usd === null)) {
       card.price = parseFloat(card.prices.eur_foil || parseFloat(card.prices.usd_foil) * ex || 0);
+      if(card.price !== 0) card.is_foil = true;
     }
     else {
       card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
@@ -435,11 +446,20 @@ watch(filters, async () => {
   </div>
 
   <div class="filter-group">
-    <h3>Foils</h3>
+    <h3>Other</h3>
+    <label for="foils">Only Foils</label>
     <input
+      id="foils"
       type="checkbox"
       v-model="filters.foils"
     >
+    <label for="group">Group</label>
+    <input
+      id="group"
+      type="checkbox"
+      v-model="filters.group"
+    >
+    
   </div>
 </template>
 
