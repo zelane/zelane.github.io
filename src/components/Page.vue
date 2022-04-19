@@ -340,7 +340,7 @@ const setCards = item => {
       id="main"
     >
       <CardParser
-        v-if="ui.upload"
+        v-show="ui.upload"
         @change="updateCollection"
         @close="ui.upload=false"
         @delete="deleteCollections"
