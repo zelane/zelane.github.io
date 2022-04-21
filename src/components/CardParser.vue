@@ -70,6 +70,7 @@ const handleTextUpload = async (e) => {
         set: m[3],
         number: m[4],
         foil: false,
+        tags: [],
       };
     };
   }
@@ -83,6 +84,8 @@ const handleTextUpload = async (e) => {
         set: '',
         number: '',
         foil: false,
+        etched: false,
+        tags: [],
       };
     }
   }
@@ -99,6 +102,8 @@ const handleTextUpload = async (e) => {
         set: '',
         number: '',
         foil: false,
+        etched: false,
+        tags: [],
       };
     }
   }
@@ -146,30 +151,36 @@ const parseDSWeb = async (csv) => {
   csv = csv.replace('"sep=,"', '');
   let parsed = await Papa.parsePromise(csv);
   let cards = {};
+  let setSwaps = {
+    'rmh1' :'h1r'
+  };
   parsed.data.forEach(row => {
     const setName = row['Set Name'];
     let setCode = row['Set Code'].toLowerCase();
+    if(setSwaps[setCode]) {
+      setCode = setSwaps[setCode];
+    }
+    const is_foil = row['Printing'] === 'Foil';
+    const is_etched = row['Card Number'].toString().includes('etc');
+    let card = {
+      name: row['Card Name'],
+      count: parseInt(row['Quantity']),
+      set: '',
+      number: '',
+      foil: is_foil,
+      tags: [row['Folder Name']],
+      etched: is_etched,
+    };
 
     // Find set id for mismatched set ids
     if (!props.setIds.has(setCode)) {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
-      cards[setCode + row['Card Number']] = {
-        name: row['Card Name'],
-        count: parseInt(row['Quantity']),
-        set: '',
-        number: '',
-        foil: row['Printing'] === 'Foil'
-      };
+      cards[card.name] = card;
     }
     else {
-      cards[setCode + row['Card Number']] = {
-        name: row['Card Name'],
-        count: parseInt(row['Quantity']),
-        set: setCode,
-        number: row['Card Number'].toString(),
-        foil: row['Printing'] === 'Foil'
-      };
-
+      card.set = setCode,
+      card.number = row['Card Number'].toString().replace("etc", "");
+      cards[setCode + row['Card Number']] = card;
     }
   });
   return cards;
@@ -177,8 +188,7 @@ const parseDSWeb = async (csv) => {
 
 const fetchCardData = async (cardList) => {
   const ids = [];
-  const counts = {};
-  const foils = new Set();
+  const extras = {};
   try {
     let cardData = [];
 
@@ -186,13 +196,12 @@ const fetchCardData = async (cardList) => {
       let elem = {};
       if (_card.set === '' && _card.number === '') {
         elem.name = _card.name;
-        counts[_card.name] = _card.count;
+        extras[_card.name] = _card;
       }
       else {
         elem.set = _card.set;
         elem.collector_number = _card.number;
-        counts[_card.set + _card.number] = _card.count;
-        if(_card.foil) foils.add(_card.set + _card.number);
+        extras[_card.set + _card.number] = _card;
       }
       ids.push(elem);
     };
@@ -204,8 +213,11 @@ const fetchCardData = async (cardList) => {
         console.log(resp.not_found);
       }
       let data = resp.data.map(c => {
-        c.count = counts[c.name] || (counts[c.set + c.collector_number] || 1);
-        c.is_foil = foils.has(c.set + c.collector_number);
+        let extra = extras[c.name] || extras[c.set + c.collector_number];
+        c.count = extra.count || 1;
+        c.is_foil = extra.foil;
+        c.tags = extra.tags;
+        c.is_etched = extra.etched;
         return c;
       });
       cardData = cardData.concat(data);
@@ -259,7 +271,6 @@ const updateCollection = async (name, cardList, append = null) => {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
   }
-  console.log(name, cardData);
   emit('change', name, cardData);
 };
 </script>
@@ -274,7 +285,10 @@ const updateCollection = async (name, cardList, append = null) => {
         <span>+</span>
       </button>
 
-      <div class="collections" v-if="props.collections.length > 0">
+      <div
+        class="collections"
+        v-if="props.collections.length > 0"
+      >
         <div
           class="collection"
           v-for="col in props.collections"

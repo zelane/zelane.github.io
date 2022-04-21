@@ -212,6 +212,9 @@ watch(() => prop.cards, async (a, b) => {
     if(card.prices === undefined) {
       card.price = 0;
     }
+    else if(card.is_etched) {
+      card.price = parseFloat(card.prices.usd_etched) || 0;
+    }
     else if(card.is_foil || (card.prices.eur === null && card.prices.usd === null)) {
       card.price = parseFloat(card.prices.eur_foil || parseFloat(card.prices.usd_foil) * ex || 0);
       if(card.price !== 0) card.is_foil = true;
@@ -459,7 +462,6 @@ watch(filters, async () => {
       type="checkbox"
       v-model="filters.group"
     >
-    
   </div>
 </template>
 

@@ -56,9 +56,20 @@
       <p>{{ card.set_name }}</p>
       <p>
         {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}
-        <a :href="card.purchase_uris.cardmarket" target="_blank" class="set">{{ card.set }}:{{ card.collector_number }}</a>
+        <a
+          :href="card.purchase_uris.cardmarket"
+          target="_blank"
+          class="set"
+        >{{ card.set }}:{{ card.collector_number }}</a>
         <!-- <a :href="card.purchase_uris.cardmarket" target="_blank"></a> -->
       </p>
+      <div 
+        class="tag" 
+        v-for="tag in card.tags"
+        :key="tag"
+      >
+        {{ tag }}
+      </div>
       <!-- <p>{{ card.foil }}</p> -->
       <!-- <p>{{ card.frame }}</p> -->
       <!-- <p>{{ card.full_art }}</p> -->
