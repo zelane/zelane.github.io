@@ -20,7 +20,7 @@
       class="card"
       :class="{foil: card.is_foil}"
       v-for="card in props.cards.slice(0, 500)"
-      :key="card.id"
+      :key="card.id + card.is_foil + card.is_etched"
     >
       <div class="img">
         <img
@@ -51,7 +51,7 @@
         </div>
       </div>
       <p class="name">
-        {{ card.count }} {{ card.name }} {{ card.is_foil ? '☆' : '' }}
+        {{ card.count }} {{ card.name }} {{ card.is_foil ? '☆' : '' }} {{ card.is_etched ? '#' : '' }}
       </p>
       <p>{{ card.set_name }}</p>
       <p>
@@ -63,12 +63,14 @@
         >{{ card.set }}:{{ card.collector_number }}</a>
         <!-- <a :href="card.purchase_uris.cardmarket" target="_blank"></a> -->
       </p>
-      <div 
-        class="tag" 
-        v-for="tag in card.tags"
-        :key="tag"
-      >
-        {{ tag }}
+      <div class="tags">
+        <div 
+          class="tag" 
+          v-for="tag in card.tags"
+          :key="tag"
+        >
+          {{ tag }}
+        </div>
       </div>
       <!-- <p>{{ card.foil }}</p> -->
       <!-- <p>{{ card.frame }}</p> -->
@@ -148,6 +150,17 @@
   font-family: "Beleren Bold";
   line-height: 1;
   /* font-weight: 600; */
+}
+.card .tags {
+  display: flex;
+  gap: .5rem;
+}
+.card .tags .tag {
+  font-size: .8rem;
+  background-color: var(--colour-accent);
+  color: #111;
+  padding: .2rem .5rem;
+  border-radius: 50px;
 }
 .card .set {
   color: #827684;

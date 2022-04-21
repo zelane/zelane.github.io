@@ -107,7 +107,7 @@ const handleTextUpload = async (e) => {
       };
     }
   }
-  updateCollection(upload.name, cards);
+  updateCollection(upload.name, new Map(Object.entries(cards)));
 };
 
 const handleFileUpload = async (e) => {
@@ -150,7 +150,7 @@ Papa.parsePromise = (file) => {
 const parseDSWeb = async (csv) => {
   csv = csv.replace('"sep=,"', '');
   let parsed = await Papa.parsePromise(csv);
-  let cards = {};
+  let cards = new Map();
   let setSwaps = {
     'rmh1' :'h1r'
   };
@@ -162,9 +162,11 @@ const parseDSWeb = async (csv) => {
     }
     const is_foil = row['Printing'] === 'Foil';
     const is_etched = row['Card Number'].toString().includes('etc');
+    const count = parseInt(row['Quantity']);
+
     let card = {
       name: row['Card Name'],
-      count: parseInt(row['Quantity']),
+      count: count,
       set: '',
       number: '',
       foil: is_foil,
@@ -173,14 +175,24 @@ const parseDSWeb = async (csv) => {
     };
 
     // Find set id for mismatched set ids
+    let key = null;
     if (!props.setIds.has(setCode)) {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
-      cards[card.name] = card;
+      key = card.name + is_foil + is_etched;
     }
     else {
       card.set = setCode,
       card.number = row['Card Number'].toString().replace("etc", "");
-      cards[setCode + row['Card Number']] = card;
+      key = setCode + row['Card Number'] + is_foil + is_etched;
+    }
+    if(cards.has(key)) {
+      let ex = cards.get(key);
+      ex.count += count;
+      ex.tags.push(row['Folder Name']);
+      cards.set(key, ex);
+    }
+    else {
+      cards.set(key, card);
     }
   });
   return cards;
@@ -188,20 +200,19 @@ const parseDSWeb = async (csv) => {
 
 const fetchCardData = async (cardList) => {
   const ids = [];
-  const extras = {};
-  try {
-    let cardData = [];
+  const mapName = new Map();
+  const mapSet = new Map();
+  let cardData = [];
 
-    for (const [key, _card] of Object.entries(cardList)) {
+  try {
+    for (const [key, _card] of cardList.entries()) {
       let elem = {};
       if (_card.set === '' && _card.number === '') {
         elem.name = _card.name;
-        extras[_card.name] = _card;
       }
       else {
         elem.set = _card.set;
         elem.collector_number = _card.number;
-        extras[_card.set + _card.number] = _card;
       }
       ids.push(elem);
     };
@@ -212,21 +223,33 @@ const fetchCardData = async (cardList) => {
       if (resp.not_found.length > 0) {
         console.log(resp.not_found);
       }
-      let data = resp.data.map(c => {
-        let extra = extras[c.name] || extras[c.set + c.collector_number];
-        c.count = extra.count || 1;
-        c.is_foil = extra.foil;
-        c.tags = extra.tags;
-        c.is_etched = extra.etched;
-        return c;
+      resp.data.forEach(c => {
+        mapName.set(c.name, c);
+        mapSet.set(c.set + c.collector_number, c);
       });
-      cardData = cardData.concat(data);
       upload.count = i;
       upload.progress = (i / ids.length) * 100;
       await new Promise((r) => setTimeout(r, 100));
     }
+
+    for (const [key, _card] of cardList.entries()) {
+      let data = null;
+      if (_card.set === '' && _card.number === '') {
+        data = {... mapName.get(_card.name)};
+      }
+      else {
+        data = {... mapSet.get(_card.set + _card.number)};
+      }
+      if(data === null) {
+        continue;
+      }
+      data.count = _card.count || 1;
+      data.is_foil = _card.foil;
+      data.is_etched = _card.etched;
+      data.tags = _card.tags;
+      cardData.push(data);
+    }
     upload.progress = 100;
-    return cardData;
   }
   catch (e) {
     console.error(e);
@@ -236,7 +259,7 @@ const fetchCardData = async (cardList) => {
     upload.count = 0;
     upload.progress = 0;
     upload.total = 0;
-    emit('close');
+    return cardData;
   }
 };
 
@@ -255,10 +278,10 @@ const updateCollection = async (name, cardList, append = null) => {
           return false;
         }
         if(card.set !== '') {
-          return card.set === c.set && card.number === c.collector_number;
+          return card.set === c.set && card.number === c.collector_number && card.is_foil === c.is_foil && c.is_etched == c.is_etched;
         }
         else {
-          return c.name === card.name;
+          return c.name === card.name && card.is_foil === c.is_foil && c.is_etched == c.is_etched;
         }
       });
       if (existing.length > 0) {
@@ -272,6 +295,7 @@ const updateCollection = async (name, cardList, append = null) => {
     cardData = cardData.concat(newData);
   }
   emit('change', name, cardData);
+  emit('close');
 };
 </script>
 

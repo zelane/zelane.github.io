@@ -60,13 +60,14 @@ const loadCollections = async (names) => {
       if(card === undefined) {
         continue;
       }
-      if(cardMap.has(card.id)) {
-        let ex = cardMap.get(card.id);
+      const cardKey = card.id + card.is_foil + card.is_etched;
+      if(cardMap.has(cardKey)) {
+        let ex = cardMap.get(cardKey);
         ex.count = parseInt(ex.count) + parseInt(card.count);
-        cardMap.set(card.id, ex);
+        cardMap.set(cardKey, ex);
       }
       else {
-        cardMap.set(card.id, card);
+        cardMap.set(cardKey, card);
       }
     }
   }
@@ -310,7 +311,10 @@ const setCards = item => {
               @select="loadSet"
               @loading="loading.value = true"
             />
-            <button class="small icon icon-refresh" @click="loadSet(ui.set, true)"></button>
+            <button
+              class="small icon icon-refresh"
+              @click="loadSet(ui.set, true)"
+            />
           </div>
           <div
             class="item"
@@ -321,7 +325,11 @@ const setCards = item => {
               v-model="ui.search"
               @keyup.enter="e => loadSearch(e.currentTarget.value, 'cards')"
             >
-            <a href="https://scryfall.com/docs/syntax" target="_blank" class="button small">?</a> 
+            <a
+              href="https://scryfall.com/docs/syntax"
+              target="_blank"
+              class="button small"
+            >?</a> 
           </div>
         </div>
       </div>
@@ -349,7 +357,10 @@ const setCards = item => {
         :set-ids="new Set(sets.keys())"
       />
 
-      <div class="info-bar" v-if="!ui.upload">
+      <div
+        class="info-bar"
+        v-if="!ui.upload"
+      >
         <span>Count: {{ info.count }}</span>
         <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
 

@@ -29,7 +29,7 @@ const prop = defineProps({
 });
 const emit = defineEmits(['change', 'loading']);
 
-let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [] });
+let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [], tags: new Set() });
 
 let filters = reactive({
   colours: {colours:[], or: false}, 
@@ -40,6 +40,7 @@ let filters = reactive({
   name: '', 
   cardText: '', 
   sets: [], 
+  tags: [],
   mana: {value: [null, null], min: 0, max: 20}, 
   price:{value: [null, null], min: 0, max: 100}, 
   dupesOnly: false, 
@@ -185,6 +186,12 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     }
     if (!hasSet) return false;
 
+    let hasTags = true;
+    if(_filters.tags.length > 0) {
+      hasTags = _filters.tags.some(tag => (card.tags || []).includes(tag));
+    }
+    if (!hasTags) return false;
+
     const hasMana = card.cmc >= (_filters.mana.value[0] || 0) && card.cmc <= (_filters.mana.value[1] || 20);
     if (!hasMana) return false;
 
@@ -204,6 +211,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
 watch(() => prop.cards, async (a, b) => {
   const _keywords = new Set();
   const _sets = [];
+  const tags = new Set();
   let ex = 0.9;
   // let priceMin = 1000;
   // let priceMax = 0;
@@ -231,16 +239,27 @@ watch(() => prop.cards, async (a, b) => {
     // if(card.keywords === undefined) {
       // return;
     // }
-    card.keywords.forEach((kw) => {
-      _keywords.add(kw);
-    });
+    if(card.keywords) {
+      card.keywords.forEach((kw) => {
+        _keywords.add(kw);
+      });
+    }
+    else {
+      console.log(card);
+    }
     _sets[card.set] = card.set_name;
+    if(card.tags) {
+      card.tags.forEach(tag => {
+        tags.add(tag);
+      });
+    }
   });
   // Have to clear filters that depend on dynamic filters, could just load all options?
   filters.keywords = [];
   filters.sets = [];
   vars.keywords = [..._keywords];
   vars.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
+  vars.tags = tags;
 
   let [filtered, count, value] = await filterCards(a, filters);
   // filters.price.value[0] = priceMin;
@@ -400,6 +419,16 @@ watch(filters, async () => {
       :searchable="true"
       mode="tags"
       placeholder="Sets"
+    />
+  </div>
+
+  <div class="filter-group">
+    <Multiselect
+      v-model="filters.tags"
+      :options="[...vars.tags]"
+      :searchable="true"
+      mode="tags"
+      placeholder="Tags"
     />
   </div>
 
