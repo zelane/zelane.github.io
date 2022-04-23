@@ -5,7 +5,8 @@ import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
 
 
-const skyfallUrl = 'https://api.scryfall.com/cards/collection';
+// const skyfallUrl = 'https://api.scryfall.com/cards/collection';
+const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com/collection/';
 const upload = reactive({
   name: null, 
   file: null, 
@@ -22,7 +23,6 @@ const ui = reactive({
   name: null,
   upload: false,
 });
-// let upload = reactive({ name: null, file: null, text: null, encoding: null, format: null, active: true, progress: 50, count: 50, total: 100 })
 
 const props = defineProps({ db: Object, collections: Array, setIds: Set });
 const emit = defineEmits(['change', 'delete', 'close']);
@@ -69,7 +69,8 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]),
         set: m[3],
         number: m[4],
-        foil: false,
+        is_foil: false,
+        is_etched: false,
         tags: [],
       };
     };
@@ -83,8 +84,8 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]) || 1,
         set: '',
         number: '',
-        foil: false,
-        etched: false,
+        is_foil: false,
+        is_etched: false,
         tags: [],
       };
     }
@@ -101,8 +102,8 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]) || 1,
         set: '',
         number: '',
-        foil: false,
-        etched: false,
+        is_foil: false,
+        is_etched: false,
         tags: [],
       };
     }
@@ -169,9 +170,9 @@ const parseDSWeb = async (csv) => {
       count: count,
       set: '',
       number: '',
-      foil: is_foil,
+      is_foil: is_foil,
+      is_etched: is_etched,
       tags: [row['Folder Name']],
-      etched: is_etched,
     };
 
     // Find set id for mismatched set ids
@@ -216,10 +217,10 @@ const fetchCardData = async (cardList) => {
       }
       ids.push(elem);
     };
-
+    const chunk = 1000;
     upload.total = ids.length;
-    for (let i = 0; i < ids.length; i += 75) {
-      const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + 75) });
+    for (let i = 0; i < ids.length; i += chunk) {
+      const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + chunk) });
       if (resp.not_found.length > 0) {
         console.log(resp.not_found);
       }
@@ -229,7 +230,7 @@ const fetchCardData = async (cardList) => {
       });
       upload.count = i;
       upload.progress = (i / ids.length) * 100;
-      await new Promise((r) => setTimeout(r, 100));
+      // await new Promise((r) => setTimeout(r, 100));
     }
 
     for (const [key, _card] of cardList.entries()) {
@@ -240,12 +241,13 @@ const fetchCardData = async (cardList) => {
       else {
         data = {... mapSet.get(_card.set + _card.number)};
       }
-      if(data === null) {
+      if(!data.name) {
+        console.log("Missing data", data, _card);
         continue;
       }
       data.count = _card.count || 1;
-      data.is_foil = _card.foil;
-      data.is_etched = _card.etched;
+      data.is_foil = _card.is_foil;
+      data.is_etched = _card.is_etched;
       data.tags = _card.tags;
       cardData.push(data);
     }
@@ -272,25 +274,25 @@ const updateCollection = async (name, cardList, append = null) => {
   if (append && props.collections.includes(name)) {
     const collection = await props.db.collections.get({ name: name });
     cardData = collection.cards;
-    for (const [key, card] of Object.entries(cardList)) {
+    for (const [key, card] of cardList.entries()) {
       let existing = collection.cards.filter(c => {
         if(c === undefined) {
           return false;
         }
         if(card.set !== '') {
-          return card.set === c.set && card.number === c.collector_number && card.is_foil === c.is_foil && c.is_etched == c.is_etched;
+          return card.set === c.set && card.number === c.collector_number && card.is_foil === c.is_foil && card.is_etched === c.is_etched;
         }
         else {
-          return c.name === card.name && card.is_foil === c.is_foil && c.is_etched == c.is_etched;
+          return card.name === c.name && card.is_foil === c.is_foil && card.is_etched === c.is_etched;
         }
       });
       if (existing.length > 0) {
         existing[0].count = card.count;
-        delete cardList[key];
+        cardList.delete(key);
       }
     }
   }
-  if (cardList) {
+  if (cardList.size > 0) {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
   }

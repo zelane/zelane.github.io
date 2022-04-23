@@ -57,6 +57,7 @@
       <p>
         {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}
         <a
+          v-if="card.purchase_uris"
           :href="card.purchase_uris.cardmarket"
           target="_blank"
           class="set"

@@ -158,7 +158,6 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     }
     const isFoil = !_filters.foils || card.is_foil;
     if(!isFoil) return false;
-
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
     const colourF = (f) => _filters.colours.or ? _filters.colours.colours.every(f) : _filters.colours.colours.some(f);
