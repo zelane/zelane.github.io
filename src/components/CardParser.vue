@@ -6,7 +6,7 @@ import Multiselect from '@vueform/multiselect';
 
 
 // const skyfallUrl = 'https://api.scryfall.com/cards/collection';
-const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com/collection/';
+const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
 const upload = reactive({
   name: null, 
   file: null, 
@@ -60,7 +60,12 @@ const handleTextUpload = async (e) => {
   upload.active = true;
   upload.progress = 0;
   let cards = {};
-  if (upload.format === 'MTGA') {
+  if (upload.format === 'Sync Code') {
+    const code = upload.text.trim();
+    await downloadCollection(upload.name, code);
+    return;
+  }
+  else if (upload.format === 'MTGA') {
     const re = /([0-9]+) (.+) \((.+)\) ([0-9]+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
@@ -220,7 +225,7 @@ const fetchCardData = async (cardList) => {
     const chunk = 1000;
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += chunk) {
-      const resp = await post(skyfallUrl, { identifiers: ids.slice(i, i + chunk) });
+      const resp = await post(skyfallUrl + '/cards', { identifiers: ids.slice(i, i + chunk) });
       if (resp.not_found.length > 0) {
         console.log(resp.not_found);
       }
@@ -299,6 +304,31 @@ const updateCollection = async (name, cardList, append = null) => {
   emit('change', name, cardData);
   emit('close');
 };
+
+const downloadCollection = async (name, code) => {
+  const resp = await fetch(skyfallUrl + '/collection?id=' + code);
+  const json = await resp.json();
+  upload.active = false;
+  emit('change', name, json.data);
+  emit('close');
+};
+
+const uploadCollection = async (name) => {
+  const collection = await props.db.collections.get({ name: name });
+  let code = collection.remoteId;
+  if(!collection.remoteId) {
+    const resp = await post(skyfallUrl + '/collection', {
+      ids: collection.cards.map(c => c.id)
+    });
+    code = resp.data;
+    console.log(code);
+    await props.db.collections.update(name, {
+      "remoteId": code
+    });
+  }
+  navigator.clipboard.writeText(code);
+};
+
 </script>
 
 <template>
@@ -332,6 +362,10 @@ const updateCollection = async (name, cardList, append = null) => {
             class="action"
             @click="emit('delete', [col])"
           >-</a>
+          <a
+            class="action icon icon-loop"
+            @click="uploadCollection(col)"
+          />
         </div>
       </div>
       <a
@@ -350,7 +384,7 @@ const updateCollection = async (name, cardList, append = null) => {
         <h3>Format</h3>
         <Multiselect
           v-model="upload.format"
-          :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO']"
+          :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO', 'Sync Code']"
           :can-clear="false"
         />
 
@@ -363,7 +397,7 @@ const updateCollection = async (name, cardList, append = null) => {
         >
       </div> -->
 
-        <template v-if="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format)">
+        <template v-if="['MTGA', 'MTGO', 'MKM Email', 'Sync Code'].includes(upload.format)">
           <textarea v-model="upload.text" />
         </template>
 
@@ -384,7 +418,7 @@ const updateCollection = async (name, cardList, append = null) => {
           v-if="!upload.active && upload.format && (upload.text || fileElem)"
         >
           <button
-            @click="['MTGA', 'MTGO', 'MKM Email'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
+            @click="['MTGA', 'MTGO', 'MKM Email', 'Sync Code'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
           >
             Upload
           </button>

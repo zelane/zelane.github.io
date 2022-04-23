@@ -36,11 +36,11 @@
 
 @font-face {
   font-family: 'icomoon';
-  src: url('./icons/icomoon.eot?asd21e');
-  src: url('./icons/icomoon.eot?asd21e#iefix') format('embedded-opentype'),
-    url('./icons/icomoon.ttf?asd21e') format('truetype'),
-    url('./icons/icomoon.woff?asd21e') format('woff'),
-    url('./icons/icomoon.svg?asd21e#icomoon') format('svg');
+  src: url('./icons/icomoon.eot?3a6484');
+  src: url('./icons/icomoon.eot?3a6484#iefix') format('embedded-opentype'),
+    url('./icons/icomoon.ttf?3a6484') format('truetype'),
+    url('./icons/icomoon.woff?3a6484') format('woff'),
+    url('./icons/icomoon.svg?3a6484#icomoon') format('svg');
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -88,6 +88,10 @@
 
 .icon-W:before {
   content: "\e906";
+}
+
+.icon-loop:before {
+  content: "\e923";
 }
 
 .icon-library:before {
@@ -162,6 +166,10 @@
   content: "\e922";
 }
 
+.icon-local_grocery_store:before {
+  content: "\e924";
+}
+
 .icon-arrow_back:before {
   content: "\e914";
 }
@@ -196,6 +204,10 @@
 
 .icon-arrow_downward:before {
   content: "\e91c";
+}
+
+.icon-sync_problem:before {
+  content: "\e925";
 }
 
 .icon-delete:before {

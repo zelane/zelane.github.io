@@ -8,7 +8,7 @@ import { deepUnref } from 'vue-deepunref';
 import CardList from './CardList.vue';
 
 const db = new Dexie('mtg');
-db.version(2).stores({
+db.version(3).stores({
   collections: '&name'
 });
 const info = reactive({ count: 0, total_value: 0 });
@@ -76,6 +76,8 @@ const loadCollections = async (names) => {
 
 const loadSet = async (setId, force=false) => {
   loadSearch('e:' + setId, 'prints', force);
+  // let json = await cachedGet(getCache, 'http://localhost:3001/set/?set=' + setId, force);
+  // cards.all = json.data;
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
@@ -312,7 +314,7 @@ const setCards = item => {
               @loading="loading.value = true"
             />
             <button
-              class="small icon icon-refresh"
+              class="small icon icon-loop"
               @click="loadSet(ui.set, true)"
             />
           </div>
