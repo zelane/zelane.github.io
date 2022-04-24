@@ -23,19 +23,27 @@
       :key="card.id + card.is_foil + card.is_etched"
     >
       <div class="img">
+        <!-- <img
+          v-if="card.image_uris"
+          :src="`${card.image_uris.normal}`"
+          loading="lazy"
+        > -->
         <img
           v-if="card.image_uris"
-          :src="card.image_uris.normal"
+          :srcset="`${card.image_uris.normal}, ${card.image_uris.large} 2x, ${card.image_uris.large} 400w`"
+          loading="lazy"
         >
         <img
           class="flip front"
           v-if="card.card_faces && card.card_faces[0].image_uris"
           :src="card.card_faces[0].image_uris.normal"
+          loading="lazy"
         >
         <img
           class="flip back"
           v-if="card.card_faces && card.card_faces[0].image_uris"
           :src="card.card_faces[1].image_uris.normal"
+          loading="lazy"
         >
         <div class="buttons">
           <button

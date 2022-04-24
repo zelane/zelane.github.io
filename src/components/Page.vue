@@ -167,8 +167,8 @@ caches.open('cardDataCache').then(async (cache) => {
   as.data.forEach(set => sets.set(set.code, set));
 });
 
-const updateCollection = async (name, cardData) => {
-  await db.collections.put({ 'name': name, 'cards': cardData });
+const updateCollection = async (name, cardData, syncCode=undefined) => {
+  await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
   if (!cards.collections.includes(name)) {
     cards.collections.push(name);
   }

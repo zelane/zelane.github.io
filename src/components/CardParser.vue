@@ -7,6 +7,7 @@ import Multiselect from '@vueform/multiselect';
 
 // const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+// const skyfallUrl = 'http://localhost:3001';
 const upload = reactive({
   name: null, 
   file: null, 
@@ -309,24 +310,41 @@ const downloadCollection = async (name, code) => {
   const resp = await fetch(skyfallUrl + '/collection?id=' + code);
   const json = await resp.json();
   upload.active = false;
-  emit('change', name, json.data);
+  emit('change', name, json.data, code);
   emit('close');
 };
 
-const uploadCollection = async (name) => {
+const refreshCollection = async (name) => {
   const collection = await props.db.collections.get({ name: name });
-  let code = collection.remoteId;
-  if(!collection.remoteId) {
-    const resp = await post(skyfallUrl + '/collection', {
-      ids: collection.cards.map(c => c.id)
-    });
-    code = resp.data;
-    console.log(code);
-    await props.db.collections.update(name, {
-      "remoteId": code
-    });
+  if(!collection.syncCode) {
+    return;
   }
+  const resp = await fetch(skyfallUrl + '/collection?id=' + collection.syncCode);
+  const json = await resp.json();
+  emit('change', name, json.data, collection.syncCode);
+};
+
+const uploadCollection = async (name, force=false) => {
+  const collection = await props.db.collections.get({ name: name });
+  let data = {
+    cards: collection.cards.map(c => c.id)
+  };
+  let code = collection.syncCode;
+  if(code) {
+    data.id = code;
+  }
+  const resp = await post(skyfallUrl + '/collection', data);
+  code = resp.data;
+  console.log(code);
+  await props.db.collections.update(name, {
+    "syncCode": code
+  });
   navigator.clipboard.writeText(code);
+};
+
+const copySyncCode = async (name) => {
+  const collection = await props.db.collections.get({ name: name });
+  navigator.clipboard.writeText(collection.syncCode);
 };
 
 </script>
@@ -355,6 +373,19 @@ const uploadCollection = async (name) => {
           class="action icon icon-arrow_downward"
         /> -->
           <a
+            class="action icon icon-arrow_upward"
+            @click.exact="uploadCollection(col)"
+            @click.ctrl="uploadCollection(col, true)"
+          />
+          <a
+            class="action icon icon-arrow_downward"
+            @click.exact="refreshCollection(col)"
+          />
+          <a
+            class="action icon icon-clipboard"
+            @click.exact="copySyncCode(col)"
+          />
+          <a
             class="action"
             @click="upload.name = col"
           >+</a>
@@ -362,10 +393,6 @@ const uploadCollection = async (name) => {
             class="action"
             @click="emit('delete', [col])"
           >-</a>
-          <a
-            class="action icon icon-loop"
-            @click="uploadCollection(col)"
-          />
         </div>
       </div>
       <a

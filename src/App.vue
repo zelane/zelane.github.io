@@ -100,6 +100,9 @@ html {
   --toggle-border-off: 0;
   --toggle-ring-width: 0;
   --toggle-handle-enabled: var(--colour-off-white);
+
+  /* image-rendering: -webkit-optimize-contrast; */
+
 }
 body {
 
