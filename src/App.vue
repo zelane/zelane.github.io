@@ -118,6 +118,21 @@ a {
   font-family: var(--font-magic);
   font-weight: 500;
 }
+textarea {
+  background-color: var(--colour-input-grey);
+  grid-column: 2;
+  width: 100%;
+  height: 300px;
+}
+  textarea {
+  background-color: var(--colour-input-grey);
+  border: none;
+  border-radius: var(--default-br);
+  color: #efefef;
+  font-family: "Spectral", Helvetica, Arial, sans-serif;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
 .bi-toggle {
   background-color: var(--colour-input-grey);
   padding: .5rem 1rem;
@@ -169,15 +184,6 @@ button.small,
   font-family: var(--font-magic-smallcaps);
   box-shadow: var(--default-shadow);
   color: #e5dbdc;
-}
-.upload textarea {
-  background-color: var(--colour-input-grey);
-  border: none;
-  border-radius: var(--default-br);
-  color: #efefef;
-  font-family: "Spectral", Helvetica, Arial, sans-serif;
-  padding: 1.25rem;
-  box-sizing: border-box;
 }
 .slider-target {
   box-shadow: var(--default-shadow);

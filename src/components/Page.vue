@@ -6,6 +6,11 @@ import Filters from './Filters.vue';
 import CardParser from './CardParser.vue';
 import { deepUnref } from 'vue-deepunref';
 import CardList from './CardList.vue';
+import Precon from './Precon.vue';
+
+
+// const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+const backendUrl = 'http://localhost:3001';
 
 const db = new Dexie('mtg');
 db.version(3).stores({
@@ -15,6 +20,7 @@ const info = reactive({ count: 0, total_value: 0 });
 const clipboard = reactive({cards: new Map()});
 const ui = reactive({
   upload: false, 
+  precon: false,
   clipboard: false, 
   prints: false, 
   sidebarShow: false, 
@@ -26,6 +32,7 @@ const ui = reactive({
 });
 const filters = reactive({sets: []});
 const sets = new Map();
+const precons = [];
 let loading = ref(false);
 let setLoading = ref(false);
 
@@ -76,7 +83,7 @@ const loadCollections = async (names) => {
 
 const loadSet = async (setId, force=false) => {
   loadSearch('e:' + setId, 'prints', force);
-  // let json = await cachedGet(getCache, 'http://localhost:3001/set/?set=' + setId, force);
+  // let json = await cachedGet(getCache, `${backendUrl}/set/?set=` + setId, force);
   // cards.all = json.data;
 };
 
@@ -129,6 +136,11 @@ const loadPrints = async (cardName, unique='prints') => {
   }
 };
 
+const loadPrecon = async (name) => {
+  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
+  cards.all = _cards.data;
+};
+
 const deleteCollections = async (names) => {
   if(confirm(`Are you sure you want to delete ${names.join(', ')}?`)) {
     names.map(async name => {
@@ -165,6 +177,8 @@ caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
   as.data.forEach(set => sets.set(set.code, set));
+  let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
+  pcs.data.forEach(pc => precons.push(pc));
 });
 
 const updateCollection = async (name, cardData, syncCode=undefined) => {
@@ -216,7 +230,7 @@ const addToSet = async (set, newCards) => {
   }
   await db.collections.put(collection);
   if(activeCollections.value.includes(set)) {
-    cards.all = cards.all.concat(newCard);
+    cards.all = cards.all.concat(newCards);
   }
 };
 
@@ -277,7 +291,7 @@ const setCards = item => {
         <div class="selector tabs">
           <a
             href="#"
-            v-for="name in ['collection', 'set', 'search']"
+            v-for="name in ['collection', 'set', 'search', 'precons']"
             :key="name"
             @click="setCards(name)"
             :class="{selected: ui.cards === name}"
@@ -333,6 +347,20 @@ const setCards = item => {
               class="button small"
             >?</a> 
           </div>
+          <div
+            class="item"
+            v-if="ui.cards === 'precons'"
+          >
+            <Multiselect
+              type="search"
+              :options="precons"
+              @select="loadPrecon"
+            />
+            <button
+              class="small icon icon-plus"
+              @click="ui.precon=!ui.precon"
+            />
+          </div>
         </div>
       </div>
       
@@ -357,6 +385,10 @@ const setCards = item => {
         :db="db"
         :collections="cards.collections"
         :set-ids="new Set(sets.keys())"
+      />
+
+      <Precon
+        v-show="ui.precon"
       />
 
       <div
