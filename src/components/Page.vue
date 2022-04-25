@@ -9,8 +9,8 @@ import CardList from './CardList.vue';
 import Precon from './Precon.vue';
 
 
-// const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-const backendUrl = 'http://localhost:3001';
+const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+// const backendUrl = 'http://localhost:3001';
 
 const db = new Dexie('mtg');
 db.version(3).stores({

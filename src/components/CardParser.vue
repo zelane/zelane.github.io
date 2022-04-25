@@ -6,8 +6,8 @@ import Multiselect from '@vueform/multiselect';
 
 
 // const skyfallUrl = 'https://api.scryfall.com/cards/collection';
-// const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-const skyfallUrl = 'http://localhost:3001';
+const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+// const skyfallUrl = 'http://localhost:3001';
 const upload = reactive({
   name: null, 
   file: null, 
@@ -525,11 +525,6 @@ const copySyncCode = async (name) => {
   width: 100%;
   background-color: var(--colour-input-grey);
   height: 200px;
-}
-textarea {
-  grid-column: 2;
-  width: 100%;
-  height: 300px;
 }
 .buttons {
   grid-column: span 2;
