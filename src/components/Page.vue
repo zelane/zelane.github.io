@@ -10,8 +10,8 @@ import Precon from './Precon.vue';
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 
-const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-// const backendUrl = 'http://localhost:3001';
+// const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+const backendUrl = 'http://localhost:3001';
 
 const toast = useToast();
 const db = new Dexie('mtg');
@@ -69,7 +69,7 @@ const loadCollections = async (names) => {
       if(card === undefined) {
         continue;
       }
-      const cardKey = card.id + card.is_foil + card.is_etched;
+      const cardKey = card.id + card.finish;
       if(cardMap.has(cardKey)) {
         let ex = cardMap.get(cardKey);
         ex.count = parseInt(ex.count) + parseInt(card.count);
@@ -192,7 +192,11 @@ caches.open('cardDataCache').then(async (cache) => {
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
   as.data.forEach(set => sets.set(set.code, set));
   let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
-  pcs.data.forEach(pc => precons.push(pc));
+  pcs.data.forEach(pc => {
+    console.log(pc);
+    precons.push(pc);
+  }); 
+  precons.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
 });
 
 const updateCollection = async (name, cardData, syncCode=undefined) => {
@@ -368,10 +372,24 @@ const setCards = item => {
             v-if="ui.cards === 'precons'"
           >
             <Multiselect
-              type="search"
+              type="single"
+              :searchable="true"
               :options="precons"
+              label="name"
+              value-prop="name"
               @select="loadPrecon"
-            />
+            >
+              <template #option="{ option }">
+                <span class="precon">
+                  <span class="name">{{ option.name }}</span>
+                  <span
+                    v-for="c in option.colours.split('')"
+                    :class="`icon icon-${c}`"
+                    :key="c"
+                  />
+                </span>
+              </template>
+            </Multiselect>
             <button
               class="small icon icon-plus"
               @click="ui.precon=!ui.precon"
@@ -724,6 +742,30 @@ option {
   height: 1.2rem;
   min-width: 44px;
   filter: invert(50%) sepia(100%) saturate(285%) hue-rotate(227deg) brightness(105%) contrast(100%);
+}
+.multiselect-options .precon {
+  display: flex;
+  gap: .2em;
+  width: 100%;
+}
+.precon .name {
+  display: inline-block;
+  width: 100%;
+}
+.precon .icon-R {
+  color: var(--colour-red);
+}
+.precon .icon-G {
+  color: var(--colour-green);
+}
+.precon .icon-B {
+  color: var(--colour-black);
+}
+.precon .icon-U {
+  color: var(--colour-blue);
+}
+.precon .icon-W {
+  color: var(--colour-white);
 }
 .prints {
   padding: 1rem 2rem;

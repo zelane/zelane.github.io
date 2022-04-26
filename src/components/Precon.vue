@@ -58,6 +58,7 @@
     }
     await post(skyfallUrl + '/precon', {
       name: values.name,
+      commander: values.commander,
       set: values.set,
       cards: cards,
     });
@@ -77,11 +78,6 @@
           v-model="values.name"
         >
         <label for="set">Set Code</label>
-        <!-- <input
-        id="set"
-        type="text"
-        v-model="values.set"
-      > -->
         <Multiselect
           v-model="values.set"
           :options="vars.sets"
@@ -91,6 +87,12 @@
           mode="single"
           placeholder="Set"
         />
+        <label for="name">Commander</label>
+        <input
+          id="name"
+          type="text"
+          v-model="values.commander"
+        >
         <textarea v-model="values.cards" />
         <button @click="uploadPrecon">
           Upload

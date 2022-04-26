@@ -35,6 +35,7 @@
       :class="card.finish"
       v-for="card in props.cards.slice(0, 500)"
       :key="card.id + card.finish"
+      :style="{order: card.isCommander ? -1 : null}"
     >
       <div class="img">
         <!-- <img
@@ -129,6 +130,7 @@
           {{ tag }}
         </div>
       </div>
+      <!-- <p>{{ card.id }}</p> -->
       <!-- <p>{{ card.finish }}</p> -->
       <!-- <p>{{ card.finishes }}</p> -->
       <!-- <p>{{ card.frame_effects }}</p> -->
