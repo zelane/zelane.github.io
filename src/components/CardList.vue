@@ -32,7 +32,7 @@
   >
     <div
       class="card"
-      :class="{foil: card.finish === 'foil'}"
+      :class="card.finish"
       v-for="card in props.cards.slice(0, 500)"
       :key="card.id + card.finish"
     >
@@ -198,6 +198,7 @@
   right: 1rem;
   flex-direction: column;
   gap: .5rem;
+  z-index: 1;
 }
 .card .img:hover .buttons {
   display: flex;
@@ -236,17 +237,44 @@
   box-shadow: 0px 2px 5px #000000f2;
   border-radius: 5%;
 }
-.card.foil .img::after {
+.card .img::after {
   content: '';
   display: block;
   position: absolute;
   top: 0;
-  bottom: 0;
+  bottom: 5px;
   left: 0;
   right: 0;
   pointer-events: none;
-  background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
   border-radius: 5%;
+}
+.card.foil .img::after {
+  background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
+}
+.card.etched .img::after {
+  background: linear-gradient(115deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
+  opacity: .15;
+  mix-blend-mode: hard-light;
+}
+@supports (mix-blend-mode: multiply) {
+  .card.foil .img::after {
+    background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);
+    mix-blend-mode: multiply;
+    opacity: .5;
+  }
+}
+@supports (mix-blend-mode: soft-light) {
+  .card.foil .img::after {
+    background: linear-gradient(115deg, rgba(0,255,0) 0%, rgba(0,255,0) 25%, rgba(255,255,0) 50%, rgba(255,0,0) 75%, rgba(255,0,0) 100%);
+    opacity: .4;
+    /* background: linear-gradient(115deg, #4285f4, #34a853, #fbbc05, #ea4335); */
+    background:linear-gradient(120deg, #185494, #EE1D23, #FAAF18, #FFFFFF);
+    opacity: .6;
+    mix-blend-mode: soft-light;
+    background: repeating-linear-gradient(170deg, #185494 0%, #EE1D23 10%, #FAAF18 20%, #AEE2A0 30%, #185494 40%);
+    opacity: .4;
+    mix-blend-mode: multiply;
+  }
 }
 .price {
   display: flex;
@@ -269,13 +297,6 @@
 }
 .prices .price.match {
   opacity: 1;
-}
-@supports (mix-blend-mode: multiply) {
-  .card.foil .img::after {
-    background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);
-    mix-blend-mode: multiply;
-    opacity: .6;
-  }
 }
 .sidepanel .cards {
   grid-template-columns: auto;

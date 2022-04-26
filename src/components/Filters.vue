@@ -163,8 +163,8 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if (_filters.dupesOnly === true && card.count === 1) {
       return false;
     }
-    const isFoil = !_filters.foils || card.finish === 'foil';
-    if(!isFoil) return false;
+    const hasFinish = !_filters.finish || card.finish === _filters.finish;
+    if(!hasFinish) return false;
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
     const colourF = (f) => _filters.colours.or ? _filters.colours.colours.every(f) : _filters.colours.colours.some(f);
@@ -437,15 +437,16 @@ watch(filters, async () => {
       </template>
     </div>
   </div>
+  
+  <Multiselect
+    v-model="filters.finish"
+    :options="['nonfoil', 'foil', 'etched']"
+    mode="single"
+    placeholder="Finish"
+  />
 
   <div class="filter-group">
     <h3>Other</h3>
-    <label for="foils">Only Foils</label>
-    <input
-      id="foils"
-      type="checkbox"
-      v-model="filters.foils"
-    >
     <label for="group">Group</label>
     <input
       id="group"
