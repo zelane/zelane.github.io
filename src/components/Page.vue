@@ -10,8 +10,8 @@ import Precon from './Precon.vue';
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 
-// const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-const backendUrl = 'http://localhost:3001';
+const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+// const backendUrl = 'http://localhost:3001';
 
 const toast = useToast();
 const db = new Dexie('mtg');

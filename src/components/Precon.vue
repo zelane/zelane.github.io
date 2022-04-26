@@ -6,8 +6,8 @@
 
 
   const toast = useToast();
-  // const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-  const skyfallUrl = 'http://localhost:3001';
+  const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+  // const skyfallUrl = 'http://localhost:3001';
 
   const values = reactive({
     name: '',
