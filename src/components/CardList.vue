@@ -1,7 +1,21 @@
 <script setup>
 
-  const props = defineProps({cards: Array, zoom: Number, loading: Boolean});
-  const emit = defineEmits(['clip', 'viewPrints']);
+  const props = defineProps({
+    cards: Array, 
+    zoom: Number, 
+    loading: Boolean, 
+    actions: {
+      type: Array,
+      default: () => ['clip', 'delete', 'prints']
+    }
+  });
+  const emit = defineEmits(['clip', 'viewPrints', 'delete']);
+
+  const markings = {
+    'nonfoil': '',
+    'etched': '#',
+    'foil': '☆'
+  };
 
 </script>
 
@@ -18,9 +32,9 @@
   >
     <div
       class="card"
-      :class="{foil: card.is_foil}"
+      :class="{foil: card.finish === 'foil'}"
       v-for="card in props.cards.slice(0, 500)"
-      :key="card.id + card.is_foil + card.is_etched"
+      :key="card.id + card.finish"
     >
       <div class="img">
         <!-- <img
@@ -47,6 +61,7 @@
         >
         <div class="buttons">
           <button
+            v-if="props.actions.includes('prints')"
             class="small prints icon icon-prints"
             @click.stop="emit('viewPrints', card.name);"
             title="View all prints"
@@ -56,21 +71,54 @@
             @click.stop="emit('clip', card)"
             title="Add to clipboard"
           />
+          <!-- <button
+            class="small clip icon icon-delete"
+            @click.stop="emit('delete', card)"
+            title="Delete"
+          /> -->
         </div>
       </div>
       <p class="name">
-        {{ card.count }} {{ card.name }} {{ card.is_foil ? '☆' : '' }} {{ card.is_etched ? '#' : '' }}
+        {{ card.count }} {{ card.name }} {{ card.finish === 'foil' ? '☆' : '' }} {{ card.finish === 'etched' ? '#' : '' }}
       </p>
-      <p>{{ card.set_name }}</p>
       <p>
-        {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}
+        {{ card.set_name }}
+        <a
+          v-if="card.purchase_uris"
+          :href="card.purchase_uris.cardmarket"
+          target="_blank"
+          class="set-id"
+        >{{ card.set }}:{{ card.collector_number }}</a>
+      </p>
+      <!-- <p class="price">
+        <span>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.price) }}</span>
         <a
           v-if="card.purchase_uris"
           :href="card.purchase_uris.cardmarket"
           target="_blank"
           class="set"
         >{{ card.set }}:{{ card.collector_number }}</a>
-        <!-- <a :href="card.purchase_uris.cardmarket" target="_blank"></a> -->
+      </p> -->
+      <p class="prices">
+        <span
+          v-for="finish in card.finishes"
+          :key="finish"
+        >
+          <span
+            class="price"
+            :class="finish === card.finish ? 'match' : ''"
+            v-if="finish === 'nonfoil'"
+          >
+            {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.prices['eur'] || (card.prices['usd'] * 0.9)) }}
+          </span>
+          <span
+            class="price"
+            :class="finish === card.finish ? 'match' : ''"
+            v-else
+          >
+            {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(card.prices['eur_' + finish] || (card.prices['usd_' + finish] * 0.9)) }}
+          </span>
+        </span>
       </p>
       <div class="tags">
         <div 
@@ -81,6 +129,12 @@
           {{ tag }}
         </div>
       </div>
+      <!-- <p>{{ card.finish }}</p> -->
+      <!-- <p>{{ card.finishes }}</p> -->
+      <!-- <p>{{ card.frame_effects }}</p> -->
+      <!-- <p>{{ card.prices }}</p> -->
+      <!-- <p>{{ card.collections }}</p> -->
+      <!-- <p>{{ card.type }}</p> -->
       <!-- <p>{{ card.foil }}</p> -->
       <!-- <p>{{ card.frame }}</p> -->
       <!-- <p>{{ card.full_art }}</p> -->
@@ -171,7 +225,7 @@
   padding: .2rem .5rem;
   border-radius: 50px;
 }
-.card .set {
+.card .set-id {
   color: #827684;
 }
 .card img {
@@ -194,6 +248,11 @@
   background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
   border-radius: 5%;
 }
+.price {
+  display: flex;
+  /* justify-content: space-between; */
+  flex-wrap: wrap;
+}
 /* @supports (mix-blend-mode: hard-light) {
   .card.foil .img::after {
     background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
@@ -201,6 +260,16 @@
     opacity: 1;
   }
 } */
+.prices {
+  display: flex;
+  flex-wrap: wrap;
+}
+.prices .price {
+  opacity: .4;
+}
+.prices .price.match {
+  opacity: 1;
+}
 @supports (mix-blend-mode: multiply) {
   .card.foil .img::after {
     background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);

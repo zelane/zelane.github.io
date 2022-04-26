@@ -52,6 +52,7 @@ let filters = reactive({
 });
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
+const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
 
 watch(prop.filters, (f) => {
   // console.log({...f});
@@ -103,6 +104,12 @@ const dynamicSort = (a, b) => {
     let ad = new Date(a.released_at + "T00:00:00");
     let bd = new Date(b.released_at + "T00:00:00");
     return ad.getTime() > bd.getTime() ? 1 : -1;
+  }
+  else if (filters.sort === 'Type') {
+    if(a.type === b.type) {
+      return parseFloat(a.cmc) > parseFloat(b.cmc) ? 1 : -1;
+    }
+    return superTypes.indexOf(a.type) > superTypes.indexOf(b.type) ? 1 : -1;
   }
 };
 
@@ -156,7 +163,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if (_filters.dupesOnly === true && card.count === 1) {
       return false;
     }
-    const isFoil = !_filters.foils || card.is_foil;
+    const isFoil = !_filters.foils || card.finish === 'foil';
     if(!isFoil) return false;
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
@@ -201,6 +208,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     // info.count += parseInt(card.count);
     return true;
   });
+
   total_value = parseInt(total_value);
   count = filtered.length;
   clearTimeout(to);
@@ -212,32 +220,29 @@ watch(() => prop.cards, async (a, b) => {
   const _sets = [];
   const tags = new Set();
   let ex = 0.9;
-  // let priceMin = 1000;
-  // let priceMax = 0;
 
   a.forEach(card => {
     if(card.prices === undefined) {
       card.price = 0;
     }
-    else if(card.is_etched) {
-      card.price = parseFloat(card.prices.usd_etched) || 0;
-    }
-    else if(card.is_foil || (card.prices.eur === null && card.prices.usd === null)) {
-      card.price = parseFloat(card.prices.eur_foil || parseFloat(card.prices.usd_foil) * ex || 0);
-      if(card.price !== 0) card.is_foil = true;
+    else if(card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
+      if(card.prices.usd_etched !== null) {
+        card.price = parseFloat(card.prices.usd_etched);
+        if(!card.finish) card.finish = 'etched';
+      }
+      else if (card.prices.eur_foil || card.prices.usd_foil) {
+        card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
+        if(!card.finish) card.finish = 'foil';
+      }
+      else {
+        card.finish = 'nonfoil';
+        card.price = 0;
+      }
     }
     else {
-      card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
+      card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
+      card.finish = 'nonfoil';
     }
-    // if(card.price > priceMax) {
-    //   priceMax = card.price;
-    // }
-    // if(card.price < priceMin) {
-    //   priceMin = card.price;
-    // }
-    // if(card.keywords === undefined) {
-      // return;
-    // }
     if(card.keywords) {
       card.keywords.forEach((kw) => {
         _keywords.add(kw);
@@ -252,6 +257,8 @@ watch(() => prop.cards, async (a, b) => {
         tags.add(tag);
       });
     }
+    card.type_line = card.type_line || '';
+    card.type = superTypes.filter(t => card.type_line.includes(t))[0];
   });
   // Have to clear filters that depend on dynamic filters, could just load all options?
   filters.keywords = [];
@@ -261,8 +268,6 @@ watch(() => prop.cards, async (a, b) => {
   vars.tags = tags;
 
   let [filtered, count, value] = await filterCards(a, filters);
-  // filters.price.value[0] = priceMin;
-  // filters.price.value[1] = priceMax;
   emit('change', filtered, count, value);
 });
 
@@ -278,30 +283,6 @@ watch(filters, async () => {
     emit('change', filtered, count, value);
   }, 500);
 });
-
-// const coloursChanged = (colours, or) => {
-//     filters.colours = colours;
-//     filters.ors.colours = or;
-// };
-
-// watchEffect(async () => {
-//     console.log("cards changed");
-//     const _keywords = new Set();
-//     const _sets = [];
-//     let ex = 0.9;
-
-//     prop.cards.forEach(card => {
-//         card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * ex || 0);
-//         card.keywords.forEach((kw) => {
-//             _keywords.add(kw);
-//         });
-//         _sets[card.set] = card.set_name;
-//     });
-//     vars.keywords = [..._keywords];
-//     vars.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
-//     let filtered = await filterCards(prop.cards, filters);
-//     emit('change', filtered);
-// });
 
 </script>
 
@@ -328,15 +309,6 @@ watch(filters, async () => {
     </div>
   </div>
 
-  <!-- <div class="filter-group mana">
-      <h3>Mana Cost</h3>
-      <Slider
-        v-model="filters.mana.value"
-        :min="filters.mana.min"
-        :max="filters.mana.max"
-      />
-    </div> -->
-
   <div class="filter-group">
     <input
       type="search"
@@ -356,11 +328,6 @@ watch(filters, async () => {
       v-model="filters.mana.value[1]"
       placeholder="Mana (max)"
     >
-    <!-- <Slider
-        v-model="filters.price.value"
-        :min="filters.price.min"
-        :max="filters.price.max"
-      /> -->
   </div>
 
   <div class="filter-group price">
@@ -374,11 +341,6 @@ watch(filters, async () => {
       v-model="filters.price.value[1]"
       placeholder="Price (max)"
     >
-    <!-- <Slider
-        v-model="filters.price.value"
-        :min="filters.price.min"
-        :max="filters.price.max"
-      /> -->
   </div>
   <div class="filter-group">
     <Multiselect
@@ -493,29 +455,7 @@ watch(filters, async () => {
   </div>
 </template>
 
-<style>
-.filter-group {
-  flex-flow: wrap;
-}
-.filter-group .header {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.filter-group h3 {
-  font-family: "Beleren SmallCaps Bold";
-  /* font-family: "Spectral"; */
-  font-weight: 500;
-  font-size: 1rem;
-}
-.filter-group > h3 {
-  margin-bottom: 10px;
-  flex-basis: 100%;
-}
-.filter-group > input {
-  width: 100%;
-}
+<style scoped>
 .compare .grid {
   display: grid;
   grid-template-columns: 10fr 1fr 1fr;
@@ -570,7 +510,6 @@ watch(filters, async () => {
   grid-column: span 2;
 }
 
-.colours,
 .rarities {
   display: flex;
   gap: 0 .5rem;
@@ -578,18 +517,15 @@ watch(filters, async () => {
 .rarities {
   gap: 0 .5rem;
 }
-.colours input[type="checkbox"]:checked + label,
 .rarities input[type="checkbox"]:checked + label {
   opacity: 1;
 }
 .rarities .input-group {
   min-width: 40px;
 }
-.colours .input-group input[type="checkbox"],
 .rarities input[type="checkbox"] {
   display: none;
 }
-.colour label,
 .rarity label {
   display: block;
   width: var(--height-input);
@@ -608,37 +544,6 @@ watch(filters, async () => {
   width: 30px;
   opacity: 0.3;
   margin: auto;
-}
-.colour label {
-  color: #938996;
-  background-color: transparent;
-  height: var(--height-input);
-  width: var(--height-input);
-  line-height: var(--height-input);
-  border-radius: 50%;
-  font-size: calc(var(--height-input) - 5px);
-  text-align: center;
-}
-.colour.selected label {
-  color: #01121c;
-}
-.colour[data-colour="R"].selected label {
-  color: var(--colour-red);
-}
-.colour[data-colour="G"].selected label {
-  color: var(--colour-green);
-}
-.colour[data-colour="B"].selected label {
-  color: var(--colour-black);
-}
-.colour[data-colour="U"].selected label {
-  color: var(--colour-blue);
-}
-.colour[data-colour="W"].selected label {
-  color: var(--colour-white);
-}
-.colour[data-colour="C"].selected label {
-  color: var(--colour-less);
 }
 
 .rarity[data-rarity="mythic"] label {

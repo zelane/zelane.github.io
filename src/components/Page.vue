@@ -7,11 +7,13 @@ import CardParser from './CardParser.vue';
 import { deepUnref } from 'vue-deepunref';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-
+import MenuButton from './MenuButton.vue';
+import { useToast } from "vue-toastification";
 
 const backendUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
 // const backendUrl = 'http://localhost:3001';
 
+const toast = useToast();
 const db = new Dexie('mtg');
 db.version(3).stores({
   collections: '&name'
@@ -71,9 +73,11 @@ const loadCollections = async (names) => {
       if(cardMap.has(cardKey)) {
         let ex = cardMap.get(cardKey);
         ex.count = parseInt(ex.count) + parseInt(card.count);
+        ex.collections.push(collection.name);
         cardMap.set(cardKey, ex);
       }
       else {
+        card.collections = [collection.name];
         cardMap.set(cardKey, card);
       }
     }
@@ -154,6 +158,16 @@ const deleteCollections = async (names) => {
   }
 };
 
+const deleteCard = async (card) => {
+  console.log(`Deleting ${card.name} from ${card.collections.join(', ')}`);
+  for(const colName of card.collections) {
+    const col = await db.collections.get({ name: colName });
+    const newCards = col.cards.filter(c => c.id !== card.id);
+    await db.collections.update(colName, {cards: newCards});
+  }
+  setCards(ui.cards);
+};
+
 watch(activeCollections, x => loadCollections(x.value));
 
 const filtersChanged = async (filteredCards, count, value) => {
@@ -215,6 +229,7 @@ const exportList = async (format) => {
     };
   }
   navigator.clipboard.writeText(list);
+  toast(`Copied to Clipboard`);
 };
 
 const addToSet = async (set, newCards) => {
@@ -232,6 +247,7 @@ const addToSet = async (set, newCards) => {
   if(activeCollections.value.includes(set)) {
     cards.all = cards.all.concat(newCards);
   }
+  toast(`${newCards.length} added to ${set}`);
 };
 
 const groupBySet = (cards) => {
@@ -291,7 +307,7 @@ const setCards = item => {
         <div class="selector tabs">
           <a
             href="#"
-            v-for="name in ['collection', 'set', 'search', 'precons']"
+            v-for="name in ['collection', 'set', 'precons', 'search']"
             :key="name"
             @click="setCards(name)"
             :class="{selected: ui.cards === name}"
@@ -402,7 +418,7 @@ const setCards = item => {
         <span class="sort">
           <Multiselect
             v-model="cards.sort"
-            :options="['Mana', 'Price', 'Count', 'Released']"
+            :options="['Mana', 'Type', 'Price', 'Count', 'Released']"
             mode="single"
             :can-clear="false"
           />
@@ -506,54 +522,23 @@ const setCards = item => {
             </div>
           </div>
           <div class="buttons">
-            <div
-              class="menu-button"
-            >
-              <button 
-                @click="ui.random.clipExports = !ui.random.clipExports"
-              >
-                Export
-              </button>
-              <div
-                class="v-menu"
-                :class="{show: ui.random.clipExports}"
-              >
-                <button @click="exportList('mtgo')">
-                  MTGO
-                </button>
-                <button @click="exportList('mtga')">
-                  MTGA
-                </button>
-                <button @click="exportList('mkm')">
-                  MKM + Set
-                </button>
-                <button @click="exportList('moxfield')">
-                  Mox
-                </button>
-              </div>
-            </div>
+            <MenuButton 
+              text="Export"
+              :actions="{
+                'MTGO': 'mtgo',
+                'MTGA': 'mtga',
+                'MKM': 'mkm',
+                'Moxfield': 'moxfield',
+              }"
+              @click="exportList"
+            />
             
-            <div
-              class="menu-button"
-            >
-              <button 
-                @click="ui.random.addToSet = !ui.random.addToSet"
-              >
-                Add to set
-              </button>
-              <div
-                class="v-menu"
-                :class="{show: ui.random.addToSet}"
-              >
-                <button
-                  v-for="col in cards.collections"
-                  @click="addToSet(col, clipboard.cards.values())"
-                  :key="col"
-                >
-                  {{ col }}
-                </button>
-              </div>
-            </div>
+            <MenuButton 
+              text="Add to set"
+              :actions="Object.fromEntries(cards.collections.map(col => [col, col]))"
+              @click="col => addToSet(col, clipboard.cards.values())"
+            />
+
             <button @click="clipCards(cards.filtered, true)">
               Clip All
             </button>
@@ -572,7 +557,8 @@ const setCards = item => {
           :zoom="ui.zoom"
           :loading="loading"
           @clip="card => clipCards([card])"
-          @view-prints="cardName => loadPrints(cardName)"
+          @view-prints="loadPrints"
+          @delete="deleteCard"
           v-if="ui.upload === false"
         />
       </div>
@@ -691,44 +677,6 @@ option {
 .menu .item .icon {
   /* margin-right: .5rem; */
   font-size: 1.2em;
-}
-.menu-button {
-  position: relative;
-  display: flex;
-  flex-direction: column-reverse;
-  height: var(--height-input);
-  gap: 10px;
-}
-.menu-button button {
-  z-index: 2;
-}
-.menu-button .v-menu {
-  display: flex;
-  flex-direction: column-reverse;
-  opacity: 0;
-  pointer-events: none;
-  transition: all 0.1s ease-in-out;
-  transform: translate(0, 3rem);
-  z-index: 1;
-  gap: 10px;
-  background-color: var(--colour-sidebar);
-  max-height: 50vh;
-  overflow: auto;
-  position: absolute;
-  bottom: 3.5rem;
-  /* max-width: 17rem; */
-  right: 0;
-}
-.menu-button .v-menu button {
-  max-width: 17rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.menu-button .v-menu.show {
-  opacity: 1;
-  pointer-events: all;
-  transform: translate(0, 0);
 }
 
 .sidepanel {

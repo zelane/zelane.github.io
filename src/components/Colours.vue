@@ -106,3 +106,67 @@ const matchColours = (colours) => {
     </div>
   </div>
 </template>
+
+<style scoped>
+
+.colours,
+.rarities {
+  display: flex;
+  gap: 0 .5rem;
+}
+.rarities {
+  gap: 0 .5rem;
+}
+.colours input[type="checkbox"]:checked + label,
+.rarities input[type="checkbox"]:checked + label {
+  opacity: 1;
+}
+.rarities .input-group {
+  min-width: 40px;
+}
+.colours .input-group input[type="checkbox"],
+.rarities input[type="checkbox"] {
+  display: none;
+}
+.colour label,
+.rarity label {
+  display: block;
+  width: var(--height-input);
+  opacity: 0.5;
+  transition: all 0.1s;
+  cursor: pointer;
+  /* box-shadow: var(--default-shadow); */
+}
+
+.colour label {
+  color: #938996;
+  background-color: transparent;
+  height: var(--height-input);
+  width: var(--height-input);
+  line-height: var(--height-input);
+  border-radius: 50%;
+  font-size: calc(var(--height-input) - 5px);
+  text-align: center;
+}
+.colour.selected label {
+  color: #01121c;
+}
+.colour[data-colour="R"].selected label {
+  color: var(--colour-red);
+}
+.colour[data-colour="G"].selected label {
+  color: var(--colour-green);
+}
+.colour[data-colour="B"].selected label {
+  color: var(--colour-black);
+}
+.colour[data-colour="U"].selected label {
+  color: var(--colour-blue);
+}
+.colour[data-colour="W"].selected label {
+  color: var(--colour-white);
+}
+.colour[data-colour="C"].selected label {
+  color: var(--colour-less);
+}
+</style>

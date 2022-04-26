@@ -262,4 +262,41 @@ h3 {
 .action.icon {
   font-size: 1rem;
 }
+.Vue-Toastification__toast--default.toast {
+  background-color: var(--colour-input-grey);
+  box-shadow: var(--default-shadow);
+  font-family: var(--default-fonts);
+  border-radius: var(15px);
+  padding: .8rem 2rem;
+  min-height: 0;
+  text-align: center;
+}
+.Vue-Toastification__toast--default.toast .Vue-Toastification__toast-body {
+  line-height: 1;
+}
+.Vue-Toastification__toast--default.toast .Vue-Toastification__progress-bar {
+  display: none;
+}
+.filter-group {
+  flex-flow: wrap;
+}
+.filter-group .header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.filter-group h3 {
+  font-family: "Beleren SmallCaps Bold";
+  /* font-family: "Spectral"; */
+  font-weight: 500;
+  font-size: 1rem;
+}
+.filter-group > h3 {
+  margin-bottom: 10px;
+  flex-basis: 100%;
+}
+.filter-group > input {
+  width: 100%;
+}
 </style>

@@ -1,15 +1,38 @@
 <script setup>
 
   import { reactive } from 'vue';
+  import Multiselect from '@vueform/multiselect';
+  import { useToast } from "vue-toastification";
 
-  
-  const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-  // const skyfallUrl = 'http://localhost:3001';
+
+  const toast = useToast();
+  // const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+  const skyfallUrl = 'http://localhost:3001';
 
   const values = reactive({
     name: '',
     set: '',
     cards: '',
+  });
+
+  const vars = reactive({
+    sets: []
+  });
+  
+  const cachedGet = async (cache, url) => {
+    const request = new Request(url);
+    let response = await cache.match(request);
+    if (!response) {
+      await cache.add(request);
+      response = await cache.match(request);
+    }
+    const json = await response.json();
+    return json;
+  };
+  ;
+  caches.open('cardDataCache').then(async (cache) => {
+    let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
+    vars.sets = as.data;
   });
 
   const post = async (url = '', data = {}) => {
@@ -30,7 +53,7 @@
     for (const m of matches) {
       cards.push({
         count: parseInt(m[1]),
-        name: m[2]
+        name: m[2].trim()
       });
     }
     await post(skyfallUrl + '/precon', {
@@ -38,6 +61,7 @@
       set: values.set,
       cards: cards,
     });
+    toast(`Uploaded ${values.name}`);
   };
 
 </script>
@@ -45,22 +69,33 @@
 <template>
   <div class="precon">
     <div class="flex">
-      <label for="name">Name</label>
-      <input
-        id="name"
-        type="text"
-        v-model="values.name"
-      >
-      <label for="set">Set Code</label>
-      <input
+      <div class="form">
+        <label for="name">Name</label>
+        <input
+          id="name"
+          type="text"
+          v-model="values.name"
+        >
+        <label for="set">Set Code</label>
+        <!-- <input
         id="set"
         type="text"
         v-model="values.set"
-      >
-      <textarea v-model="values.cards" />
-      <button @click="uploadPrecon">
-        Upload
-      </button>
+      > -->
+        <Multiselect
+          v-model="values.set"
+          :options="vars.sets"
+          label="name"
+          value-prop="code"
+          :searchable="true"
+          mode="single"
+          placeholder="Set"
+        />
+        <textarea v-model="values.cards" />
+        <button @click="uploadPrecon">
+          Upload
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -82,7 +117,21 @@
   gap: 20px;
   height: 100%;
 }
+label {
+  vertical-align: middle;
+}
+.form {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 20px;
+  max-width: 480px;
+  width: 100%;
+  align-items: center;
+}
 textarea {
-  max-width: 640px;
+  grid-column: span 2;
+}
+button {
+  grid-column: span 2;
 }
 </style>

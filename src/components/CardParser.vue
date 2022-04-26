@@ -3,8 +3,10 @@
 import { reactive, ref } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
+import { useToast } from "vue-toastification";
 
 
+const toast = useToast();
 // const skyfallUrl = 'https://api.scryfall.com/cards/collection';
 const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
 // const skyfallUrl = 'http://localhost:3001';
@@ -75,8 +77,7 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]),
         set: m[3],
         number: m[4],
-        is_foil: false,
-        is_etched: false,
+        finish: 'nonfoil',
         tags: [],
       };
     };
@@ -90,8 +91,7 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]) || 1,
         set: '',
         number: '',
-        is_foil: false,
-        is_etched: false,
+        finish: 'nonfoil',
         tags: [],
       };
     }
@@ -108,8 +108,7 @@ const handleTextUpload = async (e) => {
         count: parseInt(m[1]) || 1,
         set: '',
         number: '',
-        is_foil: false,
-        is_etched: false,
+        finish: 'nonfoil',
         tags: [],
       };
     }
@@ -167,8 +166,13 @@ const parseDSWeb = async (csv) => {
     if(setSwaps[setCode]) {
       setCode = setSwaps[setCode];
     }
-    const is_foil = row['Printing'] === 'Foil';
-    const is_etched = row['Card Number'].toString().includes('etc');
+    let finish = 'nonfoil';
+    if(row['Printing'] === 'Foil') {
+      finish = 'foil';
+    }
+    else if(row['Card Number'].toString().includes('etc')) {
+      finish = 'etched';
+    }
     const count = parseInt(row['Quantity']);
 
     let card = {
@@ -176,8 +180,7 @@ const parseDSWeb = async (csv) => {
       count: count,
       set: '',
       number: '',
-      is_foil: is_foil,
-      is_etched: is_etched,
+      finish: finish, 
       tags: [row['Folder Name']],
     };
 
@@ -185,12 +188,12 @@ const parseDSWeb = async (csv) => {
     let key = null;
     if (!props.setIds.has(setCode)) {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
-      key = card.name + is_foil + is_etched;
+      key = card.name + card.finish;
     }
     else {
       card.set = setCode,
       card.number = row['Card Number'].toString().replace("etc", "");
-      key = setCode + row['Card Number'] + is_foil + is_etched;
+      key = setCode + row['Card Number'] + card.finish;
     }
     if(cards.has(key)) {
       let ex = cards.get(key);
@@ -252,8 +255,7 @@ const fetchCardData = async (cardList) => {
         continue;
       }
       data.count = _card.count || 1;
-      data.is_foil = _card.is_foil;
-      data.is_etched = _card.is_etched;
+      data.finish = _card.finish;
       data.tags = _card.tags;
       cardData.push(data);
     }
@@ -286,10 +288,10 @@ const updateCollection = async (name, cardList, append = null) => {
           return false;
         }
         if(card.set !== '') {
-          return card.set === c.set && card.number === c.collector_number && card.is_foil === c.is_foil && card.is_etched === c.is_etched;
+          return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
         }
         else {
-          return card.name === c.name && card.is_foil === c.is_foil && card.is_etched === c.is_etched;
+          return card.name === c.name && card.finish === c.finish;
         }
       });
       if (existing.length > 0) {
@@ -325,6 +327,7 @@ const refreshCollection = async (name) => {
 };
 
 const uploadCollection = async (name, force=false) => {
+  toast(`Uploading ${name}`);
   const collection = await props.db.collections.get({ name: name });
   let data = {
     cards: collection.cards.map(c => c.id)
@@ -340,6 +343,7 @@ const uploadCollection = async (name, force=false) => {
     "syncCode": code
   });
   navigator.clipboard.writeText(code);
+  toast(`${name} uploaded. Code copied to clipboard`);
 };
 
 const copySyncCode = async (name) => {
