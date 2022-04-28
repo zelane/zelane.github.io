@@ -34,7 +34,7 @@ const ui = reactive({
 });
 const filters = reactive({sets: []});
 const sets = new Map();
-const precons = [];
+const precons = reactive({value: []});
 let loading = ref(false);
 let setLoading = ref(false);
 
@@ -191,12 +191,24 @@ caches.open('cardDataCache').then(async (cache) => {
   getCache = cache;
   let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
   as.data.forEach(set => sets.set(set.code, set));
+
   let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
-  pcs.data.forEach(pc => {
-    console.log(pc);
-    precons.push(pc);
-  }); 
-  precons.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
+  // precons.value = pcs.data;
+  pcs.data.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
+  let groups = {};
+  for(const pc of pcs.data) {
+    let set = sets.get(pc.set).name;
+    if(groups[set]) {
+      groups[set].push(pc);
+    }
+    else {
+      groups[set] = [pc];
+    }
+  }
+  precons.value = [];
+  for(const [k, v] of Object.entries(groups)) {
+    precons.value.push({label: k, options: v});
+  };
 });
 
 const updateCollection = async (name, cardData, syncCode=undefined) => {
@@ -374,7 +386,8 @@ const setCards = item => {
             <Multiselect
               type="single"
               :searchable="true"
-              :options="precons"
+              :options="precons.value"
+              :groups="true"
               label="name"
               value-prop="name"
               @select="loadPrecon"

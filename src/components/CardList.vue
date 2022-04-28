@@ -259,25 +259,31 @@
   mix-blend-mode: hard-light;
 }
 @supports (mix-blend-mode: multiply) {
-  .card.foil .img::after {
+  /* .card.foil .img::after {
     background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);
     mix-blend-mode: multiply;
     opacity: .5;
   }
-}
-@supports (mix-blend-mode: soft-light) {
   .card.foil .img::after {
-    background: linear-gradient(115deg, rgba(0,255,0) 0%, rgba(0,255,0) 25%, rgba(255,255,0) 50%, rgba(255,0,0) 75%, rgba(255,0,0) 100%);
-    opacity: .4;
-    /* background: linear-gradient(115deg, #4285f4, #34a853, #fbbc05, #ea4335); */
-    background:linear-gradient(120deg, #185494, #EE1D23, #FAAF18, #FFFFFF);
-    opacity: .6;
-    mix-blend-mode: soft-light;
     background: repeating-linear-gradient(170deg, #185494 0%, #EE1D23 10%, #FAAF18 20%, #AEE2A0 30%, #185494 40%);
     opacity: .4;
     mix-blend-mode: multiply;
+  } */
+  .card.foil .img::after {
+    background: repeating-linear-gradient(170deg, #b6d9ff 0%, #FFD4D5 10%, #FFDC96 20%, #DCFFD3 30%, #b5d8ff 40%);
+    opacity: 1;
+    mix-blend-mode: multiply;
   }
 }
+/* @supports (mix-blend-mode: soft-light) {
+  .card.foil .img::after {
+    background: linear-gradient(115deg, rgba(0,255,0) 0%, rgba(0,255,0) 25%, rgba(255,255,0) 50%, rgba(255,0,0) 75%, rgba(255,0,0) 100%);
+    opacity: .4;
+    background:linear-gradient(120deg, #185494, #EE1D23, #FAAF18, #FFFFFF);
+    opacity: .6;
+    mix-blend-mode: soft-light;
+  }
+} */
 .price {
   display: flex;
   /* justify-content: space-between; */

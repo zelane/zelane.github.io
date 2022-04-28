@@ -8,8 +8,8 @@ import { useToast } from "vue-toastification";
 
 const toast = useToast();
 // const skyfallUrl = 'https://api.scryfall.com/cards/collection';
-const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
-// const skyfallUrl = 'http://localhost:3001';
+// const skyfallUrl = 'https://mtg-couchdb.1drmrcrnnfo1c.eu-west-2.cs.amazonlightsail.com';
+const skyfallUrl = 'http://localhost:3001';
 const upload = reactive({
   name: null, 
   file: null, 
@@ -311,6 +311,7 @@ const updateCollection = async (name, cardList, append = null) => {
 const downloadCollection = async (name, code) => {
   const resp = await fetch(skyfallUrl + '/collection?id=' + code);
   const json = await resp.json();
+  console.log("Downloading", json.data.filter(c => c.finish != 'nonfoil'));
   upload.active = false;
   emit('change', name, json.data, code);
   emit('close');
@@ -323,27 +324,41 @@ const refreshCollection = async (name) => {
   }
   const resp = await fetch(skyfallUrl + '/collection?id=' + collection.syncCode);
   const json = await resp.json();
+  console.log("Refreshing", json.data.filter(c => c.finish != 'nonfoil'));
   emit('change', name, json.data, collection.syncCode);
 };
 
 const uploadCollection = async (name, force=false) => {
-  toast(`Uploading ${name}`);
-  const collection = await props.db.collections.get({ name: name });
-  let data = {
-    cards: collection.cards.map(c => c.id)
-  };
-  let code = collection.syncCode;
-  if(code) {
-    data.id = code;
+  try {
+    toast(`Uploading ${name}`);
+    const collection = await props.db.collections.get({ name: name });
+    let data = {
+      cards: collection.cards.map(c => {
+        return {
+          id: c.id,
+          count: c.count,
+          tags: c.tags,
+          finish: c.finish,
+        };
+      })
+    };
+    let code = collection.syncCode;
+    if(code) {
+      data.id = code;
+    }
+    const resp = await post(skyfallUrl + '/collection', data);
+    code = resp.data;
+    console.log(code);
+    await props.db.collections.update(name, {
+      "syncCode": code
+    });
+    navigator.clipboard.writeText(code);
+    toast(`${name} uploaded. Code copied to clipboard`);
   }
-  const resp = await post(skyfallUrl + '/collection', data);
-  code = resp.data;
-  console.log(code);
-  await props.db.collections.update(name, {
-    "syncCode": code
-  });
-  navigator.clipboard.writeText(code);
-  toast(`${name} uploaded. Code copied to clipboard`);
+  catch (error) {
+    toast.error(`${name} failed to upload.`);
+    console.error(error);
+  }
 };
 
 const copySyncCode = async (name) => {
