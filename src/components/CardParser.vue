@@ -7,7 +7,7 @@ import { useToast } from "vue-toastification";
 
 
 const toast = useToast();
-const skyfallUrl = import.meta.env.BACKEND_URL;
+const skyfallUrl = import.meta.env.VITE_BACKEND_URL;
 const upload = reactive({
   name: null, 
   file: null, 
