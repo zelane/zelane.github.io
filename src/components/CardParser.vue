@@ -7,7 +7,7 @@ import { useToast } from "vue-toastification";
 
 
 const toast = useToast();
-const skyfallUrl = import.meta.env.VITE_BACKEND_URL;
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const upload = reactive({
   name: null, 
   file: null, 
@@ -95,7 +95,7 @@ const handleTextUpload = async (e) => {
     }
   }
   else if (upload.format === 'MKM Email') {
-    const re = /([0-9]+)x ([a-zA-Z ]+)/g;
+    const re = /([0-9]+)x ([a-zA-Z ,']+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       // if(m[2].includes('Token')) {
@@ -227,7 +227,7 @@ const fetchCardData = async (cardList) => {
     const chunk = 1000;
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += chunk) {
-      const resp = await post(skyfallUrl + '/cards', { identifiers: ids.slice(i, i + chunk) });
+      const resp = await post(backendUrl + '/cards', { identifiers: ids.slice(i, i + chunk) });
       if (resp.not_found.length > 0) {
         console.log(resp.not_found);
       }
@@ -276,9 +276,12 @@ const updateCollection = async (name, cardList, append = null) => {
   if(!append) {
     append = upload.append;
   }
+  let collection = null;
+  if(props.collections.includes(name)) {
+    collection = await props.db.collections.get({ name: name });
+  }
   // If collection exists and append, only add new cards, sum counts
-  if (append && props.collections.includes(name)) {
-    const collection = await props.db.collections.get({ name: name });
+  if (append && collection) {
     cardData = collection.cards;
     for (const [key, card] of cardList.entries()) {
       let existing = collection.cards.filter(c => {
@@ -302,33 +305,55 @@ const updateCollection = async (name, cardList, append = null) => {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
   }
-  emit('change', name, cardData);
+  const syncCode = collection ? collection.syncCode : undefined;
+  emit('change', name, cardData, syncCode);
   emit('close');
 };
 
 const downloadCollection = async (name, code) => {
-  const resp = await fetch(skyfallUrl + '/collection?id=' + code);
-  const json = await resp.json();
-  console.log("Downloading", json.data.filter(c => c.finish != 'nonfoil'));
-  upload.active = false;
-  emit('change', name, json.data, code);
-  emit('close');
+  toast(`Downloading [${code}] to ${name}.`);
+  try {
+    const resp = await fetch(backendUrl + '/collection?id=' + code);
+    const json = await resp.json();
+    toast(`${name} downloaded.`);
+    emit('change', name, json.data, code);
+    emit('close');
+  }
+  catch (error) {
+    console.error(error);
+    toast.error(`Failed to download ${code}.`);
+  }
+  finally {
+    upload.active = false;
+  }
 };
 
 const refreshCollection = async (name) => {
-  const collection = await props.db.collections.get({ name: name });
-  if(!collection.syncCode) {
-    return;
+  const stid = toast(`Refreshing collection ${name}`);
+  try {
+    const collection = await props.db.collections.get({ name: name });
+    if(!collection.syncCode) {
+      return;
+    }
+    const resp = await fetch(backendUrl + '/collection?id=' + collection.syncCode);
+    const json = await resp.json();
+    toast.dismiss(stid);
+    toast(`${name} refreshed.`);
+    emit('change', name, json.data, collection.syncCode);
   }
-  const resp = await fetch(skyfallUrl + '/collection?id=' + collection.syncCode);
-  const json = await resp.json();
-  console.log("Refreshing", json.data.filter(c => c.finish != 'nonfoil'));
-  emit('change', name, json.data, collection.syncCode);
+  catch (error) {
+    console.error(error);
+    toast.dismiss(stid);
+    toast.error(`Failed to refresh ${name}.`);
+  }
+  finally {
+    upload.active = false;
+  }
 };
 
 const uploadCollection = async (name, force=false) => {
   try {
-    toast(`Uploading ${name}`);
+    const stid = toast(`Uploading ${name}`);
     const collection = await props.db.collections.get({ name: name });
     let data = {
       cards: collection.cards.map(c => {
@@ -344,16 +369,17 @@ const uploadCollection = async (name, force=false) => {
     if(code) {
       data.id = code;
     }
-    const resp = await post(skyfallUrl + '/collection', data);
+    const resp = await post(backendUrl + '/collection', data);
     code = resp.data;
-    console.log(code);
     await props.db.collections.update(name, {
       "syncCode": code
     });
     navigator.clipboard.writeText(code);
+    toast.dismiss(stid);
     toast(`${name} uploaded. Code copied to clipboard`);
   }
   catch (error) {
+    toast.dismiss(stid);
     toast.error(`${name} failed to upload.`);
     console.error(error);
   }
@@ -362,6 +388,7 @@ const uploadCollection = async (name, force=false) => {
 const copySyncCode = async (name) => {
   const collection = await props.db.collections.get({ name: name });
   navigator.clipboard.writeText(collection.syncCode);
+  toast(`${name} sync code copied to clipboard.`);
 };
 
 </script>

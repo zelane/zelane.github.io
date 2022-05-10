@@ -271,11 +271,42 @@ h3 {
   min-height: 0;
   text-align: center;
 }
-.Vue-Toastification__toast--default.toast .Vue-Toastification__toast-body {
+/* .Vue-Toastification__toast--default.toast .Vue-Toastification__toast-body {
   line-height: 1;
 }
 .Vue-Toastification__toast--default.toast .Vue-Toastification__progress-bar {
   display: none;
+} */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+.fade-enter-active {
+  animation-name: fadeIn;
+  animation-duration: .4s;
+  animation-fill-mode: both;
+}
+.fade-leave-active {
+  animation-name: fadeOut;
+  animation-duration: .4s;
+  animation-fill-mode: both;
+}
+.fade-move {
+  transition-timing-function: ease-in-out;
+  transition-property: all;
+  transition-duration: .2s;
 }
 .filter-group {
   flex-flow: wrap;

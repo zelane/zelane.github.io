@@ -6,7 +6,7 @@
 
 
   const toast = useToast();
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const values = reactive({
     name: '',
@@ -55,7 +55,7 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
         name: m[2].trim()
       });
     }
-    await post(skyfallUrl + '/precon', {
+    await post(backendUrl + '/precon', {
       name: values.name,
       commander: values.commander,
       set: values.set,

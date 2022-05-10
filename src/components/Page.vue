@@ -37,7 +37,7 @@ const precons = reactive({value: []});
 let loading = ref(false);
 let setLoading = ref(false);
 
-const cards = reactive({ collections: [], all: [], filtered: [], sort: 'Price', prints: [] });
+const cards = reactive({ collections: [], all: [], filtered: [], sort: {val: 'Price', dir: -1}, prints: [] });
 let activeCollections = reactive({ value: [] });
 
 const cachedGet = async (cache, url, force=false) => {
@@ -422,6 +422,7 @@ const setCards = item => {
 
     <div
       id="main"
+      class="main"
     >
       <CardParser
         v-show="ui.upload"
@@ -447,7 +448,7 @@ const setCards = item => {
 
         <span class="sort">
           <Multiselect
-            v-model="cards.sort"
+            v-model="cards.sort.val"
             :options="['Mana', 'Type', 'Price', 'Count', 'Released']"
             mode="single"
             :can-clear="false"

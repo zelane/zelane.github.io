@@ -44,7 +44,10 @@ let filters = reactive({
   mana: {value: [null, null], min: 0, max: 20}, 
   price:{value: [null, null], min: 0, max: 100}, 
   dupesOnly: false, 
-  sort: 'Price', 
+  sort: {
+    val: 'Price',
+    dir: 1,
+  },
   group: false,
   incCol: {}, 
   excCol: {}, 
@@ -85,37 +88,41 @@ caches.open('cardDataCache').then(async (cache) => {
 
 const dynamicSort = (a, b) => {
   // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-  if (filters.sort === 'Price') {
+  const dir = 1;
+  if (filters.sort.val === 'Price') {
     if (!a.price) {
       return true;
     }
-    return a.price < b.price ? 1 : -1;
+    return a.price < b.price ? dir : dir * -1;
   }
-  else if (filters.sort === 'Mana') {
-    return parseFloat(a.cmc) < parseFloat(b.cmc) ? 1 : -1;
+  else if (filters.sort.val === 'Mana') {
+    return parseFloat(a.cmc) < parseFloat(b.cmc) ? dir : -1 * dir;
   }
-  else if (filters.sort === 'Count') {
+  else if (filters.sort.val === 'Count') {
     if(parseFloat(a.count) === parseFloat(b.count)) {
       return a.price < b.price ? 1 : -1;
     }
-    return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
+    return parseFloat(a.count) < parseFloat(b.count) ? dir : -1 * dir;
   }
-  else if (filters.sort === 'Released') {
+  else if (filters.sort.val === 'Released') {
     let ad = new Date(a.released_at + "T00:00:00");
     let bd = new Date(b.released_at + "T00:00:00");
-    return ad.getTime() > bd.getTime() ? 1 : -1;
+    return ad.getTime() > bd.getTime() ? dir : dir * -1;
   }
-  else if (filters.sort === 'Type') {
+  else if (filters.sort.val === 'Type') {
     if(a.type === b.type) {
-      return parseFloat(a.cmc) > parseFloat(b.cmc) ? 1 : -1;
+      return parseFloat(a.cmc) > parseFloat(b.cmc) ? dir : dir * -1;
     }
-    return superTypes.indexOf(a.type) > superTypes.indexOf(b.type) ? 1 : -1;
+    return superTypes.indexOf(a.type) > superTypes.indexOf(b.type) ? dir : dir * -1;
   }
 };
 
 const filterCards = async (cards, _filters) => new Promise(async resolve => {
   let to = setTimeout(() => emit("loading"), 300);
   let filtered = cards.sort(dynamicSort);
+  if(_filters.group) {
+    filtered = filtered.reverse();
+  }
 
   if (_filters.cardText && _filters.cardText !== '') {
     const fuse = new Fuse(filtered, {
@@ -208,6 +215,9 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     // info.count += parseInt(card.count);
     return true;
   });
+  if(_filters.group) {
+    filtered = filtered.sort(dynamicSort);
+  }
 
   total_value = parseInt(total_value);
   count = filtered.length;
