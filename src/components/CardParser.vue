@@ -352,8 +352,8 @@ const refreshCollection = async (name) => {
 };
 
 const uploadCollection = async (name, force=false) => {
+  const stid = toast(`Uploading ${name}`);
   try {
-    const stid = toast(`Uploading ${name}`);
     const collection = await props.db.collections.get({ name: name });
     let data = {
       cards: collection.cards.map(c => {

@@ -37,7 +37,7 @@ const precons = reactive({value: []});
 let loading = ref(false);
 let setLoading = ref(false);
 
-const cards = reactive({ collections: [], all: [], filtered: [], sort: {val: 'Price', dir: -1}, prints: [] });
+const cards = reactive({ collections: [], all: [], filtered: [], sort: {val: 'Price', dir: 1}, prints: [] });
 let activeCollections = reactive({ value: [] });
 
 const cachedGet = async (cache, url, force=false) => {
@@ -192,7 +192,6 @@ caches.open('cardDataCache').then(async (cache) => {
   as.data.forEach(set => sets.set(set.code, set));
 
   let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
-  // precons.value = pcs.data;
   pcs.data.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
   let groups = {};
   for(const pc of pcs.data) {
@@ -453,6 +452,18 @@ const setCards = item => {
             mode="single"
             :can-clear="false"
           />
+          <div class="dir">
+            <div
+              class="up icon icon-keyboard_arrow_up"
+              :class="{selected: cards.sort.dir == -1}"
+              @click="cards.sort.dir = -1"
+            />
+            <div
+              class="up icon icon-keyboard_arrow_down"
+              @click="cards.sort.dir = 1"
+              :class="{selected: cards.sort.dir == 1}"
+            />
+          </div>
         </span>
         <!-- <span>
           <Slider
@@ -664,7 +675,7 @@ select {
   color: var(--colour-light-font);
   height: 2.5rem;
   border: none;
-  box-shadow: var(--default-shaodw);
+  box-shadow: var(--default-shadow);
   padding: 0 .5rem;
   padding-right: 0;
   font-family: var(--default-fonts);
@@ -680,6 +691,17 @@ option {
   align-items: center;
   gap: .5rem;
   cursor: pointer;
+}
+.info-bar .sort {
+  display: flex;
+  gap: 1em;
+  align-items: center;
+}
+.sort .dir .icon{
+  cursor: pointer;
+}
+.sort .dir .icon.selected {
+  color: var(--colour-anchor);
 }
 .menu {
   /* display: none; */

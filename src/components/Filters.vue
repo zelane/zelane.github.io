@@ -15,8 +15,10 @@ const prop = defineProps({
     default: () => []
   },
   sort: {
-    type: String,
-    default: 'Price'
+    type: Object,
+    default: () => {
+      return {val: 'Price', dir: -1};
+    }
   },
   db: {
     type: Object,
@@ -87,8 +89,7 @@ caches.open('cardDataCache').then(async (cache) => {
 });
 
 const dynamicSort = (a, b) => {
-  // return parseFloat(a.count) < parseFloat(b.count) ? 1 : -1;
-  const dir = 1;
+  const dir = filters.sort.dir;
   if (filters.sort.val === 'Price') {
     if (!a.price) {
       return true;
@@ -281,8 +282,11 @@ watch(() => prop.cards, async (a, b) => {
   emit('change', filtered, count, value);
 });
 
-watch(() => prop.sort, (a, b) => {
-  filters.sort = a;
+watch(() => prop.sort.val, (a, b) => {
+  filters.sort.val = a;
+});
+watch(() => prop.sort.dir, (a, b) => {
+  filters.sort.dir = a;
 });
 
 let to = null;
