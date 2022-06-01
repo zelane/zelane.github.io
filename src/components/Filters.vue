@@ -34,26 +34,27 @@ const emit = defineEmits(['change', 'loading']);
 let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [], tags: new Set() });
 
 let filters = reactive({
-  colours: {colours:[], or: false}, 
-  rarity: [], 
-  foils: false, 
-  keywords: [], 
-  tribes: [], 
-  name: '', 
-  cardText: '', 
-  sets: [], 
+  colours: {colours:[], or: false},
+  rarity: [],
+  keywords: [],
+  tribes: [],
+  name: '',
+  cardText: '',
+  sets: [],
   tags: [],
-  mana: {value: [null, null], min: 0, max: 20}, 
-  price:{value: [null, null], min: 0, max: 100}, 
+  mana: {value: [null, null], min: 0, max: 20},
+  price:{value: [null, null], min: 0, max: 100},
   dupesOnly: false, 
   sort: {
     val: 'Price',
     dir: 1,
   },
   group: false,
-  incCol: {}, 
-  excCol: {}, 
-  ors: {}
+  incCol: {},
+  excCol: {},
+  ors: {},
+  finish: null,
+  border: null,
 });
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
@@ -167,7 +168,9 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if(_filters.group === true && distinctNames.has(card.name)) {
       return false;
     }
-    distinctNames.add(card.name);
+    else if(card.price != 0) {
+      distinctNames.add(card.name);
+    }
     if (_filters.dupesOnly === true && card.count === 1) {
       return false;
     }
@@ -211,6 +214,9 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
 
     const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
     if (!haPrice) return false;
+
+    const hasBorder = _filters.border ? card.border_color == _filters.border : true;
+    if(!hasBorder) return false;
 
     total_value += card.price * (card.count || 1);
     // info.count += parseInt(card.count);
@@ -457,6 +463,13 @@ watch(filters, async () => {
     :options="['nonfoil', 'foil', 'etched']"
     mode="single"
     placeholder="Finish"
+  />
+  
+  <Multiselect
+    v-model="filters.border"
+    :options="['borderless', 'black', 'white']"
+    mode="single"
+    placeholder="Border"
   />
 
   <div class="filter-group">
