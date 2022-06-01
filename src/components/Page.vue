@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch, unref } from 'vue';
+import { reactive, ref, watch, watchEffect, unref, onMounted  } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import Dexie from 'dexie';
 import Filters from './Filters.vue';
@@ -9,8 +9,17 @@ import CardList from './CardList.vue';
 import Precon from './Precon.vue';
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
+import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const props = defineProps({
+  view: {
+    type: String,
+    default: 'collection'
+  }
+});
+const router = useRouter();
+const route = useRoute();
 
 const toast = useToast();
 const db = new Dexie('mtg');
@@ -28,7 +37,10 @@ const ui = reactive({
   sidebar:"clipboard", 
   menu: false, 
   random: {},
-  cards: 'collection',
+  view: '',
+  set: '',
+  precons: '',
+  collections: [],
   zoom: 0
 });
 const filters = reactive({sets: []});
@@ -38,7 +50,6 @@ let loading = ref(false);
 let setLoading = ref(false);
 
 const cards = reactive({ collections: [], all: [], filtered: [], sort: {val: 'Price', dir: 1}, prints: [] });
-let activeCollections = reactive({ value: [] });
 
 const cachedGet = async (cache, url, force=false) => {
   // url = encodeURI(url);
@@ -57,40 +68,57 @@ const cachedGet = async (cache, url, force=false) => {
   return json;
 };
 
-const loadCollections = async (names) => {
-  if (names === []) {
-    return;
-  }
+const loadCollections = collections => {
+  router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
+};
+
+const loadSync = async code => {
+  const resp = await fetch(backendUrl + '/collection?id=' + code);
+  const json = await resp.json();
+  cards.all = json.data;
+};
+
+const _loadCollections = async (names) => {
   let cardMap = new Map();
   for(const name of names) {
     let collection = await db.collections.get({ name: name });
-    for(const card of collection.cards) {
-      if(card === undefined) {
-        continue;
-      }
-      const cardKey = card.id + card.finish;
-      if(cardMap.has(cardKey)) {
-        let ex = cardMap.get(cardKey);
-        ex.count = parseInt(ex.count) + parseInt(card.count);
-        ex.collections.push(collection.name);
-        cardMap.set(cardKey, ex);
-      }
-      else {
-        card.collections = [collection.name];
-        cardMap.set(cardKey, card);
+    if(collection) {
+      for(const card of collection.cards) {
+        if(card === undefined) {
+          continue;
+        }
+        const cardKey = card.id + card.finish;
+        if(cardMap.has(cardKey)) {
+          let ex = cardMap.get(cardKey);
+          ex.count = parseInt(ex.count) + parseInt(card.count);
+          ex.collections.push(collection.name);
+          cardMap.set(cardKey, ex);
+        }
+        else {
+          card.collections = [collection.name];
+          cardMap.set(cardKey, card);
+        }
       }
     }
   }
   cards.all = [...cardMap.values()];
 };
 
-const loadSet = async (setId, force=false) => {
-  loadSearch('e:' + setId, 'prints', force);
+const loadSet = (setId, force) => {
+  router.push({ path: '/set', query: {q: setId, force: force} });
+};
+
+const _loadSet = async (setId, force=false) => {
+  await _loadSearch('e:' + setId, 'prints', force);
   // let json = await cachedGet(getCache, `${backendUrl}/set/?set=` + setId, force);
   // cards.all = json.data;
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
+  router.push({ path: '/search', query: {q: query, unique: unique, force: force} });
+};
+
+const _loadSearch = async (query, unique='prints', force=false) => {
   let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
     q: `${query} -border:silver -is:digital`,
     unique: unique
@@ -139,8 +167,12 @@ const loadPrints = async (cardName, unique='prints') => {
   }
 };
 
-const loadPrecon = async (name) => {
-  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
+const loadPrecon = (name) => {
+  router.push({ path: '/precons', query: {q: name} });
+};
+
+const _loadPrecon = async (name) => {
+  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`);
   cards.all = _cards.data;
 };
 
@@ -149,7 +181,7 @@ const deleteCollections = async (names) => {
     names.map(async name => {
       await db.collections.delete(name);
       cards.collections.splice(cards.collections.indexOf(name), 1);
-      activeCollections.value.splice(activeCollections.value.indexOf(name), 1);
+      ui.collections.splice(ui.collections.indexOf(name), 1);
     });
   }
   else {
@@ -164,10 +196,8 @@ const deleteCard = async (card) => {
     const newCards = col.cards.filter(c => c.id !== card.id);
     await db.collections.update(colName, {cards: newCards});
   }
-  setCards(ui.cards);
+  loadView(ui.view);
 };
-
-watch(activeCollections, x => loadCollections(x.value));
 
 const filtersChanged = async (filteredCards, count, value) => {
   info.count = count;
@@ -176,46 +206,13 @@ const filtersChanged = async (filteredCards, count, value) => {
   loading.value = false;
 };
 
-db.collections.toCollection().primaryKeys().then(keys => {
-  if (keys.length === 0) {
-    return;
-  }
-  cards.collections = keys;
-  cards.collections.sort();
-  activeCollections.value = [keys[0]];
-});
-
-let getCache = null;
-caches.open('cardDataCache').then(async (cache) => {
-  getCache = cache;
-  let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
-  as.data.forEach(set => sets.set(set.code, set));
-
-  let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
-  pcs.data.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
-  let groups = {};
-  for(const pc of pcs.data) {
-    let set = sets.get(pc.set).name;
-    if(groups[set]) {
-      groups[set].push(pc);
-    }
-    else {
-      groups[set] = [pc];
-    }
-  }
-  precons.value = [];
-  for(const [k, v] of Object.entries(groups)) {
-    precons.value.push({label: k, options: v});
-  };
-});
-
 const updateCollection = async (name, cardData, syncCode=undefined) => {
   await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
   if (!cards.collections.includes(name)) {
     cards.collections.push(name);
   }
   cards.collections.sort();
-  activeCollections.value = [name];
+  loadCollections([name]);
 };
 
 const exportList = async (format) => {
@@ -226,7 +223,6 @@ const exportList = async (format) => {
     };
   }
   else if(format === 'mtga') {
-    // 1 Ainok Bond-Kin (mb1) 13
     for(const card of clipboard.cards.values()) {
       list += `${card.count || 1} ${card.name} (${card.set}) ${card.collector_number}\n`;
     };
@@ -258,7 +254,7 @@ const addToSet = async (set, newCards) => {
     }
   }
   await db.collections.put(collection);
-  if(activeCollections.value.includes(set)) {
+  if(ui.collections.includes(set)) {
     cards.all = cards.all.concat(newCards);
   }
   toast(`${newCards.length} added to ${set}`);
@@ -297,19 +293,107 @@ const setMenu = item => {
   }
 };
 
-const setCards = item => {
-  if(ui.cards === item) return;
-  ui.cards = item;
+const loadView = async item => {
+  if(ui.view === item) return;
+  ui.view = item;
   if(item === 'collection') {
-    loadCollections(activeCollections.value);
+    if(ui.collections) loadCollections(ui.collections);
   }
   else if(item === 'set') {
     if(ui.set) loadSet(ui.set);
   }
+  else if(item === 'precon') {
+    if(ui.precons) loadPrecon(ui.precons);
+  }
   else if(item === 'search') {
-    if(ui.search) loadSearch(ui.search, 'cards');
+    if(ui.search) await loadSearch(ui.search, 'cards');
   }
 };
+
+const loadRoute = async (view, params) => {
+  // console.log("Loading route", view, params);
+  if(view) {
+    ui.view = view;
+    if(Object.keys(params).length === 0) {
+      console.log("empty");
+      return;
+    }
+    else if(view === 'collection') {
+      if(params.code) {
+        loadSync(params.code);
+      }
+      else {
+        ui.collections = decodeURIComponent(params.q).split("~");
+        await _loadCollections(ui.collections);
+      }
+    }
+    else if(view === 'set') {
+      ui.set = params.q;
+      await _loadSet(ui.set, params.force);
+    }
+    else if(view === 'precons') {
+      ui.precons = params.q;
+      await _loadPrecon(params.q);
+    }
+    else if(view === 'search') {
+      await _loadSearch(params.q, params.unique, params.force);
+    }
+  }
+};
+
+let getCache = null;
+
+const init = async () => {
+  const cache = await caches.open('cardDataCache');
+  getCache = cache;
+  let as = await cachedGet(cache, 'https://api.scryfall.com/sets', true);
+  as.data.forEach(set => {
+    if(set.digital) return;
+    sets.set(set.code, set);
+  });
+
+  let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
+  pcs.data.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
+  let groups = {};
+  for(const pc of pcs.data) {
+    let set = sets.get(pc.set).name;
+    if(groups[set]) {
+      groups[set].push(pc);
+    }
+    else {
+      groups[set] = [pc];
+    }
+  }
+  precons.value = [];
+  for(const [k, v] of Object.entries(groups)) {
+    precons.value.push({label: k, options: v});
+  };
+
+  let defaultCollections = [];
+  const collections = await db.collections.toCollection().primaryKeys();
+  if (collections.length !== 0) {
+    cards.collections = collections;
+    cards.collections.sort();
+    defaultCollections = [collections[0]];
+  };
+
+  if(route.params.view && route.query) {
+    await loadRoute(route.params.view, route.query);
+  }
+  else {
+    ui.view = 'collection';
+    // await loadRoute('collection', {q: defaultCollections});
+    // ui.collections = defaultCollections;
+    loadCollections(defaultCollections);
+  }
+  return cache;
+};
+
+init();
+
+onBeforeRouteUpdate(async (a, b) => {
+  await loadRoute(a.params.view, a.query);
+});
 
 </script>
 
@@ -320,23 +404,24 @@ const setCards = item => {
         <!-- <h3>Cards</h3> -->
         <div class="selector tabs">
           <a
-            href="#"
             v-for="name in ['collection', 'set', 'precons', 'search']"
             :key="name"
-            @click="setCards(name)"
-            :class="{selected: ui.cards === name}"
+            @click="loadView(name)"
+            :class="{selected: ui.view === name}"
           >{{ name }}</a>
         </div>
         <div class="view">
           <div
             class="item collection"
-            v-if="ui.cards === 'collection'"
+            v-if="ui.view === 'collection'"
           >
             <Multiselect
-              v-model="activeCollections.value"
+              v-model="ui.collections"
               :options="cards.collections"
               mode="tags"
               :searchable="true"
+              @change="loadCollections"
+              @loading="loading.value = true"
             />
             <button
               class="small add icon icon-settings"
@@ -345,7 +430,7 @@ const setCards = item => {
           </div>
           <div
             class="item"
-            v-if="ui.cards === 'set'"
+            v-if="ui.view === 'set'"
           >
             <Multiselect
               v-model="ui.set"
@@ -354,7 +439,7 @@ const setCards = item => {
               label="name"
               value-prop="code"
               mode="single"
-              @select="loadSet"
+              @select="x => loadSet(x)"
               @loading="loading.value = true"
             />
             <button
@@ -364,7 +449,7 @@ const setCards = item => {
           </div>
           <div
             class="item"
-            v-if="ui.cards === 'search'"
+            v-if="ui.view === 'search'"
           >
             <input
               type="search"
@@ -379,9 +464,10 @@ const setCards = item => {
           </div>
           <div
             class="item"
-            v-if="ui.cards === 'precons'"
+            v-if="ui.view === 'precons'"
           >
             <Multiselect
+              v-model="ui.precons"
               type="single"
               :searchable="true"
               :options="precons.value"
@@ -627,6 +713,7 @@ const setCards = item => {
   /* padding: 0 1rem; */
   /* border-bottom: 2px solid var(--colour-input-grey); */
   color: var(--colour-light-font);
+  cursor: pointer;
 }
 .tabs a.selected {
   border-top-right-radius: 2px;

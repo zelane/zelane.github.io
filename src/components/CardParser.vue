@@ -272,6 +272,7 @@ const fetchCardData = async (cardList) => {
 };
 
 const updateCollection = async (name, cardList, append = null) => {
+  name = name.trim();
   let cardData = [];
   if(!append) {
     append = upload.append;
@@ -441,11 +442,11 @@ const copySyncCode = async (name) => {
       </div>
       <a
         href="#"
-        @click="upload.name = ' '"
+        @click="upload.name = ''"
       >New collection</a>
       <div
         class="form"
-        v-if="upload.name"
+        v-if="upload.name != null"
       >
         <h3>{{ props.collections.includes(upload.name) ? "Add to" : "Name" }}</h3>
         <input

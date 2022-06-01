@@ -147,6 +147,7 @@
       <!-- <p>{{ card.prices }}</p> -->
       <!-- <p>{{ card.prices.eur }}</p> -->
       <!-- <p>{{ card.rarity }}</p> -->
+      <!-- {{ card }} -->
     </div>
   </div>
 </template>

@@ -1,11 +1,21 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import Toast, { POSITION } from "vue-toastification";
+import { createRouter, createWebHashHistory } from 'vue-router';
+import Page from './components/Page.vue';
 
 import "vue-toastification/dist/index.css";
 
+const routes = [
+    { path: '/:view?', component: Page, props: true },
+];
+const router = createRouter({
+    history: createWebHashHistory(),
+    routes,
+});
+
 const app = createApp(App);
-app.mount('#app');
+app.use(router);
 app.use(Toast, {
     position: POSITION.BOTTOM_CENTER,
     closeButton: false,
@@ -24,3 +34,4 @@ app.use(Toast, {
         move: "fade-move"
     }
 });
+app.mount('#app');
