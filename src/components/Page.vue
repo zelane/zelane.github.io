@@ -5,6 +5,7 @@ import Dexie from 'dexie';
 import Filters from './Filters.vue';
 import CardParser from './CardParser.vue';
 import { deepUnref } from 'vue-deepunref';
+import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
 import MenuButton from './MenuButton.vue';
@@ -41,7 +42,9 @@ const ui = reactive({
   set: '',
   precons: '',
   collections: [],
-  zoom: 0
+  zoom: 0,
+  cardView: 'card',
+  showMenu: false,
 });
 const filters = reactive({sets: []});
 const sets = new Map();
@@ -109,9 +112,9 @@ const loadSet = (setId, force) => {
 };
 
 const _loadSet = async (setId, force=false) => {
-  await _loadSearch('e:' + setId, 'prints', force);
-  // let json = await cachedGet(getCache, `${backendUrl}/set/?set=` + setId, force);
-  // cards.all = json.data;
+  // await _loadSearch('e:' + setId, 'prints', force);
+  let json = await cachedGet(getCache, `${backendUrl}/set/?set=` + setId, true);
+  cards.all = json.data;
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
@@ -328,6 +331,7 @@ const loadRoute = async (view, params) => {
       }
     }
     else if(view === 'set') {
+      console.log(params.force);
       ui.set = params.q;
       await _loadSet(ui.set, params.force);
     }
@@ -395,11 +399,43 @@ onBeforeRouteUpdate(async (a, b) => {
   await loadRoute(a.params.view, a.query);
 });
 
+let touchYPos = 0;
+const sidebar = ref(null);
+
+const touchStart = (e) => {
+  touchYPos = e.touches[0].screenY;
+};
+
+const touchEnd = (e) => {
+  const delta = e.changedTouches[0].screenY - touchYPos;
+  if(ui.showMenu === true && delta > 50 && sidebar.value.scrollTop === 0) {
+    ui.showMenu = false;
+  }
+  else if(ui.showMenu === false && delta < -50) {
+    sidebar.value.scrollTop = 0;
+    ui.showMenu = true;
+  }
+};
+
 </script>
 
 <template>
-  <div id="window">
-    <div id="sidebar">
+  <div
+    id="window"
+  >
+    <div
+      ref="sidebar"
+      id="sidebar" 
+      :class="{show: ui.showMenu}"
+      @touchstart="touchStart"
+      @touchend="touchEnd"
+    >
+      <div
+        class="tab"
+        @click.stop="ui.showMenu = !ui.showMenu"
+      >
+        <span class="icon icon-keyboard_arrow_up" />
+      </div>
       <div class="filter-group cards">
         <!-- <h3>Cards</h3> -->
         <div class="selector tabs">
@@ -425,7 +461,7 @@ onBeforeRouteUpdate(async (a, b) => {
             />
             <button
               class="small add icon icon-settings"
-              @click="ui.upload = !ui.upload"
+              @click="() =>{ ui.upload = !ui.upload; ui.showMenu = false }"
             />
           </div>
           <div
@@ -551,6 +587,19 @@ onBeforeRouteUpdate(async (a, b) => {
             />
           </div>
         </span>
+
+        <span class="view">
+          <span
+            class="cardView icon icon-copy"
+            @click="ui.cardView = 'card'"
+            :class="{selected: ui.cardView === 'card'}"
+          />
+          <span
+            class="cardView icon icon-list"
+            @click="ui.cardView = 'list'"
+            :class="{selected: ui.cardView === 'list'}"
+          />
+        </span>
         <!-- <span>
           <Slider
             :min="-5"
@@ -604,7 +653,7 @@ onBeforeRouteUpdate(async (a, b) => {
           v-show="ui.sidebar === 'prints'"
         >
           <h3>Prints</h3>
-          <CardList
+          <CardView
             :cards="cards.prints"
             :loading="setLoading"
             :zoom="1"
@@ -680,14 +729,18 @@ onBeforeRouteUpdate(async (a, b) => {
       <div 
         @click="ui.sidebarShow = false"
       >
-        <CardList
+        <CardView
           :cards="cards.filtered"
           :zoom="ui.zoom"
           :loading="loading"
           @clip="card => clipCards([card])"
           @view-prints="loadPrints"
           @delete="deleteCard"
-          v-if="ui.upload === false"
+          v-if="ui.upload === false && ui.cardView === 'card'"
+        />
+        <CardList 
+          :cards="cards.filtered"
+          v-if="ui.upload === false && ui.cardView === 'list'"
         />
       </div>
     </div>
@@ -756,6 +809,15 @@ onBeforeRouteUpdate(async (a, b) => {
 .info-bar .multiselect,
 .info-bar .slider-target {
   min-width: 6em;
+}
+.info-bar .view {
+  letter-spacing: .5rem;
+}
+.info-bar .view .cardView {
+  cursor: pointer;
+}
+.info-bar .view .cardView.selected {
+  color: var(--colour-anchor);
 }
 select {
   background-color: var(--colour-input-grey);
@@ -848,6 +910,13 @@ option {
   flex-grow: 1;
   padding: 1rem 1rem;
 }
+.sidepanel .cards {
+  grid-template-columns: auto;
+  padding: 3rem;
+}
+.sidepanel .card {
+  min-width: 100%;
+}
 .sets .set {
   display: flex;
   flex-direction: row;
@@ -917,15 +986,37 @@ option {
   overflow: hidden;
 }
 #sidebar {
+  position: relative;
   min-width: 380px;
   width: 400px;
   text-align: left;
   padding: 40px 20px;
   background-color: var(--colour-sidebar);
-  overflow: auto;
+  overflow-x: visible;
+  overflow-y: auto;
   gap: 1.5rem 0;
   display: flex;
   flex-direction: column;
+}
+#sidebar .tab {
+  display: none;
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--colour-input-grey);
+  text-align: center;
+  line-height: 2rem;
+  transform: translate(0, -100%);
+  border-radius: 8px 8px 0 0;
+  box-shadow: var(--default-shadow);
+
+  margin: auto;
+  height: 3rem;
+  width: 4rem;
+  line-height: 3rem;
+  font-size: 1.5rem;
 }
 
 #main {
@@ -949,12 +1040,24 @@ option {
     height: auto;
   }
   #sidebar {
-    height: 30vh;
-    order: 1;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    transform: translate(0, 100%);
+    transition: all 0.2s;
     width: 100%;
-    min-width: 0;
-    padding: 5vw;
-	  /* scroll-snap-type: y mandatory; */
+    overflow: visible;
+  }
+  #sidebar.show {
+    transform: translate(0, 0);
+    overflow: auto;
+  }
+  #sidebar .tab {
+    display: block;
+  }
+  .info-bar {
+    justify-content: space-evenly;
+    gap: 0;
   }
   /* .filter-group {
     scroll-snap-align: start;
