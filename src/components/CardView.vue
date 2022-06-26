@@ -29,6 +29,7 @@
       class="fix"
       v-for="card in props.cards.slice(0, 500)"
       :key="card.id + card.finish"
+      :style="{order: card.isCommander ? -1 : null}"
     >
       <Card 
         :card="card"

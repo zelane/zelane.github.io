@@ -178,8 +178,11 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if(!hasFinish) return false;
     const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
     if (!hasName) return false;
+
     const colourF = (f) => _filters.colours.or ? _filters.colours.colours.every(f) : _filters.colours.colours.some(f);
     if (_filters.colours.colours.length > 0) {
+      console.log(card.color_identity, _filters.colours.colours);
+      // return _filters.colours.colours.sort().join(",") === card.color_identity.sort().join(",");
       const hasColour = colourF((colour) => {
         if (colour === 'C') {
           return card.color_identity.length === 0;
@@ -188,6 +191,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
       });
       if (!hasColour) return false;
     }
+
     const hasKeyword = _filters.keywords.every(keyword => (card.keywords || []).includes(keyword));
     if (!hasKeyword) return false;
 
@@ -219,7 +223,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     if(!hasBorder) return false;
 
     total_value += card.price * (card.count || 1);
-    // info.count += parseInt(card.count);
+    count += parseInt(card.count);
     return true;
   });
   if(_filters.group) {
@@ -227,7 +231,7 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
   }
 
   total_value = parseInt(total_value);
-  count = filtered.length;
+  // count = filtered.length;
   clearTimeout(to);
   resolve([filtered, count, total_value]);
 });

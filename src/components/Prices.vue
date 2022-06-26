@@ -20,25 +20,43 @@
 </script>
 
 <template>
-  <span
-    v-for="finish in props.card.finishes"
-    :key="finish"
+  <span 
+    class="prices"
   >
     <span
-      class="price"
-      :class="finish === props.card.finish ? 'match' : ''"
-      v-show="props.all || props.card.finish === finish"
-      v-if="finish === 'nonfoil'"
+      v-for="finish in props.card.finishes"
+      :key="finish"
     >
-      {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur'] || (props.card.prices['usd'] * 0.9)) }}
-    </span>
-    <span
-      class="price"
-      :class="finish === props.card.finish ? 'match' : ''"
-      v-show="props.all || props.card.finish === finish"
-      v-else
-    >
-      {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur_' + finish] || (props.card.prices['usd_' + finish] * 0.9)) }}
+      <span
+        class="price"
+        :class="finish === props.card.finish ? 'match' : ''"
+        v-show="props.all || props.card.finish === finish"
+        v-if="finish === 'nonfoil'"
+      >
+        {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur'] || (props.card.prices['usd'] * 0.9)) }}
+      </span>
+      <span
+        class="price"
+        :class="finish === props.card.finish ? 'match' : ''"
+        v-show="props.all || props.card.finish === finish"
+        v-else
+      >
+        {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur_' + finish] || (props.card.prices['usd_' + finish] * 0.9)) }}
+      </span>
     </span>
   </span>
 </template>
+
+<style scoped>
+
+.prices {
+  display: flex;
+  flex-wrap: wrap;
+}
+.price {
+  opacity: .4;
+}
+.price.match {
+  opacity: 1;
+}
+</style>

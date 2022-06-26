@@ -1,6 +1,6 @@
 <script setup>
   import Prices from './Prices.vue';
-  
+
   const props = defineProps({
     card: {
       type: Object,
@@ -25,7 +25,6 @@
   <div
     class="card"
     :class="props.card.finish"
-    :style="{order: props.card.isCommander ? -1 : null}"
   >
     <div class="img">
       <!-- <img
@@ -90,7 +89,7 @@
           class="set"
         >{{ props.card.set }}:{{ props.card.collector_number }}</a>
       </p> -->
-    <p class="prices">
+    <p>
       <Prices :card="props.card" />
     </p>
     <div class="tags">
@@ -124,10 +123,6 @@
 </template>
 
 <style scoped>
-.card {
-  min-width: 15em;
-	content-visibility: auto;
-}
 .flip.back {
   display: none;
 }
@@ -197,33 +192,33 @@ img {
   pointer-events: none;
   border-radius: 5%;
 }
-.props.card.foil .img::after {
+.card.foil .img::after {
   background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
 }
-.props.card.etched .img::after {
+.card.etched .img::after {
   background: linear-gradient(115deg, #BF953F, #FCF6BA, #B38728, #FBF5B7, #AA771C);
   opacity: .15;
   mix-blend-mode: hard-light;
 }
 @supports (mix-blend-mode: multiply) {
-  /* .props.card.foil .img::after {
+  /* .card.foil .img::after {
     background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.9) 25%, rgba(255,255,0,0.9) 50%, rgba(255,0,0,0.9) 75%, rgba(255,0,0,0.9) 100%);
     mix-blend-mode: multiply;
     opacity: .5;
   }
-  .props.card.foil .img::after {
+  .card.foil .img::after {
     background: repeating-linear-gradient(170deg, #185494 0%, #EE1D23 10%, #FAAF18 20%, #AEE2A0 30%, #185494 40%);
     opacity: .4;
     mix-blend-mode: multiply;
   } */
-  .props.card.foil .img::after {
+  .card.foil .img::after {
     background: repeating-linear-gradient(170deg, #b6d9ff 0%, #FFD4D5 10%, #FFDC96 20%, #DCFFD3 30%, #b5d8ff 40%);
     opacity: 1;
     mix-blend-mode: multiply;
   }
 }
 /* @supports (mix-blend-mode: soft-light) {
-  .props.card.foil .img::after {
+  .card.foil .img::after {
     background: linear-gradient(115deg, rgba(0,255,0) 0%, rgba(0,255,0) 25%, rgba(255,255,0) 50%, rgba(255,0,0) 75%, rgba(255,0,0) 100%);
     opacity: .4;
     background:linear-gradient(120deg, #185494, #EE1D23, #FAAF18, #FFFFFF);
@@ -231,28 +226,6 @@ img {
     mix-blend-mode: soft-light;
   }
 } */
-.price {
-  display: flex;
-  /* justify-content: space-between; */
-  flex-wrap: wrap;
-}
-/* @supports (mix-blend-mode: hard-light) {
-  .props.card.foil .img::after {
-    background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
-    mix-blend-mode: hard-light;
-    opacity: 1;
-  }
-} */
-.prices {
-  display: flex;
-  flex-wrap: wrap;
-}
-.prices .price {
-  opacity: .4;
-}
-.prices .price.match {
-  opacity: 1;
-}
 
 @media (max-width: 640px) {
   .card {

@@ -1,17 +1,28 @@
 <script setup>
 
-import { reactive, ref } from 'vue';
+import { reactive, ref, watchEffect } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
 import { useToast } from "vue-toastification";
 
-
+const props = defineProps({ 
+  db: {
+    type: Object,
+    required: true
+  }, 
+  collections: {
+    type: Array,
+    required: true
+  }, 
+  setIds: Set
+});
+const emit = defineEmits(['parsed']);
 const toast = useToast();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const upload = reactive({
-  name: null, 
+  name: null,
   file: null, 
-  text: "1 Golgari Signet\n1 Hornet Nest ", 
+  text: null, 
   append: true, 
   encoding: null, 
   format: "MTGO", 
@@ -20,13 +31,10 @@ const upload = reactive({
   count: 0, 
   total: 0
 });
-const ui = reactive({
-  name: null,
-  upload: false,
-});
 
-const props = defineProps({ db: Object, collections: Array, setIds: Set });
-const emit = defineEmits(['change', 'delete', 'close']);
+watchEffect(() => {
+  upload.name = props.collections[0];
+});
 
 const post = async (url = '', data = {}) => {
   const response = await fetch(url, {
@@ -61,12 +69,7 @@ const handleTextUpload = async (e) => {
   upload.active = true;
   upload.progress = 0;
   let cards = {};
-  if (upload.format === 'Sync Code') {
-    const code = upload.text.trim();
-    await downloadCollection(upload.name, code);
-    return;
-  }
-  else if (upload.format === 'MTGA') {
+  if (upload.format === 'MTGA') {
     const re = /([0-9]+) (.+) \((.+)\) ([0-9]+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
@@ -95,7 +98,7 @@ const handleTextUpload = async (e) => {
     }
   }
   else if (upload.format === 'MKM Email') {
-    const re = /([0-9]+)x ([a-zA-Z ,']+)/g;
+    const re = /([0-9]+)x ([a-zA-Z ,/']+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       // if(m[2].includes('Token')) {
@@ -206,6 +209,40 @@ const parseDSWeb = async (csv) => {
   return cards;
 };
 
+const updateCollection = async (name, cardList) => {
+  name = name.trim();
+  let cardData = [];
+  let collection = null;
+  if(props.collections.includes(name)) {
+    collection = await props.db.collections.get({ name: name });
+  }
+  if (collection) {
+    cardData = collection.cards;
+    for (const [key, card] of cardList.entries()) {
+      let existing = collection.cards.filter(c => {
+        if(c === undefined) {
+          return false;
+        }
+        if(card.set !== '') {
+          return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
+        }
+        else {
+          return card.name === c.name && card.finish === c.finish;
+        }
+      });
+      if (existing.length > 0) {
+        existing[0].count = card.count;
+        cardList.delete(key);
+      }
+    }
+  }
+  if (cardList.size > 0) {
+    const newData = await fetchCardData(cardList);
+    cardData = cardData.concat(newData);
+  }
+  emit('parsed', name, cardData);
+};
+
 const fetchCardData = async (cardList) => {
   const ids = [];
   const mapName = new Map();
@@ -271,318 +308,107 @@ const fetchCardData = async (cardList) => {
   }
 };
 
-const updateCollection = async (name, cardList, append = null) => {
-  name = name.trim();
-  let cardData = [];
-  if(!append) {
-    append = upload.append;
-  }
-  let collection = null;
-  if(props.collections.includes(name)) {
-    collection = await props.db.collections.get({ name: name });
-  }
-  // If collection exists and append, only add new cards, sum counts
-  if (append && collection) {
-    cardData = collection.cards;
-    for (const [key, card] of cardList.entries()) {
-      let existing = collection.cards.filter(c => {
-        if(c === undefined) {
-          return false;
-        }
-        if(card.set !== '') {
-          return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
-        }
-        else {
-          return card.name === c.name && card.finish === c.finish;
-        }
-      });
-      if (existing.length > 0) {
-        existing[0].count = card.count;
-        cardList.delete(key);
-      }
-    }
-  }
-  if (cardList.size > 0) {
-    const newData = await fetchCardData(cardList);
-    cardData = cardData.concat(newData);
-  }
-  const syncCode = collection ? collection.syncCode : undefined;
-  emit('change', name, cardData, syncCode);
-  emit('close');
+const formats = {
+  'MKM Email': ['text', handleTextUpload],
+  'MTGA': ['text', handleTextUpload],
+  'MTGO': ['text', handleTextUpload],
+  'DragonShield Web': ['file', handleFileUpload],
 };
-
-const downloadCollection = async (name, code) => {
-  toast(`Downloading [${code}] to ${name}.`);
-  try {
-    const resp = await fetch(backendUrl + '/collection?id=' + code);
-    const json = await resp.json();
-    toast(`${name} downloaded.`);
-    emit('change', name, json.data, code);
-    emit('close');
-  }
-  catch (error) {
-    console.error(error);
-    toast.error(`Failed to download ${code}.`);
-  }
-  finally {
-    upload.active = false;
-  }
-};
-
-const refreshCollection = async (name) => {
-  const stid = toast(`Refreshing collection ${name}`);
-  try {
-    const collection = await props.db.collections.get({ name: name });
-    if(!collection.syncCode) {
-      return;
-    }
-    const resp = await fetch(backendUrl + '/collection?id=' + collection.syncCode);
-    const json = await resp.json();
-    toast.dismiss(stid);
-    toast(`${name} refreshed.`);
-    emit('change', name, json.data, collection.syncCode);
-  }
-  catch (error) {
-    console.error(error);
-    toast.dismiss(stid);
-    toast.error(`Failed to refresh ${name}.`);
-  }
-  finally {
-    upload.active = false;
-  }
-};
-
-const uploadCollection = async (name, force=false) => {
-  const stid = toast(`Uploading ${name}`);
-  try {
-    const collection = await props.db.collections.get({ name: name });
-    let data = {
-      cards: collection.cards.map(c => {
-        return {
-          id: c.id,
-          count: c.count,
-          tags: c.tags,
-          finish: c.finish,
-        };
-      })
-    };
-    let code = collection.syncCode;
-    if(code) {
-      data.id = code;
-    }
-    const resp = await post(backendUrl + '/collection', data);
-    code = resp.data;
-    await props.db.collections.update(name, {
-      "syncCode": code
-    });
-    navigator.clipboard.writeText(code);
-    toast.dismiss(stid);
-    toast(`${name} uploaded. Code copied to clipboard`);
-  }
-  catch (error) {
-    toast.dismiss(stid);
-    toast.error(`${name} failed to upload.`);
-    console.error(error);
-  }
-};
-
-const copySyncCode = async (name) => {
-  const collection = await props.db.collections.get({ name: name });
-  navigator.clipboard.writeText(collection.syncCode);
-  toast(`${name} sync code copied to clipboard.`);
-};
-
 </script>
 
 <template>
-  <div class="upload">
-    <div class="flex">
+  <div
+    class="form"
+  >
+    <h3>Add to {{ props.collections.length == 1 ? props.collections[0] : "" }}</h3>
+    <Multiselect
+      v-if="props.collections.length > 1"
+      v-model="upload.name"
+      :options="props.collections"
+      mode="single"
+    />
+
+    <Multiselect
+      v-model="upload.format"
+      placeholder="Format"
+      :options="Object.keys(formats)"
+      :can-clear="false"
+    />
+
+    <input
+      v-if="formats[upload.format][0] === 'file'"
+      id="file-input"
+      ref="fileElem"
+      type="file"
+      :disabled="upload.active"
+    >
+
+    <template v-if="formats[upload.format][0] === 'text'">
+      <textarea v-model="upload.text" />
+    </template>
+
+    <div
+      class="buttons"
+    >
+      <label
+        class="button"
+        for="file-input"
+        v-if="['DragonShield Web'].includes(upload.format)"
+      >Choose file</label>
       <button
-        class="small close"
-        @click="emit('close')"
+        v-if="!upload.active && upload.format && (upload.text || fileElem)"
+        @click="formats[upload.format][1]()"
       >
-        <span>+</span>
+        Add
       </button>
+    </div>
 
+    <div
+      class="progress"
+      v-if="upload.active"
+    >
+      <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
       <div
-        class="collections"
-        v-if="props.collections.length > 0"
-      >
-        <div
-          class="collection"
-          v-for="col in props.collections"
-          :key="col"
-        >
-          <div>{{ col }}</div>
-          <!-- <a
-          class="action icon icon-arrow_downward"
-        /> -->
-          <a
-            class="action icon icon-arrow_upward"
-            @click.exact="uploadCollection(col)"
-            @click.ctrl="uploadCollection(col, true)"
-          />
-          <a
-            class="action icon icon-arrow_downward"
-            @click.exact="refreshCollection(col)"
-          />
-          <a
-            class="action icon icon-clipboard"
-            @click.exact="copySyncCode(col)"
-          />
-          <a
-            class="action"
-            @click="upload.name = col"
-          >+</a>
-          <a
-            class="action"
-            @click="emit('delete', [col])"
-          >-</a>
-        </div>
-      </div>
-      <a
-        href="#"
-        @click="upload.name = ''"
-      >New collection</a>
-      <div
-        class="form"
-        v-if="upload.name != null"
-      >
-        <h3>{{ props.collections.includes(upload.name) ? "Add to" : "Name" }}</h3>
-        <input
-          type="text"
-          v-model="upload.name"
-        >
-        <h3>Format</h3>
-        <Multiselect
-          v-model="upload.format"
-          :options="['DragonShield Web', 'DragonShield Mobile', 'MKM Email', 'MTGA', 'MTGO', 'Sync Code']"
-          :can-clear="false"
-        />
-
-        <!-- <div>
-        <label for="append">Append?</label>
-        <input
-          id="append"
-          type="checkbox"
-          v-model="upload.append"
-        >
-      </div> -->
-
-        <template v-if="['MTGA', 'MTGO', 'MKM Email', 'Sync Code'].includes(upload.format)">
-          <textarea v-model="upload.text" />
-        </template>
-
-        <label
-          class="button"
-          for="file-input"
-          v-if="['DragonShield Web', 'DragonShield Mobile'].includes(upload.format)"
-        >Choose file</label>
-        <input
-          v-if="upload.format === 'DragonShield Web'"
-          id="file-input"
-          ref="fileElem"
-          type="file"
-          :disabled="upload.active"
-        >
-        <div
-          class="buttons"
-          v-if="!upload.active && upload.format && (upload.text || fileElem)"
-        >
-          <button
-            @click="['MTGA', 'MTGO', 'MKM Email', 'Sync Code'].includes(upload.format) ? handleTextUpload() : handleFileUpload()"
-          >
-            Upload
-          </button>
-        </div>
-
-        <div
-          class="progress"
-          v-if="upload.active"
-        >
-          <span>Processing cards: {{ upload.count }} / {{ upload.total }}</span>
-          <div
-            class="bar"
-            :style="{ width: upload.progress + '%' }"
-          />
-        </div>
-      </div>
+        class="bar"
+        :style="{ width: upload.progress + '%' }"
+      />
     </div>
   </div>
 </template>
 
-<style scoped>
+<style>
 
-.upload {
-  position: absolute;
-  padding: 1rem;
-  inset: 0;
-  overflow: auto;
-}
-.flex {
+.form {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
   gap: 20px;
-}
-.close {
-  align-self: flex-end;
-}
-.close span {
-  display: block;
-  transform: rotate(45deg);
-}
-.collections {
-  background-color: var(--colour-input-grey);
-  max-height: 20rem;
-  overflow: auto;
   width: 100%;
   max-width: 640px;
-}
-.collection {
-  display: flex;
-  gap: 1rem;
-  flex-direction: row;
-  height: 3rem;
   align-items: center;
   padding: 1rem;
-  color: var(--colour-light-text);
-}
-.collection div:first-child {
-  flex-grow: 1;
-  font-weight: 500;
-}
-.form {
-  display: grid;
-  grid-template-columns: 1fr 5fr;
-  gap: 20px;
-  width: 100%;
-  max-width: 640px;
-  align-items: center;
 }
 /* .upload input[type="file"] {
   display: none;
 } */
 .file {
-  grid-column: span 2;
   display: block;
   width: 100%;
   background-color: var(--colour-input-grey);
   height: 200px;
 }
 .buttons {
-  grid-column: span 2;
+  display: flex;
+  flex-direction: row;
   text-align: center;
+  gap: 1rem;
+}
+label.button {
+  display: block;
 }
 input[type="file"] {
   display: none;
 }
-label {
-  grid-column: 2;
-}
 .progress {
-  grid-column: span 2;
   position: relative;
   display: block;
   border-radius: var(--default-br);

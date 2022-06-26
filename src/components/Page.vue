@@ -3,7 +3,7 @@ import { reactive, ref, watch, watchEffect, unref, onMounted  } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import Dexie from 'dexie';
 import Filters from './Filters.vue';
-import CardParser from './CardParser.vue';
+import UploadView from './UploadView.vue';
 import { deepUnref } from 'vue-deepunref';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
@@ -11,14 +11,9 @@ import Precon from './Precon.vue';
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
+import CardParser from './CardParser.vue';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-const props = defineProps({
-  view: {
-    type: String,
-    default: 'collection'
-  }
-});
 const router = useRouter();
 const route = useRoute();
 
@@ -175,7 +170,7 @@ const loadPrecon = (name) => {
 };
 
 const _loadPrecon = async (name) => {
-  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`);
+  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
   cards.all = _cards.data;
 };
 
@@ -210,12 +205,14 @@ const filtersChanged = async (filteredCards, count, value) => {
 };
 
 const updateCollection = async (name, cardData, syncCode=undefined) => {
-  await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
+  console.log(name, cardData);
+  // await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
+  await db.collections.put({ name: name, cards: cardData });
   if (!cards.collections.includes(name)) {
     cards.collections.push(name);
   }
   cards.collections.sort();
-  loadCollections([name]);
+  _loadCollections([name]);
 };
 
 const exportList = async (format) => {
@@ -545,7 +542,7 @@ const touchEnd = (e) => {
       id="main"
       class="main"
     >
-      <CardParser
+      <UploadView
         v-show="ui.upload"
         @change="updateCollection"
         @close="ui.upload=false"
@@ -621,7 +618,7 @@ const touchEnd = (e) => {
           <div
             class="item" 
             @click.stop="setMenu(name)"
-            v-for="name in ['clipboard', 'prints', 'settings']"
+            v-for="name in ['add', 'clipboard', 'prints', 'settings']"
             :key="name"
             :class="name"
           >
@@ -631,6 +628,20 @@ const touchEnd = (e) => {
             />
             <!-- <span>{{ clipboard.cards.size }}</span> -->
           </div>
+        </div>
+        
+        <div
+          class="add"
+          v-show="ui.sidebar === 'add'"
+        >
+          <span>
+            <CardParser
+              @parsed="updateCollection"
+              :db="db"
+              :collections="ui.collections"
+              :set-ids="new Set(sets.keys())"
+            />
+          </span>
         </div>
 
         <div
