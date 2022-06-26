@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia'
 import App from './App.vue';
 import Toast, { POSITION } from "vue-toastification";
 import { createRouter, createWebHashHistory } from 'vue-router';
@@ -6,6 +7,7 @@ import Page from './components/Page.vue';
 
 import "vue-toastification/dist/index.css";
 
+const pinia = createPinia();
 const routes = [
     { path: '/:view?', component: Page, props: true },
 ];
@@ -16,6 +18,7 @@ const router = createRouter({
 
 const app = createApp(App);
 app.use(router);
+app.use(pinia);
 app.use(Toast, {
     position: POSITION.BOTTOM_CENTER,
     closeButton: false,

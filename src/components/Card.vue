@@ -1,24 +1,23 @@
 <script setup>
-  import Prices from './Prices.vue';
+import Prices from './Prices.vue';
 
-  const props = defineProps({
-    card: {
-      type: Object,
-      required: true
-    },
-    actions: {
-      type: Array,
-      default: () => ['clip', 'delete', 'prints']
-    }
-  });
-  const emit = defineEmits(['clip', 'viewPrints', 'delete']);
+const props = defineProps({
+  card: {
+    type: Object,
+    required: true
+  },
+  actions: {
+    type: Array,
+    default: () => ['clip', 'delete', 'prints']
+  }
+});
+const emit = defineEmits(['clip', 'viewPrints', 'delete']);
 
-  const markings = {
-    'nonfoil': '',
-    'etched': '#',
-    'foil': '☆'
-  };
-
+const markings = {
+  'nonfoil': '',
+  'etched': '#',
+  'foil': '☆'
+};
 </script>
 
 <template>
@@ -61,11 +60,11 @@
           @click.stop="emit('clip', card)"
           title="Add to clipboard"
         />
-        <!-- <button
-            class="small clip icon icon-delete"
-            @click.stop="emit('delete', card)"
-            title="Delete"
-          /> -->
+        <button
+          class="small clip icon icon-delete"
+          @click.stop="emit('delete', card)"
+          title="Delete"
+        />
       </div>
     </div>
     <p class="name">

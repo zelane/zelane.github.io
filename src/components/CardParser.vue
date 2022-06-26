@@ -4,6 +4,7 @@ import { reactive, ref, watchEffect } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
 import { useToast } from "vue-toastification";
+import CardSearch from './CardSearch.vue';
 
 const props = defineProps({ 
   db: {
@@ -25,7 +26,7 @@ const upload = reactive({
   text: null, 
   append: true, 
   encoding: null, 
-  format: "MTGO", 
+  format: "Search", 
   active: false, 
   progress: 0, 
   count: 0, 
@@ -210,30 +211,24 @@ const parseDSWeb = async (csv) => {
 };
 
 const updateCollection = async (name, cardList) => {
-  name = name.trim();
   let cardData = [];
-  let collection = null;
-  if(props.collections.includes(name)) {
-    collection = await props.db.collections.get({ name: name });
-  }
-  if (collection) {
-    cardData = collection.cards;
-    for (const [key, card] of cardList.entries()) {
-      let existing = collection.cards.filter(c => {
-        if(c === undefined) {
-          return false;
-        }
-        if(card.set !== '') {
-          return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
-        }
-        else {
-          return card.name === c.name && card.finish === c.finish;
-        }
-      });
-      if (existing.length > 0) {
-        existing[0].count = card.count;
-        cardList.delete(key);
+  const collection = await props.db.collections.get({ name: name });
+  cardData = collection.cards;
+  for (const [key, card] of cardList.entries()) {
+    let existing = collection.cards.filter(c => {
+      if(c === undefined) {
+        return false;
       }
+      if(card.set !== '') {
+        return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
+      }
+      else {
+        return card.name === c.name && card.finish === c.finish;
+      }
+    });
+    if (existing.length > 0) {
+      existing[0].count = card.count;
+      cardList.delete(key);
     }
   }
   if (cardList.size > 0) {
@@ -241,6 +236,22 @@ const updateCollection = async (name, cardList) => {
     cardData = cardData.concat(newData);
   }
   emit('parsed', name, cardData);
+};
+
+const handleSearch = async (data) => {
+  console.log({... data});
+  data.count = 1;
+  const collection = await props.db.collections.get({ name: upload.name });
+  let existing = collection.cards.filter(c => {
+    return c.id === data.id;
+  });
+  if (existing.length > 0) {
+    existing[0].count += 1;
+  }
+  else {
+    collection.cards.push(data);
+  }
+  emit('parsed', upload.name, collection.cards);
 };
 
 const fetchCardData = async (cardList) => {
@@ -313,12 +324,13 @@ const formats = {
   'MTGA': ['text', handleTextUpload],
   'MTGO': ['text', handleTextUpload],
   'DragonShield Web': ['file', handleFileUpload],
+  'Search': ['search', handleSearch]
 };
 </script>
 
 <template>
   <div
-    class="form"
+    class="root"
   >
     <h3>Add to {{ props.collections.length == 1 ? props.collections[0] : "" }}</h3>
     <Multiselect
@@ -347,13 +359,18 @@ const formats = {
       <textarea v-model="upload.text" />
     </template>
 
+    <CardSearch
+      v-if="formats[upload.format][0] === 'search'"
+      @selected="handleSearch"
+    />
+
     <div
       class="buttons"
     >
       <label
         class="button"
         for="file-input"
-        v-if="['DragonShield Web'].includes(upload.format)"
+        v-if="formats[upload.format][0] === 'file'"
       >Choose file</label>
       <button
         v-if="!upload.active && upload.format && (upload.text || fileElem)"
@@ -376,16 +393,15 @@ const formats = {
   </div>
 </template>
 
-<style>
+<style scoped>
 
-.form {
+.root {
   display: flex;
   flex-direction: column;
   gap: 20px;
   width: 100%;
   max-width: 640px;
   align-items: center;
-  padding: 1rem;
 }
 /* .upload input[type="file"] {
   display: none;

@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, watch, watchEffect, unref, onMounted  } from 'vue';
+import { reactive, ref } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import Dexie from 'dexie';
 import Filters from './Filters.vue';
@@ -12,7 +12,12 @@ import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import CardParser from './CardParser.vue';
+import CardExporter from './CardExporter.vue';
+import ClipBoard from './ClipBoard.vue';
+import { useClipboard } from '../stores/clipboard';
 
+
+const clipboard = useClipboard();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const router = useRouter();
 const route = useRoute();
@@ -23,11 +28,10 @@ db.version(3).stores({
   collections: '&name'
 });
 const info = reactive({ count: 0, total_value: 0 });
-const clipboard = reactive({cards: new Map()});
+
 const ui = reactive({
   upload: false, 
   precon: false,
-  clipboard: false, 
   prints: false, 
   sidebarShow: false, 
   sidebar:"clipboard", 
@@ -188,13 +192,14 @@ const deleteCollections = async (names) => {
 };
 
 const deleteCard = async (card) => {
-  console.log(`Deleting ${card.name} from ${card.collections.join(', ')}`);
-  for(const colName of card.collections) {
-    const col = await db.collections.get({ name: colName });
-    const newCards = col.cards.filter(c => c.id !== card.id);
-    await db.collections.update(colName, {cards: newCards});
-  }
-  loadView(ui.view);
+  if(confirm(`Are you sure you want to delete ${card.name} from ${card.collections.join(', ')}`)) {
+    for(const colName of card.collections) {
+      const col = await db.collections.get({ name: colName });
+      const newCards = col.cards.filter(c => c.id !== card.id);
+      await db.collections.update(colName, {cards: newCards});
+    }
+    _loadCollections(card.collections);
+  };
 };
 
 const filtersChanged = async (filteredCards, count, value) => {
@@ -205,41 +210,14 @@ const filtersChanged = async (filteredCards, count, value) => {
 };
 
 const updateCollection = async (name, cardData, syncCode=undefined) => {
-  console.log(name, cardData);
   // await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
   await db.collections.put({ name: name, cards: cardData });
   if (!cards.collections.includes(name)) {
     cards.collections.push(name);
   }
   cards.collections.sort();
+  ui.collections = [name];
   _loadCollections([name]);
-};
-
-const exportList = async (format) => {
-  let list = "";
-  if(format === 'mtgo') {
-    for(const card of clipboard.cards.values()) {
-      list += `${card.count || 1} ${card.name} \n`;
-    };
-  }
-  else if(format === 'mtga') {
-    for(const card of clipboard.cards.values()) {
-      list += `${card.count || 1} ${card.name} (${card.set}) ${card.collector_number}\n`;
-    };
-  }
-  else if(format === 'mkm') {
-    for(const card of clipboard.cards.values()) {
-      list += `${card.count || 1} ${card.name} (${card.set_name})\n`;
-    };
-  }
-  else if (format === 'moxfield') {
-    list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
-    for(const card of clipboard.cards.values()) {
-      list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
-    };
-  }
-  navigator.clipboard.writeText(list);
-  toast(`Copied to Clipboard`);
 };
 
 const addToSet = async (set, newCards) => {
@@ -267,22 +245,6 @@ const groupBySet = (cards) => {
     return map;
   }, new Map());
   return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
-};
-
-const clipCards = (cards, countAll=false) => {
-  cards.forEach(card => {
-    let clipcard = clipboard.cards.get(card.id);
-    // if(!card.count) card.count = 1;
-    if(!card.price) card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * 0.9 || 0);
-    if(!clipcard) {
-      clipcard = {...card};
-      if(!card.count) clipcard.count = 1;
-    }
-    else {
-      clipcard.count += countAll ? (card.count || 1) : 1;
-    }
-    clipboard.cards.set(clipcard.id, clipcard);
-  });
 };
 
 const setMenu = item => {
@@ -412,6 +374,10 @@ const touchEnd = (e) => {
     sidebar.value.scrollTop = 0;
     ui.showMenu = true;
   }
+};
+
+const clip = card => {
+  clipboard.add(card);
 };
 
 </script>
@@ -626,10 +592,9 @@ const touchEnd = (e) => {
               class="icon"
               :class="'icon-' + name"
             />
-            <!-- <span>{{ clipboard.cards.size }}</span> -->
           </div>
         </div>
-        
+
         <div
           class="add"
           v-show="ui.sidebar === 'add'"
@@ -641,6 +606,7 @@ const touchEnd = (e) => {
               :collections="ui.collections"
               :set-ids="new Set(sets.keys())"
             />
+            <CardExporter :cards="cards.all" />
           </span>
         </div>
 
@@ -668,7 +634,7 @@ const touchEnd = (e) => {
             :cards="cards.prints"
             :loading="setLoading"
             :zoom="1"
-            @clip="card => clipCards([card])"
+            @clip="card => clip(card)"
           />
         </div>
 
@@ -694,47 +660,12 @@ const touchEnd = (e) => {
             </div>
           </div>
         </div>
-        
-        <div
-          class="clipboard"
+        <ClipBoard
           v-show="ui.sidebar === 'clipboard'"
-        >
-          <h3>Clipboard {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format([... clipboard.cards.values()].reduce((sum, a) => sum += a.price * a.count, 0)) }}</h3>
-          <div class="clip-cards">
-            <div
-              class="clip-card"
-              v-for="card in clipboard.cards.values()"
-              :key="'clip-' + card.name"
-            >
-              <p>{{ card.count }}x {{ card.name }} ({{ card.set }})</p> 
-            </div>
-          </div>
-          <div class="buttons">
-            <MenuButton 
-              text="Export"
-              :actions="{
-                'MTGO': 'mtgo',
-                'MTGA': 'mtga',
-                'MKM': 'mkm',
-                'Moxfield': 'moxfield',
-              }"
-              @click="exportList"
-            />
-            
-            <MenuButton 
-              text="Add to set"
-              :actions="Object.fromEntries(cards.collections.map(col => [col, col]))"
-              @click="col => addToSet(col, clipboard.cards.values())"
-            />
-
-            <button @click="clipCards(cards.filtered, true)">
-              Clip All
-            </button>
-            <button @click="clipboard.cards.clear()">
-              Clear
-            </button>
-          </div>
-        </div>
+          ref="clipboard"
+          :cards="cards.filtered"
+          :collections="cards.collections"
+        />
       </div>
 
       <div 
@@ -744,7 +675,7 @@ const touchEnd = (e) => {
           :cards="cards.filtered"
           :zoom="ui.zoom"
           :loading="loading"
-          @clip="card => clipCards([card])"
+          @clip="card => clip(card)"
           @view-prints="loadPrints"
           @delete="deleteCard"
           v-if="ui.upload === false && ui.cardView === 'card'"
@@ -905,6 +836,7 @@ option {
   transition: all 0.2s;
   z-index: 2;
   color: var(--colour-light-font);
+  padding: 1rem 2rem;
 }
 .sidepanel.show {
   transform: translate(0, 0);
@@ -968,27 +900,6 @@ option {
 }
 .precon .icon-W {
   color: var(--colour-white);
-}
-.prints {
-  padding: 1rem 2rem;
-}
-.clipboard {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem 2rem;
-}
-.clipboard .clip-cards {
-  flex-grow: 1;
-  overflow: auto;
-}
-.clipboard .buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-  padding-top: 1rem;
 }
 #window {
   display: flex;
