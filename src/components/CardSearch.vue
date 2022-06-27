@@ -66,6 +66,7 @@ init();
     <input
       type="text"
       v-model="ui.search"
+      @keyup.enter="search(ui.search)"
     >
     <button
       class="small icon icon-search"
@@ -101,10 +102,12 @@ init();
   flex-grow: 1;
 }
 .results {
+  max-height: minmax(30rem, 50vh);
   display: flex;
   flex-direction: column;
   gap: .5rem;
   width: 100%;
+  overflow: auto;
 }
 .result {
   display: flex;

@@ -1,16 +1,14 @@
 <script setup>
 import Multiselect from '@vueform/multiselect';
-import Slider from '@vueform/slider';
 import { reactive, watch } from 'vue';
 import Fuse from 'fuse.js';
 import Colours from './Colours.vue';
+import { useCollections } from '../stores/collections';
+
+const collections = useCollections();
 
 const prop = defineProps({
   cards: {
-    type: Array,
-    default: () => []
-  },
-  collections: {
     type: Array,
     default: () => []
   },
@@ -19,10 +17,6 @@ const prop = defineProps({
     default: () => {
       return {val: 'Price', dir: -1};
     }
-  },
-  db: {
-    type: Object,
-    default: () => {}
   },
   filters: {
     type: Object,
@@ -50,8 +44,8 @@ let filters = reactive({
     dir: 1,
   },
   group: false,
-  incCol: {},
-  excCol: {},
+  incCol: [],
+  excCol: [],
   ors: {},
   finish: null,
   border: null,
@@ -139,21 +133,18 @@ const filterCards = async (cards, _filters) => new Promise(async resolve => {
     });
   }
 
-  for (const col of Object.keys(_filters.incCol)) {
-    if (!_filters.incCol[col]) continue;
-    const otherCollection = await prop.db.collections.get({ name: col });
-    const ids = otherCollection.cards.map(c => c.oracle_id);
+  if(_filters.incCol.length > 0) {
+    const includeCards = await collections.getCards(_filters.incCol);
+    const incIds = includeCards.map(c => c.oracle_id);
     filtered = filtered.filter(card => {
-      return ids.includes(card.oracle_id);
+      return incIds.includes(card.oracle_id);
     });
   }
-
-  for (const col of Object.keys(_filters.excCol)) {
-    if (!_filters.excCol[col]) continue;
-    const otherCollection = await prop.db.collections.get({ name: col });
-    const ids = otherCollection.cards.map(c => c.oracle_id);
+  if(_filters.excCol.length > 0) {
+    const excludedCards = await collections.getCards(_filters.excCol);
+    const excIds = excludedCards.map(c => c.oracle_id);
     filtered = filtered.filter(card => {
-      return !ids.includes(card.oracle_id);
+      return !excIds.includes(card.oracle_id);
     });
   }
 
@@ -419,18 +410,18 @@ watch(filters, async () => {
 
   <div
     class="filter-group compare"
-    v-if="collections.length > 0"
+    v-if="collections.names.length > 0"
   >
     <div class="header">
       <h3>Compare</h3>
       <a
         href="#"
-        @click="() => {filters.incCol = {}; filters.excCol = {};}"
+        @click="() => {filters.incCol = []; filters.excCol = {};}"
       >X</a>
     </div>
     <div class="grid">
       <template
-        v-for="col in collections"
+        v-for="col in collections.names"
         :key="col"
       >
         <div>{{ col }}</div>
@@ -438,8 +429,8 @@ watch(filters, async () => {
           <input
             type="checkbox"
             :id="col + '-inc'"
-            v-model="filters.incCol[col]"
-            :value="false"
+            v-model="filters.incCol"
+            :value="col"
           >
           <label
             class="inc"
@@ -450,8 +441,8 @@ watch(filters, async () => {
           <input
             type="checkbox"
             :id="col + '-exc'"
-            v-model="filters.excCol[col]"
-            :value="false"
+            v-model="filters.excCol"
+            :value="col"
           >
           <label
             class="exc"

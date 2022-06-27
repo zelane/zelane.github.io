@@ -1,10 +1,10 @@
 <script setup>
 
 import { reactive, ref } from 'vue';
-import Multiselect from '@vueform/multiselect';
 import { useToast } from "vue-toastification";
+import { useCollections } from '../stores/collections';
 
-
+const collections = useCollections();
 const toast = useToast();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const ui = reactive({
@@ -12,7 +12,7 @@ const ui = reactive({
   upload: false,
 });
 
-const props = defineProps({ db: Object, collections: Array, setIds: Set });
+const props = defineProps({ setIds: Set });
 const emit = defineEmits(['change', 'delete', 'close']);
 
 const post = async (url = '', data = {}) => {
@@ -32,7 +32,8 @@ const downloadCollection = async (name, code) => {
     const resp = await fetch(backendUrl + '/collection?id=' + code);
     const json = await resp.json();
     toast(`${name} downloaded.`);
-    emit('change', name, json.data, code);
+    await collections.save(name, json.data, code);
+    emit('change', name);
     emit('close');
   }
   catch (error) {
@@ -46,7 +47,8 @@ const downloadCollection = async (name, code) => {
 const refreshCollection = async (name) => {
   const stid = toast(`Refreshing collection ${name}`);
   try {
-    const collection = await props.db.collections.get({ name: name });
+    const collection = await collections.get(name);
+    console.log(collection);
     if(!collection.syncCode) {
       return;
     }
@@ -54,7 +56,8 @@ const refreshCollection = async (name) => {
     const json = await resp.json();
     toast.dismiss(stid);
     toast(`${name} refreshed.`);
-    emit('change', name, json.data, collection.syncCode);
+    collections.save(name, json.data, collection.syncCode);
+    emit('change', name);
   }
   catch (error) {
     console.error(error);
@@ -68,7 +71,7 @@ const refreshCollection = async (name) => {
 const uploadCollection = async (name, force=false) => {
   const stid = toast(`Uploading ${name}`);
   try {
-    const collection = await props.db.collections.get({ name: name });
+    const collection = await collections.get(name);
     let data = {
       cards: collection.cards.map(c => {
         return {
@@ -85,9 +88,7 @@ const uploadCollection = async (name, force=false) => {
     }
     const resp = await post(backendUrl + '/collection', data);
     code = resp.data;
-    await props.db.collections.update(name, {
-      "syncCode": code
-    });
+    collections.saveCode(name, code);
     navigator.clipboard.writeText(code);
     toast.dismiss(stid);
     toast(`${name} uploaded. Code copied to clipboard`);
@@ -100,14 +101,21 @@ const uploadCollection = async (name, force=false) => {
 };
 
 const copySyncCode = async (name) => {
-  const collection = await props.db.collections.get({ name: name });
+  const collection = await collections.get(name);
   navigator.clipboard.writeText(collection.syncCode);
   toast(`${name} sync code copied to clipboard.`);
 };
 
 const newCollection = async (name) => {
-  emit('change', name.trim(), []);
+  collections.save(name.trim(), []);
+  emit('change', name.trim());
   emit('close');
+};
+
+const deleteCollection = async (name) => {
+  if(confirm(`Are you sure you want to delete ${name}`)) {
+    collections.delete(name);
+  }
 };
 
 </script>
@@ -124,11 +132,11 @@ const newCollection = async (name) => {
 
       <div
         class="collections"
-        v-if="props.collections.length > 0"
+        v-if="collections.names.length > 0"
       >
         <div
           class="collection"
-          v-for="col in props.collections"
+          v-for="col in collections.names"
           :key="col"
         >
           <div>{{ col }}</div>
@@ -150,7 +158,7 @@ const newCollection = async (name) => {
           />
           <a
             class="action"
-            @click="emit('delete', [col])"
+            @click="deleteCollection(col)"
           >-</a>
         </div>
       </div>

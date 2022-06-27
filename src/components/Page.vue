@@ -3,30 +3,28 @@ import { reactive, ref } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import Dexie from 'dexie';
 import Filters from './Filters.vue';
-import UploadView from './UploadView.vue';
-import { deepUnref } from 'vue-deepunref';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import CardParser from './CardParser.vue';
 import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import { useClipboard } from '../stores/clipboard';
+import { useCollections } from '../stores/collections';
+import CollectionsManager from './CollectionsManager.vue';
 
 
 const clipboard = useClipboard();
+const collections = useCollections();
+collections.init();
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const router = useRouter();
 const route = useRoute();
 
 const toast = useToast();
-const db = new Dexie('mtg');
-db.version(3).stores({
-  collections: '&name'
-});
 const info = reactive({ count: 0, total_value: 0 });
 
 const ui = reactive({
@@ -51,7 +49,7 @@ const precons = reactive({value: []});
 let loading = ref(false);
 let setLoading = ref(false);
 
-const cards = reactive({ collections: [], all: [], filtered: [], sort: {val: 'Price', dir: 1}, prints: [] });
+const cards = reactive({ all: [], filtered: [], sort: {val: 'Price', dir: 1}, prints: [] });
 
 const cachedGet = async (cache, url, force=false) => {
   // url = encodeURI(url);
@@ -74,36 +72,15 @@ const loadCollections = collections => {
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
 };
 
+const _loadCollections = async (names) => {
+  ui.collections = names;
+  cards.all = await collections.getCards(names);
+};
+
 const loadSync = async code => {
   const resp = await fetch(backendUrl + '/collection?id=' + code);
   const json = await resp.json();
   cards.all = json.data;
-};
-
-const _loadCollections = async (names) => {
-  let cardMap = new Map();
-  for(const name of names) {
-    let collection = await db.collections.get({ name: name });
-    if(collection) {
-      for(const card of collection.cards) {
-        if(card === undefined) {
-          continue;
-        }
-        const cardKey = card.id + card.finish;
-        if(cardMap.has(cardKey)) {
-          let ex = cardMap.get(cardKey);
-          ex.count = parseInt(ex.count) + parseInt(card.count);
-          ex.collections.push(collection.name);
-          cardMap.set(cardKey, ex);
-        }
-        else {
-          card.collections = [collection.name];
-          cardMap.set(cardKey, card);
-        }
-      }
-    }
-  }
-  cards.all = [...cardMap.values()];
 };
 
 const loadSet = (setId, force) => {
@@ -178,26 +155,9 @@ const _loadPrecon = async (name) => {
   cards.all = _cards.data;
 };
 
-const deleteCollections = async (names) => {
-  if(confirm(`Are you sure you want to delete ${names.join(', ')}?`)) {
-    names.map(async name => {
-      await db.collections.delete(name);
-      cards.collections.splice(cards.collections.indexOf(name), 1);
-      ui.collections.splice(ui.collections.indexOf(name), 1);
-    });
-  }
-  else {
-    return;
-  }
-};
-
 const deleteCard = async (card) => {
-  if(confirm(`Are you sure you want to delete ${card.name} from ${card.collections.join(', ')}`)) {
-    for(const colName of card.collections) {
-      const col = await db.collections.get({ name: colName });
-      const newCards = col.cards.filter(c => c.id !== card.id);
-      await db.collections.update(colName, {cards: newCards});
-    }
+  if(confirm(`Are you sure you want to delete ${card.name} from ${ui.collections.join(', ')}`)) {
+    await collections.deleteCard(ui.collections, card.id);
     _loadCollections(card.collections);
   };
 };
@@ -207,35 +167,6 @@ const filtersChanged = async (filteredCards, count, value) => {
   info.total_value = value;
   cards.filtered = filteredCards;
   loading.value = false;
-};
-
-const updateCollection = async (name, cardData, syncCode=undefined) => {
-  // await db.collections.put({ name: name, cards: cardData, syncCode: syncCode });
-  await db.collections.put({ name: name, cards: cardData });
-  if (!cards.collections.includes(name)) {
-    cards.collections.push(name);
-  }
-  cards.collections.sort();
-  ui.collections = [name];
-  _loadCollections([name]);
-};
-
-const addToSet = async (set, newCards) => {
-  let collection = await db.collections.get({ name: set });
-  for(const newCard of newCards) {
-    let existing = collection.cards.filter(card => card.id === newCard.id);
-    if(existing.length === 0) {
-      collection.cards.push({... deepUnref(newCard)});
-    }
-    else {
-      existing[0].count += newCard.count || 1;
-    }
-  }
-  await db.collections.put(collection);
-  if(ui.collections.includes(set)) {
-    cards.all = cards.all.concat(newCards);
-  }
-  toast(`${newCards.length} added to ${set}`);
 };
 
 const groupBySet = (cards) => {
@@ -332,14 +263,6 @@ const init = async () => {
     precons.value.push({label: k, options: v});
   };
 
-  let defaultCollections = [];
-  const collections = await db.collections.toCollection().primaryKeys();
-  if (collections.length !== 0) {
-    cards.collections = collections;
-    cards.collections.sort();
-    defaultCollections = [collections[0]];
-  };
-
   if(route.params.view && route.query) {
     await loadRoute(route.params.view, route.query);
   }
@@ -347,7 +270,7 @@ const init = async () => {
     ui.view = 'collection';
     // await loadRoute('collection', {q: defaultCollections});
     // ui.collections = defaultCollections;
-    loadCollections(defaultCollections);
+    loadCollections([collections.names[0]]);
   }
   return cache;
 };
@@ -416,7 +339,7 @@ const clip = card => {
           >
             <Multiselect
               v-model="ui.collections"
-              :options="cards.collections"
+              :options="collections.names"
               mode="tags"
               :searchable="true"
               @change="loadCollections"
@@ -497,8 +420,6 @@ const clip = card => {
       <Filters
         @change="filtersChanged"
         :cards="cards.all"
-        :collections="cards.collections"
-        :db="db"
         :sort="cards.sort"
         :filters="filters"
       />
@@ -508,13 +429,10 @@ const clip = card => {
       id="main"
       class="main"
     >
-      <UploadView
+      <CollectionsManager
         v-show="ui.upload"
-        @change="updateCollection"
+        @change="name => _loadCollections([name])"
         @close="ui.upload=false"
-        @delete="deleteCollections"
-        :db="db"
-        :collections="cards.collections"
         :set-ids="new Set(sets.keys())"
       />
 
@@ -572,7 +490,6 @@ const clip = card => {
         </span> -->
       </div>
 
-
       <div
         class="sidepanel"
         v-if="!ui.upload"
@@ -601,8 +518,7 @@ const clip = card => {
         >
           <span>
             <CardParser
-              @parsed="updateCollection"
-              :db="db"
+              @parsed="_loadCollections"
               :collections="ui.collections"
               :set-ids="new Set(sets.keys())"
             />
@@ -662,9 +578,7 @@ const clip = card => {
         </div>
         <ClipBoard
           v-show="ui.sidebar === 'clipboard'"
-          ref="clipboard"
           :cards="cards.filtered"
-          :collections="cards.collections"
         />
       </div>
 

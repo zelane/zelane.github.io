@@ -1,24 +1,37 @@
 <script setup>
-import { reactive, computed } from 'vue';
 import CardExporter from './CardExporter.vue';
 import MenuButton from './MenuButton.vue';
 import { useClipboard } from '../stores/clipboard';
+import { useCollections } from '../stores/collections';
+import { deepUnref } from 'vue-deepunref';
+import { useToast } from "vue-toastification";
 
 const clipboard = useClipboard();
+const collections = useCollections();
+const toast = useToast();
 
 const props = defineProps({
   cards: {
     type: Array,
     required: true,
   },
-  collections: {
-    type: Array,
-    required: true,
-  },
-
 });
 
-const emit = defineEmits(['addToSet']);
+const addToCollection = async (name, newCards) => {
+  let collection = await collections.get(name);
+
+  for(const newCard of newCards) {
+    let existing = collection.cards.filter(card => card.id === newCard.id);
+    if(existing.length === 0) {
+      collection.cards.push({... deepUnref(newCard)});
+    }
+    else {
+      existing[0].count += newCard.count || 1;
+    }
+  }
+  await collections.save(name, collection.cards, collection.syncCode);
+  toast(`${newCards.length} added to ${collection}`);
+};
 
 </script>
 
@@ -40,9 +53,9 @@ const emit = defineEmits(['addToSet']);
       <CardExporter :cards="clipboard.cards" />
       
       <MenuButton 
-        text="Add to set"
-        :actions="Object.fromEntries(props.collections.map(col => [col, col]))"
-        @click="col => addToSet(col, clipboard.cards.values())"
+        text="Add to collection"
+        :actions="Object.fromEntries(collections.names.map(col => [col, col]))"
+        @click="col => addToCollection(col, clipboard.cards.values())"
       />
 
       <button @click="clipboard.addMany(props.cards, true)">

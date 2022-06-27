@@ -5,12 +5,11 @@ import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
 import { useToast } from "vue-toastification";
 import CardSearch from './CardSearch.vue';
+import { useCollections } from '../stores/collections';
 
-const props = defineProps({ 
-  db: {
-    type: Object,
-    required: true
-  }, 
+const collections = useCollections();
+
+const props = defineProps({
   collections: {
     type: Array,
     required: true
@@ -211,9 +210,8 @@ const parseDSWeb = async (csv) => {
 };
 
 const updateCollection = async (name, cardList) => {
-  let cardData = [];
-  const collection = await props.db.collections.get({ name: name });
-  cardData = collection.cards;
+  let collection = await collections.get(name);
+
   for (const [key, card] of cardList.entries()) {
     let existing = collection.cards.filter(c => {
       if(c === undefined) {
@@ -235,13 +233,13 @@ const updateCollection = async (name, cardList) => {
     const newData = await fetchCardData(cardList);
     cardData = cardData.concat(newData);
   }
-  emit('parsed', name, cardData);
+  collections.save(name, collection.cards, collection.syncCode);
+  emit('parsed', props.collections);
 };
 
 const handleSearch = async (data) => {
-  console.log({... data});
   data.count = 1;
-  const collection = await props.db.collections.get({ name: upload.name });
+  const collection = await collections.get(upload.name);
   let existing = collection.cards.filter(c => {
     return c.id === data.id;
   });
@@ -251,7 +249,8 @@ const handleSearch = async (data) => {
   else {
     collection.cards.push(data);
   }
-  emit('parsed', upload.name, collection.cards);
+  collections.save(upload.name, collection.cards, collection.syncCode);
+  emit('parsed', props.collections);
 };
 
 const fetchCardData = async (cardList) => {
