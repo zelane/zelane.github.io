@@ -131,11 +131,11 @@ const deleteCollection = async (name) => {
 
       <div
         class="collections"
-        v-if="collections.names.length > 0"
+        v-if="collections.all.length > 0"
       >
         <div
           class="collection"
-          v-for="col in collections.names"
+          v-for="col in collections.all"
           :key="col"
         >
           <div>{{ col }}</div>

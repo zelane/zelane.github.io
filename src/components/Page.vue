@@ -1,66 +1,53 @@
 <script setup>
 import { reactive, ref, watch } from 'vue';
+import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
+import { useCollections } from '../stores/collections';
+import { useCardView } from '../stores/cards';
+import { useMeta } from '../stores/meta';
 import Multiselect from '@vueform/multiselect';
 import Filters from './Filters.vue';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import CardParser from './CardParser.vue';
 import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
-import { useCollections } from '../stores/collections';
 import CollectionsManager from './CollectionsManager.vue';
-import { useCardView } from '../stores/cards';
-import { useMeta } from '../stores/meta';
 import PrintsView from './PrintsView.vue';
-import { cachedGet } from '../utils/network';
-
 
 const collections = useCollections();
-const _cards = useCardView();
+const cards = useCardView();
 const meta = useMeta();
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const router = useRouter();
 const route = useRoute();
 
 const ui = reactive({
   mainView: 'cards',
-  upload: false, 
-  precon: false,
   sidebarShow: false,
   sidebar:"clipboard", 
   view: '',
   set: '',
   precons: '',
   zoom: 0,
-  cardView: 'card',
   showMenu: false,
 });
 let loading = ref(false);
 
 let to = null;
-watch(_cards.filters, async () => {
+watch(cards.filters, async () => {
   clearTimeout(to);
   to = setTimeout(async () => {
-    _cards.applyFilters();
-    // emit('change');
+    cards.applyFilters();
   }, 500);
 });
 
-watch(_cards.sort, () => {
-  _cards.applyFilters();
+watch(cards.sort, () => {
+  cards.applyFilters();
 });
 
 const loadCollections = collections => {
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
-};
-
-const loadSync = async code => {
-  const resp = await fetch(backendUrl + '/collection?id=' + code);
-  const json = await resp.json();
-  _cards.addMany(json.data);
 };
 
 const loadSet = (setId, force) => {
@@ -73,11 +60,6 @@ const loadSearch = async (query, unique='prints', force=false) => {
 
 const loadPrecon = (name) => {
   router.push({ path: '/precons', query: {q: name} });
-};
-
-const _loadPrecon = async (name) => {
-  const cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
-  _cards.addMany(cards.data);
 };
 
 const groupBySet = (cards) => {
@@ -115,7 +97,6 @@ const loadView = async item => {
 };
 
 const loadRoute = async (view, params) => {
-  // console.log("Loading route", view, params);
   if(view) {
     ui.view = view;
     if(Object.keys(params).length === 0) {
@@ -124,31 +105,28 @@ const loadRoute = async (view, params) => {
     }
     else if(view === 'collection') {
       if(params.code) {
-        loadSync(params.code);
+        await cards.loadSync(params.code);
       }
       else {
         ui.collections = decodeURIComponent(params.q).split("~");
-        await _cards.loadCollections(ui.collections);
+        await cards.loadCollections(ui.collections);
       }
     }
     else if(view === 'set') {
       ui.set = params.q;
-      await _cards.loadSet(ui.set, params.force);
+      await cards.loadSet(ui.set, params.force);
     }
     else if(view === 'precons') {
       ui.precons = params.q;
-      await _loadPrecon(params.q);
+      await cards.loadPrecon(params.q);
     }
     else if(view === 'search') {
-      await _cards.loadSearch(params.q, params.unique, params.force);
+      await cards.loadSearch(params.q, params.unique, params.force);
     }
   }
 };
 
-let getCache = null;
-
 const init = async () => {
-  getCache = await caches.open('cardDataCache');
   await collections.init();
   await meta.init();
   if(route.params.view && route.query) {
@@ -156,9 +134,7 @@ const init = async () => {
   }
   else {
     ui.view = 'collection';
-    // await loadRoute('collection', {q: defaultCollections});
-    // ui.collections = defaultCollections;
-    loadCollections([collections.names[0]]);
+    loadCollections([collections.all[0]]);
   }
 };
 
@@ -206,7 +182,6 @@ const touchEnd = (e) => {
         <span class="icon icon-keyboard_arrow_up" />
       </div>
       <div class="filter-group cards">
-        <!-- <h3>Cards</h3> -->
         <div class="selector tabs">
           <a
             v-for="name in ['collection', 'set', 'precons', 'search']"
@@ -222,7 +197,7 @@ const touchEnd = (e) => {
           >
             <Multiselect
               v-model="collections.open"
-              :options="collections.names"
+              :options="collections.all"
               mode="tags"
               :searchable="true"
               @change="loadCollections"
@@ -230,7 +205,7 @@ const touchEnd = (e) => {
             />
             <button
               class="small add icon icon-settings"
-              @click="() =>{ ui.upload = !ui.upload; ui.showMenu = false }"
+              @click="() =>{ ui.mainView = 'upload' }"
             />
           </div>
           <div
@@ -294,7 +269,7 @@ const touchEnd = (e) => {
             </Multiselect>
             <button
               class="small icon icon-plus"
-              @click="ui.precon=!ui.precon"
+              @click="ui.mainView = 'precon'"
             />
           </div>
         </div>
@@ -308,26 +283,26 @@ const touchEnd = (e) => {
       class="main"
     >
       <CollectionsManager
-        v-show="ui.upload"
-        @change="name => _cards.loadCollections([name])"
-        @close="ui.upload=false"
+        v-show="ui.mainView === 'upload'"
+        @change="name => cards.loadCollections([name])"
+        @close="ui.mainView = 'cards'"
       />
 
       <Precon
-        v-show="ui.precon"
+        v-show="ui.mainView === 'precon'"
+        @close="ui.mainView = 'cards'"
       />
 
       <div
         class="info-bar"
-        v-if="!ui.upload"
+        v-if="ui.mainView === 'cards' || ui.mainView === 'list'"
       >
-        <span>Count: {{ _cards.count }}</span>
-        <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(_cards.total_value) }}</span>
-
+        <span>Count: {{ cards.count }}</span>
+        <span>Value: {{ cards.value }}</span>
 
         <span class="sort">
           <Multiselect
-            v-model="_cards.sort.val"
+            v-model="cards.sort.val"
             :options="['Mana', 'Type', 'Price', 'Count', 'Released']"
             mode="single"
             :can-clear="false"
@@ -335,13 +310,13 @@ const touchEnd = (e) => {
           <div class="dir">
             <div
               class="up icon icon-keyboard_arrow_up"
-              :class="{selected: _cards.sort.dir == -1}"
-              @click="_cards.sort.dir = -1"
+              :class="{selected: cards.sort.dir == -1}"
+              @click="cards.sort.dir = -1"
             />
             <div
               class="up icon icon-keyboard_arrow_down"
-              @click="_cards.sort.dir = 1"
-              :class="{selected: _cards.sort.dir == 1}"
+              @click="cards.sort.dir = 1"
+              :class="{selected: cards.sort.dir == 1}"
             />
           </div>
         </span>
@@ -349,20 +324,19 @@ const touchEnd = (e) => {
         <span class="view">
           <span
             class="cardView icon icon-copy"
-            @click="ui.cardView = 'card'"
-            :class="{selected: ui.cardView === 'card'}"
+            @click="ui.mainView = 'cards'"
+            :class="{selected: ui.mainView === 'cards'}"
           />
           <span
             class="cardView icon icon-list"
-            @click="ui.cardView = 'list'"
-            :class="{selected: ui.cardView === 'list'}"
+            @click="ui.mainView = 'list'"
+            :class="{selected: ui.mainView === 'list'}"
           />
         </span>
       </div>
 
       <div
         class="sidepanel"
-        v-if="!ui.upload"
         :class="{'show': ui.sidebarShow}"
       >
         <div
@@ -388,7 +362,7 @@ const touchEnd = (e) => {
         >
           <span>
             <CardParser
-              @parsed="_cards.loadCollections"
+              @parsed="cards.loadCollections"
             />
             <CardExporter />
           </span>
@@ -449,13 +423,13 @@ const touchEnd = (e) => {
         @click="ui.sidebarShow = false"
       >
         <CardView
-          :store="_cards"
+          :store="cards"
           :zoom="ui.zoom"
-          v-if="ui.upload === false && ui.cardView === 'card'"
+          v-if="ui.mainView === 'cards'"
         />
         <CardList 
-          :cards="_cards.filtered"
-          v-if="ui.upload === false && ui.cardView === 'list'"
+          :cards="cards.filtered"
+          v-if="ui.mainView === 'list'"
         />
       </div>
     </div>

@@ -1,11 +1,10 @@
 <script setup>
 import CardExporter from './CardExporter.vue';
 import MenuButton from './MenuButton.vue';
-import { useClipboard } from '../stores/clipboard';
 import { useCollections } from '../stores/collections';
 import { deepUnref } from 'vue-deepunref';
 import { useToast } from "vue-toastification";
-import { useCardView } from '../stores/cards';
+import { useCardView, useClipboard } from '../stores/cards';
 
 const clipboard = useClipboard();
 const collections = useCollections();
@@ -25,7 +24,7 @@ const addToCollection = async (name, newCards) => {
     }
   }
   await collections.save(name, collection.cards, collection.syncCode);
-  toast(`${newCards.length} added to ${collection}`);
+  toast(`${newCards.length} added to ${name}`);
 };
 
 </script>
@@ -34,7 +33,7 @@ const addToCollection = async (name, newCards) => {
   <div
     class="clipboard"
   >
-    <h3>Clipboard ({{ clipboard.count }}) {{ clipboard.price }}</h3>
+    <h3>Clipboard ({{ clipboard.count }}) {{ clipboard.value }}</h3>
     <div class="clip-cards">
       <div
         class="clip-card"
@@ -49,7 +48,7 @@ const addToCollection = async (name, newCards) => {
       
       <MenuButton 
         text="Add to collection"
-        :actions="Object.fromEntries(collections.names.map(col => [col, col]))"
+        :actions="Object.fromEntries(collections.all.map(col => [col, col]))"
         @click="col => addToCollection(col, clipboard.cards.values())"
       />
 

@@ -15,6 +15,8 @@ const values = reactive({
   cards: '',
 });
 
+const emit = defineEmits(['close']);
+
 const post = async (url = '', data = {}) => {
   const response = await fetch(url, {
     method: 'POST',
@@ -50,6 +52,12 @@ const uploadPrecon = async () => {
 <template>
   <div class="precon">
     <div class="flex">
+      <button
+        class="small close"
+        @click="emit('close')"
+      >
+        <span>+</span>
+      </button>
       <div class="form">
         <label for="name">Name</label>
         <input
@@ -83,6 +91,13 @@ const uploadPrecon = async () => {
 </template>
 
 <style scoped>
+.close {
+  align-self: flex-end;
+}
+.close span {
+  display: block;
+  transform: rotate(45deg);
+}
 .precon {
   position: absolute;
   padding: 1rem;

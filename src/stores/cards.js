@@ -4,8 +4,8 @@ import { useCollections } from './collections';
 import { cachedGet } from '../utils/network';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
 const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
+const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' });
 
 const dynamicSort = (sort) => (a, b) => {
   const dir = sort.dir;
@@ -42,8 +42,6 @@ const config = {
     return {
       cards: [],
       filtered: [],
-      count: 0,
-      value: 0,
       keywords: [],
       sets: [],
       tags: new Set(),
@@ -75,11 +73,17 @@ const config = {
     };
   },
   getters: {
-    // count(state) {
-    //   return [...state.filtered.values()].reduce((total, card) => {
-    //     return total += card.count;
-    //   }, 0);
-    // },
+    count(state) {
+      return state.filtered.reduce((total, card) => {
+        return total += parseInt(card.count || 1);
+      }, 0);
+    },
+    value(state) {
+      const value = parseInt(state.filtered.reduce((total, card) => {
+        return total += card.price * (card.count || 1);
+      }, 0));
+      return formatter.format(value);
+    },
     sorted(state) {
       return state.cards.sort(dynamicSort(state.sort));
     }
@@ -122,8 +126,6 @@ const config = {
         });
       }
 
-      let count = 0;
-      let total_value = 0;
       let distinctNames = new Set();
       filtered = filtered.filter((card) => {
         // return card.border_color == 'borderless';
@@ -186,17 +188,12 @@ const config = {
         const hasBorder = _filters.border ? card.border_color == _filters.border : true;
         if (!hasBorder) return false;
 
-        total_value += card.price * (card.count || 1);
-        count += parseInt(card.count || 1);
         return true;
       });
 
-      total_value = parseInt(total_value);
       // count = filtered.length;
       // clearTimeout(to);
       this.filtered = filtered;
-      this.count = count;
-      this.value = total_value;
       this.loading = false;
     },
     delete(cardId) {
@@ -309,6 +306,16 @@ const config = {
         this.addMany(colCards);
       }
       this.loading = false;
+    },
+    async loadPrecon(name) {
+      const cache = await caches.open('cardDataCache');
+      const cards = await cachedGet(cache, `${backendUrl}/precon?name=${name}`, true);
+      this.addMany(cards.data);
+    },
+    async loadSync(code) {
+      const resp = await fetch(backendUrl + '/collection?id=' + code);
+      const json = await resp.json();
+      this.addMany(json.data);
     }
   },
 };
@@ -316,9 +323,11 @@ const config = {
 export const useCardView = defineStore('cardView', config);
 export const usePrintsView = defineStore('printsView', config);
 export const useSearchView = defineStore('searchView', config);
+export const useClipboard = defineStore('clipboardView', config);
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCardView, import.meta.hot));
   import.meta.hot.accept(acceptHMRUpdate(usePrintsView, import.meta.hot));
   import.meta.hot.accept(acceptHMRUpdate(useSearchView, import.meta.hot));
+  import.meta.hot.accept(acceptHMRUpdate(useClipboard, import.meta.hot));
 }

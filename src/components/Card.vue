@@ -1,9 +1,8 @@
 <script setup>
 import Prices from './Prices.vue';
-import { useClipboard } from '../stores/clipboard';
 import { useCollections } from '../stores/collections';
 import { useCardView } from '../stores/cards';
-import { usePrintsView } from '../stores/cards';
+import { usePrintsView, useClipboard } from '../stores/cards';
 
 const clipboard = useClipboard();
 const cardView = useCardView();
@@ -32,7 +31,6 @@ const deleteCard = async (card) => {
   if(confirm(`Are you sure you want to delete ${card.name} from ${collections.open.join(', ')}`)) {
     await collections.deleteCard(collections.open, card.id);
     cardView.delete(card.id);
-    // _loadCollections(card.collections);
   };
 };
 

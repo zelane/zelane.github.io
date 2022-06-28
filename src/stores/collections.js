@@ -14,7 +14,7 @@ export const useCollections = defineStore('collections', {
     };
   },
   getters: {
-    names(state) {
+    all(state) {
       return state.collections;
     }
   },
