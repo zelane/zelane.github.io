@@ -30,9 +30,8 @@ const ui = reactive({
   set: '',
   precons: '',
   zoom: 0,
-  showMenu: false,
+  showMenu: false
 });
-let loading = ref(false);
 
 let to = null;
 watch(cards.filters, async () => {
@@ -201,7 +200,6 @@ const touchEnd = (e) => {
               mode="tags"
               :searchable="true"
               @change="loadCollections"
-              @loading="loading.value = true"
             />
             <button
               class="small add icon icon-settings"
@@ -220,7 +218,6 @@ const touchEnd = (e) => {
               value-prop="code"
               mode="single"
               @select="x => loadSet(x)"
-              @loading="loading.value = true"
             />
             <button
               class="small icon icon-loop"
@@ -364,7 +361,7 @@ const touchEnd = (e) => {
             <CardParser
               @parsed="cards.loadCollections"
             />
-            <CardExporter />
+            <CardExporter :cards="cards.filtered" />
           </span>
         </div>
 

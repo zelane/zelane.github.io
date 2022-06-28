@@ -15,6 +15,7 @@ prints.$onAction(() => {
   <CardView
     :store="prints"
     :zoom="1"
+    :actions="['clip']"
   />
 </template>
 

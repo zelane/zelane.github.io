@@ -40,7 +40,7 @@ const dynamicSort = (sort) => (a, b) => {
 const config = {
   state: () => {
     return {
-      cards: [],
+      cards: new Map(),
       filtered: [],
       keywords: [],
       sets: [],
@@ -85,7 +85,18 @@ const config = {
       return formatter.format(value);
     },
     sorted(state) {
-      return state.cards.sort(dynamicSort(state.sort));
+      return [... state.cards.values()].sort(dynamicSort(state.sort));
+    },
+    grouped(state) {
+      let grouped = new Map();
+      for (const card of state.cards.values()) {
+        let existing = grouped.get(card.name);
+        let price = card.price > 0 ? card.price : Infinity;
+        if (!existing || existing.price > price) {
+          grouped.set(card.name, card);
+        }
+      }
+      return [... grouped.values()].sort(dynamicSort(state.sort));
     }
   },
   actions: {
@@ -93,11 +104,8 @@ const config = {
       const collections = useCollections();
       let _filters = this.filters;
       // let to = setTimeout(() => this.loading = true, 300);
-      let filtered = this.sorted;
+      let filtered = _filters.group ? this.grouped : this.sorted;
 
-      if (_filters.group) {
-        filtered = filtered.reverse();
-      }
       if (_filters.cardText && _filters.cardText !== '') {
         const fuse = new Fuse(filtered, {
           ignoreLocation: true,
@@ -126,18 +134,12 @@ const config = {
         });
       }
 
-      let distinctNames = new Set();
       filtered = filtered.filter((card) => {
         // return card.border_color == 'borderless';
         // if(card.border_color === 'borderless' || card.full_art === true) return false;
         // return card.frame == '2003';
         // return card.full_art == true;
-        if (_filters.group === true && distinctNames.has(card.name)) {
-          return false;
-        }
-        else if (card.price != 0) {
-          distinctNames.add(card.name);
-        }
+
         if (_filters.dupesOnly === true && card.count === 1) {
           return false;
         }
@@ -196,16 +198,22 @@ const config = {
       this.filtered = filtered;
       this.loading = false;
     },
-    delete(cardId) {
-      this.cards = this.cards.filter(c => c.id !== cardId);
-      this.filtered = this.cards.filter(c => c.id !== cardId);
+    delete(card) {
+      this.cards.delete(card.id + card.finish);
+      this.filtered = this.filtered.filter(c => c.id !== card.id || c.finish !== card.finish);
     },
     add(card) {
-      this.cards.push(card);
-      this.filtered.push(card);
+      const existing = this.cards.get(card.id + card.finish);
+      if (existing) {
+        existing.count += card.count;
+      }
+      else {
+        this.cards.set(card.id + card.finish, {... card});
+      }
+      this.filtered.push({ ...card });
     },
     addMany(cards) {
-      this.cards = [];
+      this.cards.clear();
       this.filtered = [];
       const _keywords = new Set();
       const _sets = [];
@@ -297,9 +305,9 @@ const config = {
       this.loading = true;
       const collections = useCollections();
       collections.open = names;
-      let colCards = await collections.getCards(names);
+      let colCards = await collections.load(names);
       if (names.length === 0) {
-        this.cards = [];
+        this.cards.empty();
         this.filtered = [];
       }
       else {

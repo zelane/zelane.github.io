@@ -40,14 +40,14 @@ const addToCollection = async (name, newCards) => {
         v-for="card in clipboard.cards.values()"
         :key="'clip-' + card.name"
       >
-        <p>{{ card.count }}x {{ card.name }} ({{ card.set }})</p> 
+        <p>{{ card.count }}x {{ card.name }} ({{ card.set }}) {{ card.collector_number }}</p> 
       </div>
     </div>
     <div class="buttons">
-      <CardExporter :cards="clipboard.cards" />
+      <CardExporter :cards="[... clipboard.cards.values()]" />
       
       <MenuButton 
-        text="Add to collection"
+        text="Add to"
         :actions="Object.fromEntries(collections.all.map(col => [col, col]))"
         @click="col => addToCollection(col, clipboard.cards.values())"
       />

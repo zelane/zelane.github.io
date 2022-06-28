@@ -238,7 +238,7 @@ const handleSearch = async (data) => {
   data.count = 1;
   const collection = await collections.get(upload.name);
   let existing = collection.cards.filter(c => {
-    return c.id === data.id;
+    return c.id === data.id && c.finish === 'nonfoil';
   });
   if (existing.length > 0) {
     existing[0].count += 1;

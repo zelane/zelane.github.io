@@ -37,6 +37,7 @@ const props = defineProps({
     >
       <Card 
         :card="card"
+        :actions="props.actions"
       />
     </div>
   </div>

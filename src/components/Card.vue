@@ -19,7 +19,6 @@ const props = defineProps({
     default: () => ['clip', 'delete', 'prints']
   }
 });
-const emit = defineEmits(['clip', 'viewPrints', 'delete']);
 
 const markings = {
   'nonfoil': '',
@@ -29,8 +28,8 @@ const markings = {
 
 const deleteCard = async (card) => {
   if(confirm(`Are you sure you want to delete ${card.name} from ${collections.open.join(', ')}`)) {
-    await collections.deleteCard(collections.open, card.id);
-    cardView.delete(card.id);
+    await collections.deleteCard(collections.open, card);
+    cardView.delete(card);
   };
 };
 
@@ -72,11 +71,13 @@ const deleteCard = async (card) => {
           title="View all prints"
         />
         <button
+          v-if="props.actions.includes('clip')"
           class="small clip icon icon-add"
           @click.stop="clipboard.add(card)"
           title="Add to clipboard"
         />
         <button
+          v-if="props.actions.includes('delete')"
           class="small clip icon icon-delete"
           @click.stop="deleteCard(card)"
           title="Delete"

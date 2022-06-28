@@ -130,7 +130,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
       <h3>Compare</h3>
       <a
         href="#"
-        @click="() => {cardView.filters.incCol = []; cardView.filters.excCol = {};}"
+        @click="() => {cardView.filters.incCol = []; cardView.filters.excCol = [];}"
       >X</a>
     </div>
     <div class="grid">

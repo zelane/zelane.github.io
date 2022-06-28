@@ -30,7 +30,7 @@ const emit = defineEmits(['selected']);
   </div>
   <div class="results">
     <div
-      v-for="card in search.cards"
+      v-for="card in search.cards.values()"
       :key="card.name"
       class="result"
     >

@@ -26,6 +26,7 @@ export const useCollections = defineStore('collections', {
     async delete(name) {
       await db.collections.delete(name);
       this.collections.splice(this.collections.indexOf(name), 1);
+      this.open.splice(this.open.indexOf(name), 1);
     },
     async save(name, cards, syncCode=null) {
       if(syncCode !== null) {
@@ -45,18 +46,21 @@ export const useCollections = defineStore('collections', {
         "syncCode": code
       });
     },
-    async deleteCard(collectionNames, cardId) {
+    async deleteCard(collectionNames, card) {
       for (const colName of collectionNames) {
         const col = await db.collections.get({ name: colName });
-        const newCards = col.cards.filter(c => c.id !== cardId);
+        const newCards = col.cards.filter(c => c.id !== card.id || c.finish !== card.finish);
         await db.collections.update(colName, { cards: newCards });
       }
     },
     async get(name) {
       return await db.collections.get({ name: name });
     },
-    async getCards(names) {
+    async load(names) {
       this.open = names;
+      return await this.getCards(names);
+    },
+    async getCards(names) {
       let cardMap = new Map();
       for (const name of names) {
         let collection = await db.collections.get({ name: name });
