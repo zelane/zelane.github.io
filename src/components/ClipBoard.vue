@@ -5,17 +5,12 @@ import { useClipboard } from '../stores/clipboard';
 import { useCollections } from '../stores/collections';
 import { deepUnref } from 'vue-deepunref';
 import { useToast } from "vue-toastification";
+import { useCardView } from '../stores/cards';
 
 const clipboard = useClipboard();
 const collections = useCollections();
+const cards = useCardView();
 const toast = useToast();
-
-const props = defineProps({
-  cards: {
-    type: Array,
-    required: true,
-  },
-});
 
 const addToCollection = async (name, newCards) => {
   let collection = await collections.get(name);
@@ -58,7 +53,7 @@ const addToCollection = async (name, newCards) => {
         @click="col => addToCollection(col, clipboard.cards.values())"
       />
 
-      <button @click="clipboard.addMany(props.cards, true)">
+      <button @click="clipboard.addMany(cards.filtered, true)">
         Clip All
       </button>
       <button @click="clipboard.$reset()">

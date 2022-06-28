@@ -1,149 +1,74 @@
 <script setup>
-import { reactive, ref } from 'vue';
+import { reactive, ref, watch } from 'vue';
 import Multiselect from '@vueform/multiselect';
-import Dexie from 'dexie';
 import Filters from './Filters.vue';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-import { useToast } from "vue-toastification";
 import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import CardParser from './CardParser.vue';
 import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
-import { useClipboard } from '../stores/clipboard';
 import { useCollections } from '../stores/collections';
 import CollectionsManager from './CollectionsManager.vue';
+import { useCardView } from '../stores/cards';
+import { useMeta } from '../stores/meta';
+import PrintsView from './PrintsView.vue';
+import { cachedGet } from '../utils/network';
 
 
-const clipboard = useClipboard();
 const collections = useCollections();
-collections.init();
+const _cards = useCardView();
+const meta = useMeta();
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const router = useRouter();
 const route = useRoute();
 
-const toast = useToast();
-const info = reactive({ count: 0, total_value: 0 });
-
 const ui = reactive({
+  mainView: 'cards',
   upload: false, 
   precon: false,
-  prints: false, 
-  sidebarShow: false, 
+  sidebarShow: false,
   sidebar:"clipboard", 
-  menu: false, 
-  random: {},
   view: '',
   set: '',
   precons: '',
-  collections: [],
   zoom: 0,
   cardView: 'card',
   showMenu: false,
 });
-const filters = reactive({sets: []});
-const sets = new Map();
-const precons = reactive({value: []});
 let loading = ref(false);
-let setLoading = ref(false);
 
-const cards = reactive({ all: [], filtered: [], sort: {val: 'Price', dir: 1}, prints: [] });
+let to = null;
+watch(_cards.filters, async () => {
+  clearTimeout(to);
+  to = setTimeout(async () => {
+    _cards.applyFilters();
+    // emit('change');
+  }, 500);
+});
 
-const cachedGet = async (cache, url, force=false) => {
-  // url = encodeURI(url);
-  const request = new Request(url, {
-    'cache': force === true ? 'reload' : 'default'
-  });
-  if(force === true) {
-    await cache.delete(request);
-  }
-  let response = await cache.match(request);
-  if (!response) {
-    await cache.add(request);
-    response = await cache.match(request);
-  }
-  const json = await response.json();
-  return json;
-};
+watch(_cards.sort, () => {
+  _cards.applyFilters();
+});
 
 const loadCollections = collections => {
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
 };
 
-const _loadCollections = async (names) => {
-  ui.collections = names;
-  cards.all = await collections.getCards(names);
-};
-
 const loadSync = async code => {
   const resp = await fetch(backendUrl + '/collection?id=' + code);
   const json = await resp.json();
-  cards.all = json.data;
+  _cards.addMany(json.data);
 };
 
 const loadSet = (setId, force) => {
-  router.push({ path: '/set', query: {q: setId, force: force} });
-};
-
-const _loadSet = async (setId, force=false) => {
-  // await _loadSearch('e:' + setId, 'prints', force);
-  let json = await cachedGet(getCache, `${backendUrl}/set/?set=` + setId, true);
-  cards.all = json.data;
+  router.push({ path: '/set', query: {q: setId, force: true} });
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
   router.push({ path: '/search', query: {q: query, unique: unique, force: force} });
-};
-
-const _loadSearch = async (query, unique='prints', force=false) => {
-  let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
-    q: `${query} -border:silver -is:digital`,
-    unique: unique
-  });
-  let _cards = [];
-  loading.value = true;
-  try {
-    while (true) {
-      let json = await cachedGet(getCache, url, force);
-      _cards = _cards.concat(json.data);
-      if (!json.has_more) break;
-      url = json.next_page;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    cards.all = _cards;
-  }
-  finally {
-    loading.value = false;
-  }
-};
-
-const loadPrints = async (cardName, unique='prints') => {
-  let url = 'https://api.scryfall.com/cards/search?' + new URLSearchParams({
-    q: `!"${cardName}" -border:silver -is:digital`,
-    unique: unique
-  });
-  let _cards = [];
-  ui.sidebar = 'prints';
-  ui.sidebarShow = true;
-  setLoading.value = true;
-  try {
-    while (true) {
-      let json = await cachedGet(getCache, url);
-      _cards = _cards.concat(json.data);
-      if (!json.has_more) break;
-      url = json.next_page;
-      await new Promise((r) => setTimeout(r, 100));
-    }
-    _cards.forEach(card => {
-      card.price = parseFloat(card.prices.eur || parseFloat(card.prices.usd) * 0.9 || 0);
-    });
-    cards.prints = _cards.sort((a,b) => a.price < b.price ? 1 : -1);
-  }
-  finally {
-    setLoading.value = false;
-  }
 };
 
 const loadPrecon = (name) => {
@@ -151,22 +76,8 @@ const loadPrecon = (name) => {
 };
 
 const _loadPrecon = async (name) => {
-  const _cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
-  cards.all = _cards.data;
-};
-
-const deleteCard = async (card) => {
-  if(confirm(`Are you sure you want to delete ${card.name} from ${ui.collections.join(', ')}`)) {
-    await collections.deleteCard(ui.collections, card.id);
-    _loadCollections(card.collections);
-  };
-};
-
-const filtersChanged = async (filteredCards, count, value) => {
-  info.count = count;
-  info.total_value = value;
-  cards.filtered = filteredCards;
-  loading.value = false;
+  const cards = await cachedGet(getCache, `${backendUrl}/precon?name=${name}`, true);
+  _cards.addMany(cards.data);
 };
 
 const groupBySet = (cards) => {
@@ -217,20 +128,19 @@ const loadRoute = async (view, params) => {
       }
       else {
         ui.collections = decodeURIComponent(params.q).split("~");
-        await _loadCollections(ui.collections);
+        await _cards.loadCollections(ui.collections);
       }
     }
     else if(view === 'set') {
-      console.log(params.force);
       ui.set = params.q;
-      await _loadSet(ui.set, params.force);
+      await _cards.loadSet(ui.set, params.force);
     }
     else if(view === 'precons') {
       ui.precons = params.q;
       await _loadPrecon(params.q);
     }
     else if(view === 'search') {
-      await _loadSearch(params.q, params.unique, params.force);
+      await _cards.loadSearch(params.q, params.unique, params.force);
     }
   }
 };
@@ -238,31 +148,9 @@ const loadRoute = async (view, params) => {
 let getCache = null;
 
 const init = async () => {
-  const cache = await caches.open('cardDataCache');
-  getCache = cache;
-  let as = await cachedGet(cache, 'https://api.scryfall.com/sets', true);
-  as.data.forEach(set => {
-    if(set.digital) return;
-    sets.set(set.code, set);
-  });
-
-  let pcs = await cachedGet(cache, `${backendUrl}/precons`, true);
-  pcs.data.sort((a,b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
-  let groups = {};
-  for(const pc of pcs.data) {
-    let set = sets.get(pc.set).name;
-    if(groups[set]) {
-      groups[set].push(pc);
-    }
-    else {
-      groups[set] = [pc];
-    }
-  }
-  precons.value = [];
-  for(const [k, v] of Object.entries(groups)) {
-    precons.value.push({label: k, options: v});
-  };
-
+  getCache = await caches.open('cardDataCache');
+  await collections.init();
+  await meta.init();
   if(route.params.view && route.query) {
     await loadRoute(route.params.view, route.query);
   }
@@ -272,7 +160,6 @@ const init = async () => {
     // ui.collections = defaultCollections;
     loadCollections([collections.names[0]]);
   }
-  return cache;
 };
 
 init();
@@ -297,10 +184,6 @@ const touchEnd = (e) => {
     sidebar.value.scrollTop = 0;
     ui.showMenu = true;
   }
-};
-
-const clip = card => {
-  clipboard.add(card);
 };
 
 </script>
@@ -338,7 +221,7 @@ const clip = card => {
             v-if="ui.view === 'collection'"
           >
             <Multiselect
-              v-model="ui.collections"
+              v-model="collections.open"
               :options="collections.names"
               mode="tags"
               :searchable="true"
@@ -356,7 +239,7 @@ const clip = card => {
           >
             <Multiselect
               v-model="ui.set"
-              :options="[...sets.values()]"
+              :options="meta.sets"
               :searchable="true"
               label="name"
               value-prop="code"
@@ -392,7 +275,7 @@ const clip = card => {
               v-model="ui.precons"
               type="single"
               :searchable="true"
-              :options="precons.value"
+              :options="meta.precons"
               :groups="true"
               label="name"
               value-prop="name"
@@ -417,12 +300,7 @@ const clip = card => {
         </div>
       </div>
       
-      <Filters
-        @change="filtersChanged"
-        :cards="cards.all"
-        :sort="cards.sort"
-        :filters="filters"
-      />
+      <Filters />
     </div>
 
     <div
@@ -431,9 +309,8 @@ const clip = card => {
     >
       <CollectionsManager
         v-show="ui.upload"
-        @change="name => _loadCollections([name])"
+        @change="name => _cards.loadCollections([name])"
         @close="ui.upload=false"
-        :set-ids="new Set(sets.keys())"
       />
 
       <Precon
@@ -444,13 +321,13 @@ const clip = card => {
         class="info-bar"
         v-if="!ui.upload"
       >
-        <span>Count: {{ info.count }}</span>
-        <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(info.total_value) }}</span>
+        <span>Count: {{ _cards.count }}</span>
+        <span>Value: {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(_cards.total_value) }}</span>
 
 
         <span class="sort">
           <Multiselect
-            v-model="cards.sort.val"
+            v-model="_cards.sort.val"
             :options="['Mana', 'Type', 'Price', 'Count', 'Released']"
             mode="single"
             :can-clear="false"
@@ -458,13 +335,13 @@ const clip = card => {
           <div class="dir">
             <div
               class="up icon icon-keyboard_arrow_up"
-              :class="{selected: cards.sort.dir == -1}"
-              @click="cards.sort.dir = -1"
+              :class="{selected: _cards.sort.dir == -1}"
+              @click="_cards.sort.dir = -1"
             />
             <div
               class="up icon icon-keyboard_arrow_down"
-              @click="cards.sort.dir = 1"
-              :class="{selected: cards.sort.dir == 1}"
+              @click="_cards.sort.dir = 1"
+              :class="{selected: _cards.sort.dir == 1}"
             />
           </div>
         </span>
@@ -481,13 +358,6 @@ const clip = card => {
             :class="{selected: ui.cardView === 'list'}"
           />
         </span>
-        <!-- <span>
-          <Slider
-            :min="-5"
-            :max="5"
-            v-model="info.zoom"
-          />
-        </span> -->
       </div>
 
       <div
@@ -518,11 +388,9 @@ const clip = card => {
         >
           <span>
             <CardParser
-              @parsed="_loadCollections"
-              :collections="ui.collections"
-              :set-ids="new Set(sets.keys())"
+              @parsed="_cards.loadCollections"
             />
-            <CardExporter :cards="cards.all" />
+            <CardExporter />
           </span>
         </div>
 
@@ -540,21 +408,17 @@ const clip = card => {
             >
           </span>
         </div>
-
+        
         <div
           class="prints"
           v-show="ui.sidebar === 'prints'"
         >
-          <h3>Prints</h3>
-          <CardView
-            :cards="cards.prints"
-            :loading="setLoading"
-            :zoom="1"
-            @clip="card => clip(card)"
+          <PrintsView
+            @changed="() => {ui.sidebar = 'prints'; ui.sidebarShow = true}"
           />
         </div>
 
-        <div
+        <!-- <div
           class="info"
           v-if="ui.sidebar === 'info'"
         >
@@ -575,10 +439,9 @@ const clip = card => {
               <span>{{ count }}</span> 
             </div>
           </div>
-        </div>
+        </div> -->
         <ClipBoard
           v-show="ui.sidebar === 'clipboard'"
-          :cards="cards.filtered"
         />
       </div>
 
@@ -586,16 +449,12 @@ const clip = card => {
         @click="ui.sidebarShow = false"
       >
         <CardView
-          :cards="cards.filtered"
+          :store="_cards"
           :zoom="ui.zoom"
-          :loading="loading"
-          @clip="card => clip(card)"
-          @view-prints="loadPrints"
-          @delete="deleteCard"
           v-if="ui.upload === false && ui.cardView === 'card'"
         />
         <CardList 
-          :cards="cards.filtered"
+          :cards="_cards.filtered"
           v-if="ui.upload === false && ui.cardView === 'list'"
         />
       </div>

@@ -1,5 +1,14 @@
 <script setup>
 import Prices from './Prices.vue';
+import { useClipboard } from '../stores/clipboard';
+import { useCollections } from '../stores/collections';
+import { useCardView } from '../stores/cards';
+import { usePrintsView } from '../stores/cards';
+
+const clipboard = useClipboard();
+const cardView = useCardView();
+const collections = useCollections();
+const prints = usePrintsView();
 
 const props = defineProps({
   card: {
@@ -18,6 +27,15 @@ const markings = {
   'etched': '#',
   'foil': '☆'
 };
+
+const deleteCard = async (card) => {
+  if(confirm(`Are you sure you want to delete ${card.name} from ${collections.open.join(', ')}`)) {
+    await collections.deleteCard(collections.open, card.id);
+    cardView.delete(card.id);
+    // _loadCollections(card.collections);
+  };
+};
+
 </script>
 
 <template>
@@ -52,23 +70,23 @@ const markings = {
         <button
           v-if="props.actions.includes('prints')"
           class="small prints icon icon-prints"
-          @click.stop="emit('viewPrints', props.card.name);"
+          @click.stop="prints.loadPrints(props.card.name);"
           title="View all prints"
         />
         <button
           class="small clip icon icon-add"
-          @click.stop="emit('clip', card)"
+          @click.stop="clipboard.add(card)"
           title="Add to clipboard"
         />
         <button
           class="small clip icon icon-delete"
-          @click.stop="emit('delete', card)"
+          @click.stop="deleteCard(card)"
           title="Delete"
         />
       </div>
     </div>
     <p class="name">
-      {{ props.card.count }} {{ props.card.name }} {{ props.card.finish === 'foil' ? '☆' : '' }} {{ props.card.finish === 'etched' ? '#' : '' }}
+      {{ props.card.count }} {{ props.card.name }} {{ markings[props.card.finish] }}
     </p>
     <p>
       {{ props.card.set_name }}

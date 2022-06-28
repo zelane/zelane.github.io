@@ -1,308 +1,22 @@
 <script setup>
 import Multiselect from '@vueform/multiselect';
-import { reactive, watch } from 'vue';
-import Fuse from 'fuse.js';
 import Colours from './Colours.vue';
 import { useCollections } from '../stores/collections';
+import { useCardView } from '../stores/cards';
+import { useMeta } from '../stores/meta';
 
 const collections = useCollections();
+const cardView = useCardView();
+const meta = useMeta();
 
-const prop = defineProps({
-  cards: {
-    type: Array,
-    default: () => []
-  },
-  sort: {
-    type: Object,
-    default: () => {
-      return {val: 'Price', dir: -1};
-    }
-  },
-  filters: {
-    type: Object,
-    default: () => {}
-  }
-});
-const emit = defineEmits(['change', 'loading']);
-
-let vars = reactive({ keywords: [], sets: [], tribes: [], allSets: [], tags: new Set() });
-
-let filters = reactive({
-  colours: {colours:[], or: false},
-  rarity: [],
-  keywords: [],
-  tribes: [],
-  name: '',
-  cardText: '',
-  sets: [],
-  tags: [],
-  mana: {value: [null, null], min: 0, max: 20},
-  price:{value: [null, null], min: 0, max: 100},
-  dupesOnly: false, 
-  sort: {
-    val: 'Price',
-    dir: 1,
-  },
-  group: false,
-  incCol: [],
-  excCol: [],
-  ors: {},
-  finish: null,
-  border: null,
-});
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
-const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
 
-watch(prop.filters, (f) => {
-  // console.log({...f});
-  filters.sets = f.sets;
-  // for(const [k, v] of Object.entries(f)) {
-  //   if(v) {
-  //     filters[k] = v;
-  //   }
-  // }
-});
-
-const cachedGet = async (cache, url) => {
-  const request = new Request(url);
-  let response = await cache.match(request);
-  if (!response) {
-    await cache.add(request);
-    response = await cache.match(request);
-  }
-  const json = await response.json();
-  return json;
-};
-;
-caches.open('cardDataCache').then(async (cache) => {
-  let ts = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
-  vars.tribes = ts.data;
-  vars.tribes = vars.tribes.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
-  let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
-  vars.allSets = as.data;
-});
-
-const dynamicSort = (a, b) => {
-  const dir = filters.sort.dir;
-  if (filters.sort.val === 'Price') {
-    if (!a.price) {
-      return true;
-    }
-    return a.price < b.price ? dir : dir * -1;
-  }
-  else if (filters.sort.val === 'Mana') {
-    return parseFloat(a.cmc) < parseFloat(b.cmc) ? dir : -1 * dir;
-  }
-  else if (filters.sort.val === 'Count') {
-    if(parseFloat(a.count) === parseFloat(b.count)) {
-      return a.price < b.price ? 1 : -1;
-    }
-    return parseFloat(a.count) < parseFloat(b.count) ? dir : -1 * dir;
-  }
-  else if (filters.sort.val === 'Released') {
-    let ad = new Date(a.released_at + "T00:00:00");
-    let bd = new Date(b.released_at + "T00:00:00");
-    return ad.getTime() > bd.getTime() ? dir : dir * -1;
-  }
-  else if (filters.sort.val === 'Type') {
-    if(a.type === b.type) {
-      return parseFloat(a.cmc) > parseFloat(b.cmc) ? dir : dir * -1;
-    }
-    return superTypes.indexOf(a.type) > superTypes.indexOf(b.type) ? dir : dir * -1;
-  }
-};
-
-const filterCards = async (cards, _filters) => new Promise(async resolve => {
-  let to = setTimeout(() => emit("loading"), 300);
-  let filtered = cards.sort(dynamicSort);
-  if(_filters.group) {
-    filtered = filtered.reverse();
-  }
-
-  if (_filters.cardText && _filters.cardText !== '') {
-    const fuse = new Fuse(filtered, {
-      ignoreLocation: true,
-      threshold: 0.5,
-      findAllMatches: true,
-      keys: ['oracle_text', 'card_faces.oracle_text'],
-    });
-    filtered = [];
-    fuse.search(_filters.cardText).forEach((item) => {
-      filtered.push(item.item);
-    });
-  }
-
-  if(_filters.incCol.length > 0) {
-    const includeCards = await collections.getCards(_filters.incCol);
-    const incIds = includeCards.map(c => c.oracle_id);
-    filtered = filtered.filter(card => {
-      return incIds.includes(card.oracle_id);
-    });
-  }
-  if(_filters.excCol.length > 0) {
-    const excludedCards = await collections.getCards(_filters.excCol);
-    const excIds = excludedCards.map(c => c.oracle_id);
-    filtered = filtered.filter(card => {
-      return !excIds.includes(card.oracle_id);
-    });
-  }
-
-  let count = 0;
-  let total_value = 0;
-  let distinctNames = new Set();
-  filtered = filtered.filter((card) => {
-    // return card.border_color == 'borderless';
-    // if(card.border_color === 'borderless' || card.full_art === true) return false;
-    // return card.frame == '2003';
-    // return card.full_art == true;
-    if(_filters.group === true && distinctNames.has(card.name)) {
-      return false;
-    }
-    else if(card.price != 0) {
-      distinctNames.add(card.name);
-    }
-    if (_filters.dupesOnly === true && card.count === 1) {
-      return false;
-    }
-    const hasFinish = !_filters.finish || card.finish === _filters.finish;
-    if(!hasFinish) return false;
-    const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
-    if (!hasName) return false;
-
-    const colourF = (f) => _filters.colours.or ? _filters.colours.colours.every(f) : _filters.colours.colours.some(f);
-    if (_filters.colours.colours.length > 0) {
-      console.log(card.color_identity, _filters.colours.colours);
-      // return _filters.colours.colours.sort().join(",") === card.color_identity.sort().join(",");
-      const hasColour = colourF((colour) => {
-        if (colour === 'C') {
-          return card.color_identity.length === 0;
-        }
-        return (card.color_identity || []).includes(colour);
-      });
-      if (!hasColour) return false;
-    }
-
-    const hasKeyword = _filters.keywords.every(keyword => (card.keywords || []).includes(keyword));
-    if (!hasKeyword) return false;
-
-    const hasTribe = _filters.tribes.some(tribe => (card.type_line.toLowerCase() || '').includes(tribe.toLowerCase()));
-    if (_filters.tribes.length > 0 && !hasTribe) return false;
-
-    const hasRarity = _filters.rarity.length > 0 ? [..._filters.rarity].includes(card.rarity) : true;
-    if (!hasRarity) return false;
-
-    let hasSet = true;
-    if (_filters.sets.length > 0) {
-      hasSet = _filters.sets.some((set) => card.set === set);
-    }
-    if (!hasSet) return false;
-
-    let hasTags = true;
-    if(_filters.tags.length > 0) {
-      hasTags = _filters.tags.some(tag => (card.tags || []).includes(tag));
-    }
-    if (!hasTags) return false;
-
-    const hasMana = card.cmc >= (_filters.mana.value[0] || 0) && card.cmc <= (_filters.mana.value[1] || 20);
-    if (!hasMana) return false;
-
-    const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
-    if (!haPrice) return false;
-
-    const hasBorder = _filters.border ? card.border_color == _filters.border : true;
-    if(!hasBorder) return false;
-
-    total_value += card.price * (card.count || 1);
-    count += parseInt(card.count);
-    return true;
-  });
-  if(_filters.group) {
-    filtered = filtered.sort(dynamicSort);
-  }
-
-  total_value = parseInt(total_value);
-  // count = filtered.length;
-  clearTimeout(to);
-  resolve([filtered, count, total_value]);
-});
-
-watch(() => prop.cards, async (a, b) => {
-  const _keywords = new Set();
-  const _sets = [];
-  const tags = new Set();
-  let ex = 0.9;
-
-  a.forEach(card => {
-    if(card.prices === undefined) {
-      card.price = 0;
-    }
-    else if(card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
-      if(card.prices.usd_etched !== null) {
-        card.price = parseFloat(card.prices.usd_etched);
-        if(!card.finish) card.finish = 'etched';
-      }
-      else if (card.prices.eur_foil || card.prices.usd_foil) {
-        card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
-        if(!card.finish) card.finish = 'foil';
-      }
-      else {
-        card.finish = 'nonfoil';
-        card.price = 0;
-      }
-    }
-    else {
-      card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
-      card.finish = 'nonfoil';
-    }
-    if(card.keywords) {
-      card.keywords.forEach((kw) => {
-        _keywords.add(kw);
-      });
-    }
-    else {
-      console.log(card);
-    }
-    _sets[card.set] = card.set_name;
-    if(card.tags) {
-      card.tags.forEach(tag => {
-        tags.add(tag);
-      });
-    }
-    card.type_line = card.type_line || '';
-    card.type = superTypes.filter(t => card.type_line.includes(t))[0];
-  });
-  // Have to clear filters that depend on dynamic filters, could just load all options?
-  filters.keywords = [];
-  filters.sets = [];
-  vars.keywords = [..._keywords];
-  vars.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
-  vars.tags = tags;
-
-  let [filtered, count, value] = await filterCards(a, filters);
-  emit('change', filtered, count, value);
-});
-
-watch(() => prop.sort.val, (a, b) => {
-  filters.sort.val = a;
-});
-watch(() => prop.sort.dir, (a, b) => {
-  filters.sort.dir = a;
-});
-
-let to = null;
-watch(filters, async () => {
-  clearTimeout(to);
-  to = setTimeout(async () => {
-    let [filtered, count, value] = await filterCards(prop.cards, filters);
-    emit('change', filtered, count, value);
-  }, 500);
-});
 
 </script>
 
 <template>
-  <Colours v-model="filters.colours" />
+  <Colours v-model="cardView.filters.colours" />
 
   <div class="filter-group rarities">
     <div
@@ -313,7 +27,7 @@ watch(filters, async () => {
     >
       <input
         type="checkbox"
-        v-model="filters.rarity"
+        v-model="cardView.filters.rarity"
         :value="rarity"
         :id="rarity"
       >
@@ -327,7 +41,7 @@ watch(filters, async () => {
   <div class="filter-group">
     <input
       type="search"
-      v-model="filters.name"
+      v-model="cardView.filters.name"
       placeholder="Name"
     >
   </div>
@@ -335,12 +49,12 @@ watch(filters, async () => {
   <div class="filter-group mana">
     <input
       type="number"
-      v-model="filters.mana.value[0]"
+      v-model="cardView.filters.mana.value[0]"
       placeholder="Mana (min)"
     >
     <input
       type="number"
-      v-model="filters.mana.value[1]"
+      v-model="cardView.filters.mana.value[1]"
       placeholder="Mana (max)"
     >
   </div>
@@ -348,19 +62,19 @@ watch(filters, async () => {
   <div class="filter-group price">
     <input
       type="number"
-      v-model="filters.price.value[0]"
+      v-model="cardView.filters.price.value[0]"
       placeholder="Price (min)"
     >
     <input
       type="number"
-      v-model="filters.price.value[1]"
+      v-model="cardView.filters.price.value[1]"
       placeholder="Price (max)"
     >
   </div>
   <div class="filter-group">
     <Multiselect
-      v-model="filters.tribes"
-      :options="vars.tribes"
+      v-model="cardView.filters.tribes"
+      :options="meta.types"
       :searchable="true"
       mode="tags"
       :create-option="true"
@@ -370,8 +84,8 @@ watch(filters, async () => {
 
   <div class="filter-group">
     <Multiselect
-      v-model="filters.keywords"
-      :options="vars.keywords"
+      v-model="cardView.filters.keywords"
+      :options="cardView.keywords"
       :searchable="true"
       mode="tags"
       placeholder="Keywords"
@@ -381,15 +95,15 @@ watch(filters, async () => {
   <div class="filter-group">
     <input
       type="search"
-      v-model="filters.cardText"
+      v-model="cardView.filters.cardText"
       placeholder="Card text"
     >
   </div>
 
   <div class="filter-group">
     <Multiselect
-      v-model="filters.sets"
-      :options="vars.sets"
+      v-model="cardView.filters.sets"
+      :options="cardView.sets"
       label="setName"
       value-prop="set"
       :searchable="true"
@@ -400,8 +114,8 @@ watch(filters, async () => {
 
   <div class="filter-group">
     <Multiselect
-      v-model="filters.tags"
-      :options="[...vars.tags]"
+      v-model="cardView.filters.tags"
+      :options="[...cardView.tags]"
       :searchable="true"
       mode="tags"
       placeholder="Tags"
@@ -416,7 +130,7 @@ watch(filters, async () => {
       <h3>Compare</h3>
       <a
         href="#"
-        @click="() => {filters.incCol = []; filters.excCol = {};}"
+        @click="() => {cardView.filters.incCol = []; cardView.filters.excCol = {};}"
       >X</a>
     </div>
     <div class="grid">
@@ -429,7 +143,7 @@ watch(filters, async () => {
           <input
             type="checkbox"
             :id="col + '-inc'"
-            v-model="filters.incCol"
+            v-model="cardView.filters.incCol"
             :value="col"
           >
           <label
@@ -441,7 +155,7 @@ watch(filters, async () => {
           <input
             type="checkbox"
             :id="col + '-exc'"
-            v-model="filters.excCol"
+            v-model="cardView.filters.excCol"
             :value="col"
           >
           <label
@@ -454,14 +168,14 @@ watch(filters, async () => {
   </div>
   
   <Multiselect
-    v-model="filters.finish"
+    v-model="cardView.filters.finish"
     :options="['nonfoil', 'foil', 'etched']"
     mode="single"
     placeholder="Finish"
   />
   
   <Multiselect
-    v-model="filters.border"
+    v-model="cardView.filters.border"
     :options="['borderless', 'black', 'white']"
     mode="single"
     placeholder="Border"
@@ -473,7 +187,7 @@ watch(filters, async () => {
     <input
       id="group"
       type="checkbox"
-      v-model="filters.group"
+      v-model="cardView.filters.group"
     >
   </div>
 </template>

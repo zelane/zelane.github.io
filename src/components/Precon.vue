@@ -1,68 +1,49 @@
 <script setup>
 
-  import { reactive } from 'vue';
-  import Multiselect from '@vueform/multiselect';
-  import { useToast } from "vue-toastification";
+import { reactive } from 'vue';
+import Multiselect from '@vueform/multiselect';
+import { useToast } from "vue-toastification";
+import { useMeta } from '../stores/meta';
 
+const meta = useMeta();
+const toast = useToast();
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const toast = useToast();
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const values = reactive({
+  name: '',
+  set: '',
+  cards: '',
+});
 
-  const values = reactive({
-    name: '',
-    set: '',
-    cards: '',
+const post = async (url = '', data = {}) => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
   });
+  return response.json();
+};
 
-  const vars = reactive({
-    sets: []
-  });
-  
-  const cachedGet = async (cache, url) => {
-    const request = new Request(url);
-    let response = await cache.match(request);
-    if (!response) {
-      await cache.add(request);
-      response = await cache.match(request);
-    }
-    const json = await response.json();
-    return json;
-  };
-  ;
-  caches.open('cardDataCache').then(async (cache) => {
-    let as = await cachedGet(cache, 'https://api.scryfall.com/sets');
-    vars.sets = as.data;
-  });
-
-  const post = async (url = '', data = {}) => {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
+const uploadPrecon = async () => {
+  const re = /([0-9]+) (.+)/g;
+  const matches = values.cards.matchAll(re);
+  const cards = [];
+  for (const m of matches) {
+    cards.push({
+      count: parseInt(m[1]),
+      name: m[2].trim()
     });
-    return response.json();
-  };
-
-  const uploadPrecon = async () => {
-    const re = /([0-9]+) (.+)/g;
-    const matches = values.cards.matchAll(re);
-    const cards = [];
-    for (const m of matches) {
-      cards.push({
-        count: parseInt(m[1]),
-        name: m[2].trim()
-      });
-    }
-    await post(backendUrl + '/precon', {
-      name: values.name,
-      commander: values.commander,
-      set: values.set,
-      cards: cards,
-    });
-    toast(`Uploaded ${values.name}`);
-  };
+  }
+  await post(backendUrl + '/precon', {
+    name: values.name,
+    commander: values.commander,
+    set: values.set,
+    cards: cards,
+  });
+  toast(`Uploaded ${values.name}`);
+};
 
 </script>
 
@@ -79,7 +60,7 @@
         <label for="set">Set Code</label>
         <Multiselect
           v-model="values.set"
-          :options="vars.sets"
+          :options="meta.sets"
           label="name"
           value-prop="code"
           :searchable="true"

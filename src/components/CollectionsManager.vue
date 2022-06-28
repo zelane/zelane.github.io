@@ -12,7 +12,6 @@ const ui = reactive({
   upload: false,
 });
 
-const props = defineProps({ setIds: Set });
 const emit = defineEmits(['change', 'delete', 'close']);
 
 const post = async (url = '', data = {}) => {

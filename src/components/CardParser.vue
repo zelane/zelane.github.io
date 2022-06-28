@@ -3,21 +3,14 @@
 import { reactive, ref, watchEffect } from 'vue';
 import Papa from 'papaparse';
 import Multiselect from '@vueform/multiselect';
-import { useToast } from "vue-toastification";
 import CardSearch from './CardSearch.vue';
 import { useCollections } from '../stores/collections';
+import { useMeta } from '../stores/meta';
 
 const collections = useCollections();
+const meta = useMeta();
 
-const props = defineProps({
-  collections: {
-    type: Array,
-    required: true
-  }, 
-  setIds: Set
-});
 const emit = defineEmits(['parsed']);
-const toast = useToast();
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const upload = reactive({
   name: null,
@@ -33,7 +26,7 @@ const upload = reactive({
 });
 
 watchEffect(() => {
-  upload.name = props.collections[0];
+  upload.name = collections.open[0];
 });
 
 const post = async (url = '', data = {}) => {
@@ -187,7 +180,7 @@ const parseDSWeb = async (csv) => {
 
     // Find set id for mismatched set ids
     let key = null;
-    if (!props.setIds.has(setCode)) {
+    if (!meta.setIds.has(setCode)) {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
       key = card.name + card.finish;
     }
@@ -231,10 +224,14 @@ const updateCollection = async (name, cardList) => {
   }
   if (cardList.size > 0) {
     const newData = await fetchCardData(cardList);
-    cardData = cardData.concat(newData);
+    collection.cards = collection.cards.concat(newData);
   }
   collections.save(name, collection.cards, collection.syncCode);
-  emit('parsed', props.collections);
+  upload.active = false;
+  upload.count = 0;
+  upload.progress = 0;
+  upload.total = 0;
+  emit('parsed', collections.open);
 };
 
 const handleSearch = async (data) => {
@@ -250,7 +247,7 @@ const handleSearch = async (data) => {
     collection.cards.push(data);
   }
   collections.save(upload.name, collection.cards, collection.syncCode);
-  emit('parsed', props.collections);
+  emit('parsed', collections.open);
 };
 
 const fetchCardData = async (cardList) => {
@@ -310,10 +307,6 @@ const fetchCardData = async (cardList) => {
     console.error(e);
   }
   finally {
-    upload.active = false;
-    upload.count = 0;
-    upload.progress = 0;
-    upload.total = 0;
     return cardData;
   }
 };
@@ -331,11 +324,11 @@ const formats = {
   <div
     class="root"
   >
-    <h3>Add to {{ props.collections.length == 1 ? props.collections[0] : "" }}</h3>
+    <h3>Add to {{ collections.open.length == 1 ? collections.open[0] : "" }}</h3>
     <Multiselect
-      v-if="props.collections.length > 1"
+      v-if="collections.open.length > 1"
       v-model="upload.name"
-      :options="props.collections"
+      :options="collections.open"
       mode="single"
     />
 

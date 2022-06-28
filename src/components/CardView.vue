@@ -1,23 +1,27 @@
 <script setup>
-  import Card from './Card.vue';
+import Card from './Card.vue';
 
-  const props = defineProps({
-    cards: Array, 
-    zoom: Number, 
-    loading: Boolean,
-    actions: {
-      type: Array,
-      default: () => ['clip', 'delete', 'prints']
-    }
-  });
-  const emit = defineEmits(['clip', 'viewPrints', 'delete']);
+const props = defineProps({
+  store: {
+    type: Object,
+    required: true
+  },
+  zoom: {
+    type: Number,
+    default: 1,
+  },
+  actions: {
+    type: Array,
+    default: () => ['clip', 'delete', 'prints']
+  }
+});
 
 </script>
 
 <template>
   <div
     class="loader"
-    v-if="props.loading"
+    v-if="props.store.loading"
   >
     Loading
   </div>
@@ -27,15 +31,12 @@
   >
     <div
       class="fix"
-      v-for="card in props.cards.slice(0, 500)"
+      v-for="card in props.store.filtered.slice(0, 500)"
       :key="card.id + card.finish"
       :style="{order: card.isCommander ? -1 : null}"
     >
       <Card 
         :card="card"
-        @clip="(...args) => $emit('clip', ...args)"
-        @view-prints="(...args) => $emit('viewPrints', ...args)"
-        @delete="(...args) => $emit('delete', ...args)"
       />
     </div>
   </div>

@@ -10,6 +10,7 @@ export const useCollections = defineStore('collections', {
   state: () => {
     return {
       collections: [],
+      open: [],
     };
   },
   getters: {
@@ -55,6 +56,7 @@ export const useCollections = defineStore('collections', {
       return await db.collections.get({ name: name });
     },
     async getCards(names) {
+      this.open = names;
       let cardMap = new Map();
       for (const name of names) {
         let collection = await db.collections.get({ name: name });
