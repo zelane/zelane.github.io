@@ -334,8 +334,8 @@ h3 {
   font-size: 1rem;
 }
 .filter-group > h3 {
-  margin-bottom: 10px;
-  flex-basis: 100%;
+  /* margin-bottom: 10px; */
+  /* flex-basis: 100%; */
 }
 .filter-group > input {
   width: 100%;

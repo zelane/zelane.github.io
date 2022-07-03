@@ -15,20 +15,6 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 </script>
 
 <template>
-  <div class="filter-group">
-    <Multiselect 
-      :options="{
-        'commander': 'Commader colours', 
-        'exact': 'Has exactly these colours',
-        'all': 'Has all of these colours',
-        'any': 'Has any of these colours',
-      }"
-      v-model="cardView.filters.colours.mode"
-      placeholder="Colour mode"
-    />
-    <Colours v-model="cardView.filters.colours.colours" />
-  </div>
-
   <div class="filter-group rarities">
     <div
       class="input-group rarity"
@@ -49,6 +35,20 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     </div>
   </div>
 
+  <div class="filter-group colours">
+    <Multiselect 
+      :options="{
+        'commander': 'Commader colours', 
+        'exact': 'Has exactly these colours',
+        'all': 'Has all of these colours',
+        'any': 'Has any of these colours',
+      }"
+      v-model="cardView.filters.colours.mode"
+      placeholder="Colour mode"
+      :can-clear="false"
+    />
+    <Colours v-model="cardView.filters.colours.colours" />
+  </div>
   <div class="filter-group">
     <input
       type="search"
@@ -116,8 +116,6 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     <Multiselect
       v-model="cardView.filters.sets"
       :options="cardView.sets"
-      label="setName"
-      value-prop="set"
       :searchable="true"
       mode="tags"
       placeholder="Sets"
@@ -249,7 +247,11 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 .mana input {
   min-width: 0;
 } */
-
+.filter-group.colours {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
 .price, .mana {
   display: grid;
   gap: 0 .5rem;

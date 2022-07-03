@@ -42,9 +42,6 @@ const config = {
     return {
       cards: new Map(),
       filtered: [],
-      keywords: [],
-      sets: [],
-      tags: new Set(),
       tribes: [],
       loading: false,
       filters: {
@@ -97,6 +94,37 @@ const config = {
         }
       }
       return [... grouped.values()].sort(dynamicSort(state.sort));
+    },
+    keywords(state) {
+      let keywords = new Set();
+      state.filtered.forEach(card => {
+        if (card.keywords) {
+          card.keywords.forEach((kw) => {
+            keywords.add(kw);
+          });
+        }
+      });
+      return [... keywords];
+    },
+    tags(state) {
+      let tags = new Set();
+      state.filtered.forEach(card => {
+        if (card.tags) {
+          card.tags.forEach((kw) => {
+            tags.add(kw);
+          });
+        }
+      });
+      return tags;
+    },
+    sets(state) {
+      let sets = new Map();
+      state.filtered.forEach(card => {
+        if (!sets.has(card.set)) {
+          sets.set(card.set, card.set_name);
+        }
+      });
+      return Object.fromEntries(sets);
     }
   },
   actions: {
@@ -229,9 +257,6 @@ const config = {
     addMany(cards) {
       this.cards.clear();
       this.filtered = [];
-      const _keywords = new Set();
-      const _sets = [];
-      const tags = new Set();
       let ex = 0.9;
 
       cards.forEach(card => {
@@ -256,29 +281,12 @@ const config = {
           card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
           card.finish = 'nonfoil';
         }
-        if (card.keywords) {
-          card.keywords.forEach((kw) => {
-            _keywords.add(kw);
-          });
-        }
-        else {
-          console.log(card);
-        }
-        _sets[card.set] = card.set_name;
-        if (card.tags) {
-          card.tags.forEach(tag => {
-            tags.add(tag);
-          });
-        }
         card.type_line = card.type_line || '';
         card.type = superTypes.filter(t => card.type_line.includes(t))[0];
         this.add(card);
       });
       // this.filters = {};
 
-      this.keywords = [..._keywords];
-      this.sets = Object.keys(_sets).map((key) => ({ set: key, setName: _sets[key] }));
-      this.tags = tags;
       this.applyFilters();
     },
     async loadSearch(query, unique='card', force=false) {

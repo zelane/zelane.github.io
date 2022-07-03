@@ -15,12 +15,10 @@ import ClipBoard from './ClipBoard.vue';
 import CollectionsManager from './CollectionsManager.vue';
 import PrintsView from './PrintsView.vue';
 import CardDetails from './CardDetails.vue';
-import { useDetails } from '../stores/details';
 
 const collections = useCollections();
 const cards = useCardView();
 const meta = useMeta();
-const details = useDetails();
 
 const router = useRouter();
 const route = useRoute();

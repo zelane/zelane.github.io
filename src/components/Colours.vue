@@ -65,16 +65,13 @@ const matchColours = (colours) => {
       if (!colours.includes(value)) return key;
     }
   }
+  return '';
 };
 
 </script>
 
 <template>
-  <div class="filter-group colours">
-    <div class="header">
-      <h3> {{ value.colours.length > 1 ? `${matchColours(value.colours)}` : '' }}</h3>
-    </div>
-    
+  <div class="icons">
     <div
       class="input-group colour"
       :class="value.colours.includes(code) ? 'selected' : ''"
@@ -93,32 +90,27 @@ const matchColours = (colours) => {
         :class="'icon icon-' + code"
       />
     </div>
+    <h3>{{ value.colours.length > 1 ? `${matchColours(value.colours)}` : '' }}</h3>
   </div>
 </template>
 
 <style scoped>
-
-.colours,
-.rarities {
+h3 {
+  display: block;
+  margin: 0;
+}
+.icons {
   display: flex;
-  gap: 0 .5rem;
+  gap: 0 .4rem;
+  align-items: center;
 }
-.rarities {
-  gap: 0 .5rem;
-}
-.colours input[type="checkbox"]:checked + label,
-.rarities input[type="checkbox"]:checked + label {
+.colours input[type="checkbox"]:checked + label {
   opacity: 1;
 }
-.rarities .input-group {
-  min-width: 40px;
-}
-.colours .input-group input[type="checkbox"],
-.rarities input[type="checkbox"] {
+.colours .input-group input[type="checkbox"] {
   display: none;
 }
-.colour label,
-.rarity label {
+.colour label{
   display: block;
   width: var(--height-input);
   opacity: 0.5;
