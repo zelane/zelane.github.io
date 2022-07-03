@@ -12,7 +12,7 @@ const props = defineProps({
   },
   actions: {
     type: Array,
-    default: () => ['clip', 'delete', 'prints']
+    default: () => ['clip', 'delete', 'details', 'prints']
   }
 });
 

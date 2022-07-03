@@ -2,6 +2,7 @@
   import { reactive, watchEffect } from 'vue';
   import Prices from './Prices.vue';
   import ManaCost from './ManaCost.vue';
+import { useDetails } from '../stores/details';
 
   const props = defineProps({
     cards: Array, 
@@ -20,6 +21,7 @@
   const superTypes = ['Commander', 'Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
 
   const ui = reactive({groups: new Map()});
+  const details = useDetails();
 
   watchEffect(() => {
     const groups = new Map();
@@ -63,6 +65,7 @@
             :class="card.finish"
             v-for="card in cards"
             :key="card.id + card.finish"
+            @mouseover="details.loadDetails(card)"
           >
             <div class="name">
               {{ card.finish === 'foil' ? '☆' : '' }} {{ card.finish === 'etched' ? '#' : '' }} {{ card.count }} {{ card.name }}

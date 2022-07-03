@@ -1,19 +1,13 @@
 <script setup>
 import { reactive, watchEffect } from 'vue';
+import { v4 as uuidv4 } from "uuid";
 
 
 const colours = {
   Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
 };
 
-const props = defineProps({
-  modelValue: {
-    type: Object,
-    default: () => {return {colours: [], or: false};}
-  }
-});
-
-const value = reactive({ colours: [], or: false });
+const value = reactive({ colours: [] });
 const emit = defineEmits(['update:modelValue']);
 
 const twoColours = {
@@ -48,8 +42,10 @@ const fourColours = {
   Yore: 'G',
 };
 
+const uid = uuidv4();
+
 watchEffect(() => {
-  emit("update:modelValue", value);
+  emit("update:modelValue", value.colours);
 });
 
 const matchColours = (colours) => {
@@ -77,13 +73,6 @@ const matchColours = (colours) => {
   <div class="filter-group colours">
     <div class="header">
       <h3> {{ value.colours.length > 1 ? `${matchColours(value.colours)}` : '' }}</h3>
-      <div
-        class="bi-toggle"
-        :class="{ active: value.or }"
-        @click="value.or = !value.or"
-      >
-        {{ value.or ? "And" : "Or" }}
-      </div>
     </div>
     
     <div
@@ -97,10 +86,10 @@ const matchColours = (colours) => {
         type="checkbox"
         v-model="value.colours"
         :value="code"
-        :id="code"
+        :id="uid + code"
       >
       <label
-        :for="code"
+        :for="uid + code"
         :class="'icon icon-' + code"
       />
     </div>

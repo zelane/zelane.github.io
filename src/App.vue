@@ -340,4 +340,42 @@ h3 {
 .filter-group > input {
   width: 100%;
 }
+.icon-mana {
+  margin-right: .2em;
+  vertical-align: middle;
+  font-family: var(--font-magic);
+}
+.icon-1, .icon-2, .icon-3, .icon-4, .icon-5, .icon-6, .icon-7, .icon-X, .icon-N, .icon-T {
+  display: inline-block;
+  background-color: var(--colour-less);
+  border-radius: 50%;
+  color: black;
+  text-align: center;
+  line-height: 0.8em;
+  width: 1em;
+  height: 1em;
+  font-weight: bold;
+}
+.icon-X, .icon-N {
+  font-size: 1em;
+  font-family: var(--font-magic) !important;
+  line-height: 1.2em;
+  width: 1em;
+  height: 1em;
+}
+.icon-R {
+  color: var(--colour-red);
+}
+.icon-G {
+  color: var(--colour-green);
+}
+.icon-B {
+  color: var(--colour-black);
+}
+.icon-U {
+  color: var(--colour-blue);
+}
+.icon-W {
+  color: var(--colour-white);
+}
 </style>

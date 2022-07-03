@@ -48,7 +48,7 @@ const config = {
       tribes: [],
       loading: false,
       filters: {
-        colours: { colours: [], or: false },
+        colours: { colours: [], mode: 'commander' },
         rarity: [],
         keywords: [],
         tribes: [],
@@ -92,7 +92,7 @@ const config = {
       for (const card of state.cards.values()) {
         let existing = grouped.get(card.name);
         let price = card.price > 0 ? card.price : Infinity;
-        if (!existing || existing.price > price) {
+        if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
           grouped.set(card.name, card);
         }
       }
@@ -100,6 +100,27 @@ const config = {
     }
   },
   actions: {
+    _filterColours(card, options) {
+      const {mode, colours} = options;
+      if (mode === 'commander') {
+        let notIn = card.color_identity.filter(c => {
+          return !colours.includes(c);
+        });
+        if (Object.keys(card.color_identity).length > 0 && notIn.length > 0) {
+          return false;
+        }
+      }
+      else if (mode === 'any') {
+        return card.color_identity.some(c => colours.includes(c));
+      }
+      else if (mode === 'all') {
+        return colours.every(c => card.color_identity.includes(c));
+      }
+      else if (mode === 'exact') {
+        return card.color_identity.sort().join() === colours.sort().join(); 
+      }
+      return true;
+    },
     async applyFilters() {
       const collections = useCollections();
       let _filters = this.filters;
@@ -148,15 +169,8 @@ const config = {
         const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
         if (!hasName) return false;
 
-        const colourF = (f) => _filters.colours.or ? _filters.colours.colours.every(f) : _filters.colours.colours.some(f);
         if (_filters.colours.colours.length > 0) {
-          // return _filters.colours.colours.sort().join(",") === card.color_identity.sort().join(",");
-          const hasColour = colourF((colour) => {
-            if (colour === 'C') {
-              return card.color_identity.length === 0;
-            }
-            return (card.color_identity || []).includes(colour);
-          });
+          const hasColour = this._filterColours(card, _filters.colours);
           if (!hasColour) return false;
         }
 
@@ -297,7 +311,7 @@ const config = {
     },
     async loadSet(setId, force = false) {
       const cache = await caches.open('cardDataCache');
-      // await _loadSearch('e:' + setId, 'prints', force);
+      // await this.loadSearch('e:' + setId, 'prints', true);
       let json = await cachedGet(cache, `${backendUrl}/set/?set=` + setId, force);
       this.addMany(json.data);
     },

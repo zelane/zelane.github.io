@@ -9,14 +9,25 @@ const collections = useCollections();
 const cardView = useCardView();
 const meta = useMeta();
 
-
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 
 
 </script>
 
 <template>
-  <Colours v-model="cardView.filters.colours" />
+  <div class="filter-group">
+    <Multiselect 
+      :options="{
+        'commander': 'Commader colours', 
+        'exact': 'Has exactly these colours',
+        'all': 'Has all of these colours',
+        'any': 'Has any of these colours',
+      }"
+      v-model="cardView.filters.colours.mode"
+      placeholder="Colour mode"
+    />
+    <Colours v-model="cardView.filters.colours.colours" />
+  </div>
 
   <div class="filter-group rarities">
     <div
@@ -71,6 +82,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
       placeholder="Price (max)"
     >
   </div>
+
   <div class="filter-group">
     <Multiselect
       v-model="cardView.filters.tribes"

@@ -3,11 +3,13 @@ import Prices from './Prices.vue';
 import { useCollections } from '../stores/collections';
 import { useCardView } from '../stores/cards';
 import { usePrintsView, useClipboard } from '../stores/cards';
+import { useDetails } from '../stores/details';
 
 const clipboard = useClipboard();
 const cardView = useCardView();
 const collections = useCollections();
 const prints = usePrintsView();
+const details = useDetails();
 
 const props = defineProps({
   card: {
@@ -64,6 +66,12 @@ const deleteCard = async (card) => {
         loading="lazy"
       >
       <div class="buttons">
+        <button
+          v-if="props.actions.includes('details')"
+          class="small details icon icon-details"
+          @click.stop="details.loadDetails(card, includeRulings=true)"
+          title="View details"
+        />
         <button
           v-if="props.actions.includes('prints')"
           class="small prints icon icon-prints"

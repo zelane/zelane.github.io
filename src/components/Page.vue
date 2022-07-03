@@ -14,10 +14,13 @@ import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import CollectionsManager from './CollectionsManager.vue';
 import PrintsView from './PrintsView.vue';
+import CardDetails from './CardDetails.vue';
+import { useDetails } from '../stores/details';
 
 const collections = useCollections();
 const cards = useCardView();
 const meta = useMeta();
+const details = useDetails();
 
 const router = useRouter();
 const route = useRoute();
@@ -342,7 +345,7 @@ const touchEnd = (e) => {
           <div
             class="item" 
             @click.stop="setMenu(name)"
-            v-for="name in ['add', 'clipboard', 'prints', 'settings']"
+            v-for="name in ['add', 'clipboard', 'prints', 'details', 'settings']"
             :key="name"
             :class="name"
           >
@@ -354,7 +357,7 @@ const touchEnd = (e) => {
         </div>
 
         <div
-          class="add"
+          class="add panel"
           v-show="ui.sidebar === 'add'"
         >
           <span>
@@ -366,7 +369,7 @@ const touchEnd = (e) => {
         </div>
 
         <div
-          class="settings"
+          class="settings panel"
           v-show="ui.sidebar === 'settings'"
         >
           <h3>Settings</h3>
@@ -379,9 +382,18 @@ const touchEnd = (e) => {
             >
           </span>
         </div>
+        <div
+          class="details panel"
+          v-show="ui.sidebar === 'details'"
+        >
+          <h3>Details</h3>
+          <CardDetails 
+            @changed="() => {ui.sidebar = 'details'; ui.sidebarShow = true}"
+          />
+        </div>
         
         <div
-          class="prints"
+          class="prints panel"
           v-show="ui.sidebar === 'prints'"
         >
           <PrintsView
@@ -411,9 +423,12 @@ const touchEnd = (e) => {
             </div>
           </div>
         </div> -->
-        <ClipBoard
+        <div
+          class="panel" 
           v-show="ui.sidebar === 'clipboard'"
-        />
+        >
+          <ClipBoard />
+        </div>
       </div>
 
       <div 
@@ -580,7 +595,12 @@ option {
   transition: all 0.2s;
   z-index: 2;
   color: var(--colour-light-font);
+}
+.sidepanel .panel {
+  position: absolute;
+  inset: 0;
   padding: 1rem 2rem;
+  overflow: auto;
 }
 .sidepanel.show {
   transform: translate(0, 0);
