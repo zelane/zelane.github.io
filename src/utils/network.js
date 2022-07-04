@@ -14,3 +14,14 @@ export const cachedGet = async (cache, url, force = false) => {
   const json = await response.json();
   return json;
 };
+
+export const post = async (url = '', data = {}) => {
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+  return response.json();
+};

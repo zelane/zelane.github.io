@@ -1,31 +1,36 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import Dexie from 'dexie';
+import { post } from '../utils/network';
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const db = new Dexie('mtg');
-db.version(3).stores({
-  collections: '&name'
+db.version(4).stores({
+  collections: '&name, syncCode'
 });
 
 export const useCollections = defineStore('collections', {
   state: () => {
     return {
-      collections: [],
+      collections: new Map(),
       open: [],
     };
   },
   getters: {
     all(state) {
-      return state.collections;
+      return [... state.collections.keys()].sort();
     }
   },
   actions: {
     async init() {
-      const collections = await db.collections.toCollection().primaryKeys();
-      this.collections = collections.length > 0 ? collections.sort() : [];
+      db.collections.toCollection().each(col => {
+        this.collections.set(col.name, {
+          code: col.syncCode
+        });
+      });
     },
     async delete(name) {
       await db.collections.delete(name);
-      this.collections.splice(this.collections.indexOf(name), 1);
+      this.collections.delete(name);
       this.open.splice(this.open.indexOf(name), 1);
     },
     async save(name, cards, syncCode=null) {
@@ -35,16 +40,16 @@ export const useCollections = defineStore('collections', {
       else {
         await db.collections.put({ name: name, cards: cards });
       }
-      if (!this.collections.includes(name)) {
-        this.collections.push(name);
+      if (!this.collections.has(name)) {
+        this.collections.set(name, {code: syncCode});
       }
-      this.collections.sort();
-      return this.collections;
+      return this.all;
     },
     async saveCode(name, code) {
       await db.collections.update(name, {
         "syncCode": code
       });
+      this.collections.get(name).code = code;
     },
     async deleteCard(collectionNames, card) {
       for (const colName of collectionNames) {
@@ -84,7 +89,61 @@ export const useCollections = defineStore('collections', {
         }
       }
       return [...cardMap.values()];
-    }
+    },
+    async upload(name) {
+      try {
+        const collection = await this.get(name);
+        let data = {
+          cards: collection.cards.map(c => {
+            return {
+              id: c.id,
+              count: c.count,
+              tags: c.tags,
+              finish: c.finish,
+            };
+          })
+        };
+        let code = collection.syncCode;
+        if (code) {
+          data.id = code;
+        }
+        const resp = await post(backendUrl + '/collection', data);
+        code = resp.data;
+        this.saveCode(name, code);
+        return code;
+      }
+      catch (error) {
+        console.error(error);
+      }
+    },
+    async download(name, code) {
+      try {
+        const resp = await fetch(backendUrl + '/collection?id=' + code);
+        const json = await resp.json();
+        await this.save(name, json.data, code);
+      }
+      catch (error) {
+        console.error(error);
+        return false;
+      }
+      return true;
+    },
+    async refresh(name) {
+      try {
+        const collection = await this.get(name);
+        if (!collection.syncCode) {
+          return;
+        }
+        const resp = await fetch(backendUrl + '/collection?id=' + collection.syncCode);
+        const json = await resp.json();
+        this.save(name, json.data, collection.syncCode);
+      }
+      catch (error) {
+        console.error(error);
+        return false;
+      }
+      return true;
+    },
   },
 });
 

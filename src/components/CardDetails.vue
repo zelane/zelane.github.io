@@ -14,15 +14,20 @@ const parseColours = (text) => {
   if(!text) {
     return "";
   }
-  const m = [];
   const colourless = /\{([0-9]+)\}/g;
-  const coloured = /\{([WUBRGTXC])\}/g;
-  const parts = text.replace(
-      colourless, "<span class='icon icon-mana icon-N'>$1</span>"
+  const coloured = /\{([WUBRGXC])\}/g;
+  const dual = /\{([WUBRGXCP0-9])\/([WUBRGXCP0-9])\}/g;
+  const tap = /\{([T])\}/g;
+  text = text.replace(
+      colourless, "<span class='ms ms-cost ms-$1'></span>"
     ).replace(
-      coloured, "<span class='icon icon-mana icon-$1'></span>"
+      coloured, (_, v) => `<span class='ms ms-cost ms-${v.toLowerCase()}'></span>`
+    ).replace(
+      dual, (_, a, b) => `<span class='ms ms-cost ms-${a.toLowerCase() + b.toLowerCase()}'></span>`
+    ).replace(
+      tap, "<span class='ms ms-cost ms-tap'></span>"
     );
-  return parts;
+  return text;
 };
 
 const copyJson = card => {

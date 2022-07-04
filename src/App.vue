@@ -21,6 +21,7 @@
 <style src="@vueform/toggle/themes/default.css"></style>
 <style>
 @import "./assets/fonts/index.css";
+@import "./assets/fonts/mana.css";
 @import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=PT+Serif:wght@400;700&family=Spectral:wght@300;400;500&display=swap");
 
 * {
@@ -377,5 +378,8 @@ h3 {
 }
 .icon-W {
   color: var(--colour-white);
+}
+.oracle-text .ms.ms-cost {
+  font-size: 15px !important;
 }
 </style>
