@@ -9,6 +9,7 @@ export const useMeta = defineStore('meta', {
       _sets: new Map(),
       precons: [],
       types: [],
+      symbols: new Map(),
     };
   },
   getters: {
@@ -33,6 +34,13 @@ export const useMeta = defineStore('meta', {
       // Load types
       let types = await cachedGet(cache, 'https://api.scryfall.com/catalog/creature-types');
       this.types = types.data.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
+
+      // Load symbols
+      let symbols = await cachedGet(cache, 'https://api.scryfall.com/symbology ');
+      symbols.data.forEach(s => {
+        this.symbols.set(s.symbol, s.svg_uri);
+      });
+      // this.symbols = symbols.data;
 
       // Load precons
       let precons = await cachedGet(cache, `${backendUrl}/precons`, true);

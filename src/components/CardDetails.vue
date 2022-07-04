@@ -1,8 +1,10 @@
 <script setup>
 import { reactive } from 'vue';
 import { useDetails } from '../stores/details';
+import { useMeta } from '../stores/meta';
 
 const details = useDetails();
+const meta = useMeta();
 
 const emit = defineEmits(["changed"]);
 
@@ -14,18 +16,9 @@ const parseColours = (text) => {
   if(!text) {
     return "";
   }
-  const colourless = /\{([0-9]+)\}/g;
-  const coloured = /\{([WUBRGXC])\}/g;
-  const dual = /\{([WUBRGXCP0-9])\/([WUBRGXCP0-9])\}/g;
-  const tap = /\{([T])\}/g;
+  const all = /(\{[aA-zZ0-9/]+\})/g;
   text = text.replace(
-      colourless, "<span class='ms ms-cost ms-$1'></span>"
-    ).replace(
-      coloured, (_, v) => `<span class='ms ms-cost ms-${v.toLowerCase()}'></span>`
-    ).replace(
-      dual, (_, a, b) => `<span class='ms ms-cost ms-${a.toLowerCase() + b.toLowerCase()}'></span>`
-    ).replace(
-      tap, "<span class='ms ms-cost ms-tap'></span>"
+      all, (_, v) => `<img class='symbol' src='${meta.symbols.get(v)}' />`
     );
   return text;
 };
