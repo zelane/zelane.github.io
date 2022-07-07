@@ -152,6 +152,18 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
         <div>
           <input
             type="checkbox"
+            :id="col + '-cmp'"
+            v-model="cardView.filters.cmpCol"
+            :value="col"
+          >
+          <label
+            class="cmp icon icon-compare_arrows"
+            :for="col + '-cmp'"
+          />
+        </div>
+        <div>
+          <input
+            type="checkbox"
             :id="col + '-inc'"
             v-model="cardView.filters.incCol"
             :value="col"
@@ -205,7 +217,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 <style scoped>
 .compare .grid {
   display: grid;
-  grid-template-columns: 10fr 1fr 1fr;
+  grid-template-columns: 10fr 1fr 1fr 1fr;
   line-height: 1rem;
   background-color: var(--colour-input-grey);
   padding: 0.5rem;
@@ -234,6 +246,9 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 }
 .compare label.exc::before {
   content: "-";
+}
+.compare input[type="checkbox"]:checked ~ label.cmp {
+  color: var(--colour-green);
 }
 .compare input[type="checkbox"]:checked ~ label.inc {
   color: var(--colour-green);

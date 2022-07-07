@@ -103,12 +103,12 @@ const deleteCollection = async (name) => {
             @click.exact="copySyncCode(name)"
           >{{ col.code }}</span>
           <a
-            class="action icon icon-arrow_upward"
+            class="action icon icon-arrow-up"
             @click.exact="uploadCollection(name)"
             @click.ctrl="uploadCollection(name, true)"
           />
           <a
-            class="action icon icon-arrow_downward"
+            class="action icon icon-arrow-down"
             @click.exact="refreshCollection(name)"
           />
           <!-- <a

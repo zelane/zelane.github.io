@@ -5,7 +5,10 @@
 import { useDetails } from '../stores/details';
 
   const props = defineProps({
-    cards: Array, 
+    cards: {
+      type: Array,
+      required: true,
+    }, 
     loading: Boolean,
     view: {
       type: String,
@@ -28,7 +31,7 @@ import { useDetails } from '../stores/details';
     for(const t of superTypes) {
       groups.set(t, []);
     }
-    for(const card of props.cards) {
+    for(const card of props.cards.slice(0, 200)) {
       if(card.isCommander) {
         groups.set('Commander', [card]);
         continue;

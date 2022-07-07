@@ -27,10 +27,6 @@ const copyJson = card => {
   navigator.clipboard.writeText(JSON.stringify(card, null, 2));
 };
 
-details.$onAction(() => {
-  emit('changed');
-});
-
 </script>
 
 <template>

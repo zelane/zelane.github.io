@@ -35,12 +35,16 @@ const dynamicSort = (sort) => (a, b) => {
     }
     return superTypes.indexOf(a.type) > superTypes.indexOf(b.type) ? dir : dir * -1;
   }
+  else if (sort.val === 'Tag') {
+    return a.tags[0].localeCompare(b.tags[0]);
+  }
 };
 
 const config = {
   state: () => {
     return {
       cards: new Map(),
+      have: new Map(),
       filtered: [],
       tribes: [],
       loading: false,
@@ -59,6 +63,7 @@ const config = {
         group: false,
         incCol: [],
         excCol: [],
+        cmpCol: [],
         ors: {},
         finish: null,
         border: null,
@@ -128,6 +133,14 @@ const config = {
     }
   },
   actions: {
+    async _compare(cards, collectionNames) {
+      const collections = useCollections();
+      const colCards = await collections.getCards(collectionNames);
+      const ids = colCards.map(c => c.oracle_id);
+      cards = cards.forEach(card => {
+        this.have.set(card.oracle_id, ids.includes(card.oracle_id));
+      });
+    },
     _filterColours(card, options) {
       const {mode, colours} = options;
       if (mode === 'commander') {
@@ -168,6 +181,10 @@ const config = {
         });
       }
 
+      this.have.clear();
+      if(_filters.cmpCol.length > 0) {
+        await this._compare(filtered, _filters.cmpCol);
+      }
       if (_filters.incCol.length > 0) {
         const includeCards = await collections.getCards(_filters.incCol);
         const incIds = includeCards.map(c => c.oracle_id);
@@ -290,6 +307,10 @@ const config = {
       this.applyFilters();
     },
     async loadSearch(query, unique='card', force=false) {
+      if (query.length === 0) {
+        this.cards.clear();
+        return;
+      }
       if (query.length < 3) {
         return;
       }

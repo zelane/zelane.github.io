@@ -4,12 +4,14 @@ import { useCollections } from '../stores/collections';
 import { useCardView } from '../stores/cards';
 import { usePrintsView, useClipboard } from '../stores/cards';
 import { useDetails } from '../stores/details';
+import { useUI } from '../stores/ui';
 
 const clipboard = useClipboard();
 const cardView = useCardView();
 const collections = useCollections();
 const prints = usePrintsView();
 const details = useDetails();
+const ui = useUI();
 
 const props = defineProps({
   card: {
@@ -41,6 +43,7 @@ const deleteCard = async (card) => {
   <div
     class="card"
     :class="props.card.finish"
+    :style="{opacity: cardView.filters.cmpCol.length === 0 || cardView.have.get(card.oracle_id) ? 1 : 0.5}"
   >
     <div class="img">
       <!-- <img
@@ -69,13 +72,13 @@ const deleteCard = async (card) => {
         <button
           v-if="props.actions.includes('details')"
           class="small details icon icon-details"
-          @click.stop="details.loadDetails(card, includeRulings=true)"
+          @click.stop="() => {details.loadDetails(card, includeRulings=true); ui.showSidebar('details')}"
           title="View details"
         />
         <button
           v-if="props.actions.includes('prints')"
           class="small prints icon icon-prints"
-          @click.stop="prints.loadPrints(props.card.name);"
+          @click.stop="() => {prints.loadPrints(props.card.name); ui.showSidebar('prints')}"
           title="View all prints"
         />
         <button
@@ -186,6 +189,7 @@ p {
 .tags {
   display: flex;
   gap: .5rem;
+  flex-wrap: wrap;
 }
 .tags .tag {
   font-size: .8rem;

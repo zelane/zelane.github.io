@@ -24,7 +24,8 @@ export const useCollections = defineStore('collections', {
     async init() {
       db.collections.toCollection().each(col => {
         this.collections.set(col.name, {
-          code: col.syncCode
+          code: col.syncCode,
+          // cards: col.cards,
         });
       });
     },
@@ -69,6 +70,7 @@ export const useCollections = defineStore('collections', {
       let cardMap = new Map();
       for (const name of names) {
         let collection = await db.collections.get({ name: name });
+        // let collection = await this.collections.get(name);
         if (collection) {
           for (const card of collection.cards) {
             if (card === undefined) {

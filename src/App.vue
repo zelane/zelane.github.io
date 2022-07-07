@@ -1,19 +1,8 @@
 <script setup>
 </script>
-<!-- 
-<template>
-  <router-view />
-</template> -->
 
 <template>
-  <!-- <suspense> -->
-  <!-- <template #default> -->
   <router-view />
-  <!-- </template>
-    <template #fallback>
-      <p>Loading...</p>
-    </template>
-  </suspense> -->
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>

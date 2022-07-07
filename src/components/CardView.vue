@@ -1,14 +1,13 @@
 <script setup>
+import { useUI } from '../stores/ui';
 import Card from './Card.vue';
+
+const ui = useUI();
 
 const props = defineProps({
   store: {
     type: Object,
     required: true
-  },
-  zoom: {
-    type: Number,
-    default: 1,
   },
   actions: {
     type: Array,
@@ -27,7 +26,7 @@ const props = defineProps({
   </div>
   <div
     class="cards"
-    :style="{ 'font-size': 18 + (props.zoom * 2) + 'px' }"
+    :style="{ 'font-size': 18 + (ui.zoom * 2) + 'px' }"
   >
     <div
       class="fix"
