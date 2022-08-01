@@ -13,6 +13,8 @@ export const cachedGet = async (cache, url, force = false) => {
   }
   const json = await response.json();
   return json;
+  // const resp = await fetch(request);
+  // return resp.json();
 };
 
 export const post = async (url = '', data = {}) => {

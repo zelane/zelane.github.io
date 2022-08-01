@@ -38,7 +38,6 @@ const exportList = async (format) => {
   toast(`Copied to Clipboard`);
 };
 </script>
-
 <template>
   <MenuButton 
     text="Export"

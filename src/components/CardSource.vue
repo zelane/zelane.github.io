@@ -145,7 +145,7 @@ onMounted(async () => {
         />
         <button
           class="small icon icon-loop"
-          @click="loadSet(ui.set, true)"
+          @click="cards.loadSet(ui.set, true)"
         />
       </div>
       <div

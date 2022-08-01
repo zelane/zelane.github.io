@@ -10,6 +10,7 @@ export const useMeta = defineStore('meta', {
       precons: [],
       types: [],
       symbols: new Map(),
+      cacheKeys: new Map(),
     };
   },
   getters: {
@@ -22,6 +23,9 @@ export const useMeta = defineStore('meta', {
   },
   actions: {
     async init() {
+      // let cacheKeys = await (await fetch(backendUrl + "/cacheKeys")).json();
+      // this.cacheKeys = new Map(Object.entries(cacheKeys));
+
       const cache = await caches.open('cardDataCache');
 
       // Load sets

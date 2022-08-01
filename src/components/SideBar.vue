@@ -66,6 +66,8 @@ const groupBySet = (cards) => {
         <CardParser
           @parsed="cards.loadCollections"
         />
+        
+        <hr>
         <CardExporter :cards="cards.filtered" />
       </span>
     </div>
