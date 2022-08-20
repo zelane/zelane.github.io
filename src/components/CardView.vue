@@ -80,7 +80,7 @@ const props = defineProps({
   }
   .cards {
     justify-content: center;
-	  scroll-snap-type: y mandatory;
+	  /* scroll-snap-type: y mandatory; */
   }
 }
 </style>

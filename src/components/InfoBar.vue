@@ -20,7 +20,7 @@ const ui = useUI();
     <span class="sort">
       <Multiselect
         v-model="cards.sort.val"
-        :options="['Mana', 'Type', 'Price', 'Count', 'Released', 'Tag']"
+        :options="['Mana', 'Type', 'Price', 'Count', 'Released', 'Tag', 'Number']"
         mode="single"
         :can-clear="false"
       />

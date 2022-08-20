@@ -257,7 +257,7 @@ img {
 
 @media (max-width: 640px) {
   .card {
-    scroll-snap-align: start;
+    /* scroll-snap-align: start; */
   }
   img {
     /* aspect-ratio: .72; */

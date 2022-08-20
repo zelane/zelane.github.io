@@ -38,6 +38,9 @@ const dynamicSort = (sort) => (a, b) => {
   else if (sort.val === 'Tag') {
     return a.tags[0].localeCompare(b.tags[0]);
   }
+  else if (sort.val === 'Number') {
+    return parseInt(a.collector_number) > parseInt(b.collector_number);
+  }
 };
 
 const config = {
