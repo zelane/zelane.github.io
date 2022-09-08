@@ -6,10 +6,12 @@ import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import { useUI } from '../stores/ui';
 import { useCardView } from '../stores/cards';
+import { useCollections } from '../stores/collections';
 
 
 const cards = useCardView();
 const ui = useUI();
+const collections = useCollections();
 
 const setMenu = item => {
   if(item === ui.sidebar.selected) ui.sidebar.show = !ui.sidebar.show;
@@ -26,6 +28,17 @@ const groupBySet = (cards) => {
     return map;
   }, new Map());
   return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
+};
+
+const refresh = async () => {
+  const to = setTimeout(()=> {
+    cards.loading = true;
+  }, 300);
+  await collections.refreshPrices(() => {
+    cards.loadCollections(collections.open);
+  });
+  clearTimeout(to);
+  cards.loading = false;
 };
 
 </script>
@@ -62,14 +75,19 @@ const groupBySet = (cards) => {
       class="add panel"
       v-show="ui.sidebar.selected === 'collection'"
     >
-      <span>
-        <CardParser
-          @parsed="cards.loadCollections"
-        />
-        
-        <hr>
+      <CardParser
+        @parsed="cards.loadCollections"
+      />
+      <hr>
+      <h4>Manage collection</h4>
+      <div class="buttons">
         <CardExporter :cards="cards.filtered" />
-      </span>
+        <!-- <button
+          @click="refresh()"
+        >
+          Refresh Prices
+        </button> -->
+      </div>
     </div>
 
     <div
@@ -175,32 +193,36 @@ const groupBySet = (cards) => {
   z-index: 2;
   color: var(--colour-light-font);
 }
-.sidepanel .panel {
+.sidepanel.show {
+  transform: translate(0, 0);
+}
+.panel {
   position: absolute;
   inset: 0;
   padding: 1rem 2rem;
   overflow: auto;
 }
-.sidepanel.show {
-  transform: translate(0, 0);
-}
-.sidepanel .info {
+.info {
   width: 100%;
   display: flex;
   flex-direction: column;
   height: 100%;
 }
-.sidepanel .info .sets {
+.info .sets {
   overflow: auto;
   line-height: 1.8;
   flex-grow: 1;
   padding: 1rem 1rem;
 }
-.sidepanel .cards {
+.cards {
   grid-template-columns: auto;
   padding: 3rem;
 }
-.sidepanel .card {
+.card {
   min-width: 100%;
+}
+.buttons {
+  display: grid;
+  gap: .5rem;
 }
 </style>

@@ -1,7 +1,7 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import Fuse from 'fuse.js';
 import { useCollections } from './collections';
-import { cachedGet } from '../utils/network';
+import { cachedGet, post } from '../utils/network';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
@@ -265,6 +265,35 @@ const config = {
       this.filtered = this.filtered.filter(c => c.id !== card.id || c.finish !== card.finish);
     },
     add(card) {
+      let ex = 0.9;
+      if (!card.count) card.count = 1;
+      if (card.isCommander) {
+        card.finish = 'foil';
+      }
+      if (card.prices === undefined) {
+        card.price = 0;
+      }
+      else if (card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
+        if (card.prices.usd_etched !== null) {
+          card.price = parseFloat(card.prices.usd_etched);
+          if (!card.finish) card.finish = 'etched';
+        }
+        else if (card.prices.eur_foil || card.prices.usd_foil) {
+          card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
+          if (!card.finish) card.finish = 'foil';
+        }
+        else {
+          card.finish = 'nonfoil';
+          card.price = 0;
+        }
+      }
+      else {
+        card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
+        card.finish = 'nonfoil';
+      }
+      card.type_line = card.type_line || '';
+      card.type = superTypes.filter(t => card.type_line.includes(t))[0];
+
       const existing = this.cards.get(card.id + card.finish);
       if (existing) {
         existing.count += card.count;
@@ -277,32 +306,8 @@ const config = {
     addMany(cards) {
       this.cards.clear();
       this.filtered = [];
-      let ex = 0.9;
 
       cards.forEach(card => {
-        if (card.prices === undefined) {
-          card.price = 0;
-        }
-        else if (card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
-          if (card.prices.usd_etched !== null) {
-            card.price = parseFloat(card.prices.usd_etched);
-            if (!card.finish) card.finish = 'etched';
-          }
-          else if (card.prices.eur_foil || card.prices.usd_foil) {
-            card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
-            if (!card.finish) card.finish = 'foil';
-          }
-          else {
-            card.finish = 'nonfoil';
-            card.price = 0;
-          }
-        }
-        else {
-          card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
-          card.finish = 'nonfoil';
-        }
-        card.type_line = card.type_line || '';
-        card.type = superTypes.filter(t => card.type_line.includes(t))[0];
         this.add(card);
       });
       // this.filters = {};

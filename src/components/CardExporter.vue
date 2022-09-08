@@ -1,6 +1,9 @@
 <script setup>
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
+import { post } from '../utils/network';
+
+const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const props = defineProps({
   cards: {
@@ -24,8 +27,13 @@ const exportList = async (format) => {
     };
   }
   else if(format === 'mkm') {
+    const ids = props.cards.map(c => c.id);
+    const versions = await post(`${backendUrl}/mkmVersions`, {
+      ids: ids,
+    });
     for(const card of props.cards.values()) {
-      list += `${card.count || 1} ${card.name} (${card.set_name})\n`;
+      const version = versions.data[card.id] || 1;
+      list += `${card.count || 1}x ${card.name} (V.${version}) (${card.set_name})\n`;
     };
   }
   else if (format === 'moxfield') {

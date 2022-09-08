@@ -29,6 +29,27 @@ export const useCollections = defineStore('collections', {
         });
       });
     },
+    async refreshPrices(callback) {
+      for (const name of this.open) {
+        let collection = await db.collections.get({ name: name });
+      
+        var ids = [];
+        for (const card of collection.cards) {
+          ids.push(card.id);
+        }
+        const resp = await post(backendUrl + "/prices", {
+          data: ids
+        });
+
+        let newCards = [];
+        for (const card of collection.cards) {
+          card.prices = resp.data[card.id];
+          newCards.push(card);
+        }
+        await this.save(name, newCards);
+      }
+      callback();
+    },
     async delete(name) {
       await db.collections.delete(name);
       this.collections.delete(name);

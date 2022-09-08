@@ -88,6 +88,7 @@ const touchEnd = (e) => {
     <div
       id="main"
       class="main"
+      :data-source="uiGlobal.source"
     >
       <InfoBar />
       <SideBar />
@@ -109,6 +110,7 @@ const touchEnd = (e) => {
         <CardView
           :store="cards"
           v-if="uiGlobal.mainView === 'cards'"
+          :actions="uiGlobal.cardActions"
         />
         <CardList 
           :cards="cards.filtered"

@@ -22,21 +22,27 @@ const ui = reactive({
   set: '',
   precons: '',
   search: '',
+  refreshingPrices: false,
+  refreshingSet: false,
 });
 
 const loadCollections = collections => {
+  uiGlobal.source = 'collection';
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
 };
 
 const loadSet = (setId, force) => {
+ uiGlobal.source = 'set';
   router.push({ path: '/set', query: {q: setId, force: true} });
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
+  uiGlobal.source = 'search';
   router.push({ path: '/search', query: {q: query, unique: unique, force: force} });
 };
 
 const loadPrecon = (name) => {
+  uiGlobal.source = 'precon';
   router.push({ path: '/precons', query: {q: name} });
 };
 
@@ -87,6 +93,22 @@ const loadRoute = async (view, params) => {
   }
 };
 
+const refreshPrices = async () => {
+  if(ui.refreshingPrices === true) return;
+  ui.refreshingPrices = true;
+  await collections.refreshPrices(() => {
+    cards.loadCollections(collections.open);
+  });
+  ui.refreshingPrices = false;
+};
+
+const refreshSet = async () => {
+  if(ui.refreshingSet === true) return;
+  ui.refreshingSet = true;
+  await cards.loadSet(ui.set, true);
+  ui.refreshingSet = false;
+};
+
 onBeforeRouteUpdate(async (a, b) => {
   await loadRoute(a.params.view, a.query);
 });
@@ -126,6 +148,12 @@ onMounted(async () => {
           @change="loadCollections"
         />
         <button
+          class="small icon icon-loop"
+          :class="{'active': ui.refreshingPrices}"
+          :disabled="ui.refreshingPrices"
+          @click="refreshPrices"
+        />
+        <button
           class="small add icon icon-settings"
           @click="uiGlobal.loadMain('upload')"
         />
@@ -145,7 +173,9 @@ onMounted(async () => {
         />
         <button
           class="small icon icon-loop"
-          @click="cards.loadSet(ui.set, true)"
+          :class="{active: ui.refreshingSet}"
+          :disabled="ui.refreshingSet"
+          @click="refreshSet"
         />
       </div>
       <div

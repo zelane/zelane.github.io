@@ -57,12 +57,13 @@ const emit = defineEmits(['selected']);
   flex-grow: 1;
 }
 .results {
-  max-height: minmax(30rem, 50vh);
+  max-height: min(30rem, 50vh);
   display: flex;
   flex-direction: column;
   gap: .5rem;
   width: 100%;
   overflow: auto;
+  padding-right: 1rem;
 }
 .result {
   display: flex;

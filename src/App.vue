@@ -184,6 +184,27 @@ button.small,
   box-shadow: var(--default-shadow);
   color: #e5dbdc;
 }
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(180deg);
+  }
+}
+button.icon.active::before {
+  display: block;
+  animation-name: spin;
+  animation-duration: .6s;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+  line-height: 1.4;
+}
+button:disabled {
+  cursor: default !important;
+  color: var(--colour-green);
+  background-color: #221e26 !important;
+}
 .slider-target {
   box-shadow: var(--default-shadow);
 }
@@ -372,5 +393,12 @@ h3 {
   height: 1em;
   vertical-align: middle;
   margin-right: .1em;
+}
+
+.main:not([data-source="collection"]) .card button.delete{
+  display: none;
+}
+.main:not([data-source="collection"]) .sidepanel .item.collection{
+  display: none;
 }
 </style>

@@ -62,9 +62,6 @@ const props = defineProps({
   inset: 3rem 0 0 0;
   overflow: auto;
 }
-.fix {
-
-}
 .cards .card {
   margin: 0 auto;
   min-width: 15em;

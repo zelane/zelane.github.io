@@ -89,7 +89,7 @@ const deleteCard = async (card) => {
         />
         <button
           v-if="props.actions.includes('delete')"
-          class="small clip icon icon-delete"
+          class="small delete icon icon-delete"
           @click.stop="deleteCard(card)"
           title="Delete"
         />
