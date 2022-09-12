@@ -1,7 +1,7 @@
 <script setup>
 import { reactive, ref, watch, onBeforeMount  } from 'vue';
 import { useCollections } from '../stores/collections';
-import { useCardView } from '../stores/cards';
+import { useCardView, useClipboard } from '../stores/cards';
 import { useMeta } from '../stores/meta';
 import { useUI } from '../stores/ui';
 import Filters from './Filters.vue';
@@ -13,6 +13,7 @@ import SideBar from './SideBar.vue';
 import CardSource from './CardSource.vue';
 import InfoBar from './InfoBar.vue';
 
+const clipboard = useClipboard();
 const collections = useCollections();
 const cards = useCardView();
 const meta = useMeta();
@@ -41,8 +42,20 @@ watch(cards.sort, () => {
 onBeforeMount(async () => {
   await collections.init();
   await meta.init();
+  try {
+    const clipboardCards = await collections.getCards(['clipboard']);
+    if(clipboardCards) clipboard.addMany(clipboardCards);
+    const channel = new BroadcastChannel("clipboard");
+    channel.addEventListener("message", (e) => {
+      if(e.data === 'update') {
+        clipboard.loadCollections(['clipboard']);
+      }
+    });
+  }
+  catch (e) {
+    console.error(e);
+  }
 });
-
 
 let touchYPos = 0;
 const sidebar = ref(null);

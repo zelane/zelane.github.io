@@ -6,12 +6,10 @@ import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import { useUI } from '../stores/ui';
 import { useCardView } from '../stores/cards';
-import { useCollections } from '../stores/collections';
 
 
 const cards = useCardView();
 const ui = useUI();
-const collections = useCollections();
 
 const setMenu = item => {
   if(item === ui.sidebar.selected) ui.sidebar.show = !ui.sidebar.show;
@@ -28,17 +26,6 @@ const groupBySet = (cards) => {
     return map;
   }, new Map());
   return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
-};
-
-const refresh = async () => {
-  const to = setTimeout(()=> {
-    cards.loading = true;
-  }, 300);
-  await collections.refreshPrices(() => {
-    cards.loadCollections(collections.open);
-  });
-  clearTimeout(to);
-  cards.loading = false;
 };
 
 </script>
@@ -82,11 +69,6 @@ const refresh = async () => {
       <h4>Manage collection</h4>
       <div class="buttons">
         <CardExporter :cards="cards.filtered" />
-        <!-- <button
-          @click="refresh()"
-        >
-          Refresh Prices
-        </button> -->
       </div>
     </div>
 

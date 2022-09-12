@@ -1,7 +1,8 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import Fuse from 'fuse.js';
 import { useCollections } from './collections';
-import { cachedGet, post } from '../utils/network';
+import { cachedGet } from '../utils/network';
+import { deepUnref } from 'vue-deepunref';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
@@ -375,6 +376,9 @@ const config = {
       const resp = await fetch(backendUrl + '/collection?id=' + code);
       const json = await resp.json();
       this.addMany(json.data);
+    },
+    unrefCards() {
+      return [... this.cards.values()].map(deepUnref);
     }
   },
 };

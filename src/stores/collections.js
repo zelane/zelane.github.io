@@ -25,11 +25,10 @@ export const useCollections = defineStore('collections', {
       db.collections.toCollection().each(col => {
         this.collections.set(col.name, {
           code: col.syncCode,
-          // cards: col.cards,
         });
       });
     },
-    async refreshPrices(callback) {
+    async refreshPrices() {
       for (const name of this.open) {
         let collection = await db.collections.get({ name: name });
       
@@ -48,7 +47,6 @@ export const useCollections = defineStore('collections', {
         }
         await this.save(name, newCards);
       }
-      callback();
     },
     async delete(name) {
       await db.collections.delete(name);
@@ -91,8 +89,7 @@ export const useCollections = defineStore('collections', {
       let cardMap = new Map();
       for (const name of names) {
         let collection = await db.collections.get({ name: name });
-        // let collection = await this.collections.get(name);
-        if (collection) {
+        if (collection && Object.keys(collection.cards).length > 0) {
           for (const card of collection.cards) {
             if (card === undefined) {
               continue;

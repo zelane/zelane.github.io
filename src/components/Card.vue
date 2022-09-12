@@ -30,6 +30,13 @@ const markings = {
   'foil': '☆'
 };
 
+const clip = async (card) => {
+  clipboard.add(card);
+  await collections.save('clipboard', clipboard.unrefCards());
+  const channel = new BroadcastChannel("clipboard");
+  channel.postMessage('update');
+};
+
 const deleteCard = async (card) => {
   if(confirm(`Are you sure you want to delete ${card.name} from ${collections.open.join(', ')}`)) {
     await collections.deleteCard(collections.open, card);
@@ -84,7 +91,7 @@ const deleteCard = async (card) => {
         <button
           v-if="props.actions.includes('clip')"
           class="small clip icon icon-add"
-          @click.stop="clipboard.add(card)"
+          @click.stop="clip(card)"
           title="Add to clipboard"
         />
         <button

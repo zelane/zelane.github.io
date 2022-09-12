@@ -96,9 +96,8 @@ const loadRoute = async (view, params) => {
 const refreshPrices = async () => {
   if(ui.refreshingPrices === true) return;
   ui.refreshingPrices = true;
-  await collections.refreshPrices(() => {
-    cards.loadCollections(collections.open);
-  });
+  await collections.refreshPrices();
+  await cards.loadCollections(collections.open);
   ui.refreshingPrices = false;
 };
 
@@ -170,7 +169,17 @@ onMounted(async () => {
           value-prop="code"
           mode="single"
           @select="x => loadSet(x)"
-        />
+        >
+          <template #option="{ option }">
+            <span class="set">
+              <img
+                class="icon"
+                :src="option.icon_svg_uri"
+              >
+              <span class="name">{{ option.name }}</span>
+            </span>
+          </template>
+        </Multiselect>
         <button
           class="small icon icon-loop"
           :class="{active: ui.refreshingSet}"
@@ -277,5 +286,16 @@ onMounted(async () => {
 .precon .name {
   display: inline-block;
   width: 100%;
+}
+.set .icon {
+  max-height: 1.2em;
+  width: 1.5rem;
+  vertical-align: middle;
+  color: var(--colour-light-font);
+  margin-right: .5em;
+  filter: invert(100%) saturate(1000%) hue-rotate(150deg);
+}
+.multiselect-option .is-pointed .set .icon {
+  filter: none;
 }
 </style>

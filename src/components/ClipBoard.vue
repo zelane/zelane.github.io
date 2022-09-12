@@ -27,6 +27,20 @@ const addToCollection = async (name, newCards) => {
   toast(`${newCards.length} added to ${name}`);
 };
 
+const clear = async () => {
+  clipboard.$reset();
+  await collections.save('clipboard', []);
+  const channel = new BroadcastChannel("clipboard");
+  channel.postMessage('update');
+};
+
+const clipAll = async() => {  
+  clipboard.addMany(cards.filtered);
+  await collections.save('clipboard', clipboard.unrefCards());
+  const channel = new BroadcastChannel("clipboard");
+  channel.postMessage('update');
+};
+
 </script>
 
 <template>
@@ -52,10 +66,10 @@ const addToCollection = async (name, newCards) => {
         @click="col => addToCollection(col, clipboard.cards.values())"
       />
 
-      <button @click="clipboard.addMany(cards.filtered, true)">
+      <button @click="clipAll()">
         Clip All
       </button>
-      <button @click="clipboard.$reset()">
+      <button @click="clear()">
         Clear
       </button>
     </div>
