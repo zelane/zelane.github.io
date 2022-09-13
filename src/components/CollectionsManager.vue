@@ -3,7 +3,9 @@
 import { reactive } from 'vue';
 import { useToast } from "vue-toastification";
 import { useCollections } from '../stores/collections';
+import { useUser } from '../stores/user';
 
+const user = useUser();
 const collections = useCollections();
 const toast = useToast();
 const ui = reactive({
@@ -41,24 +43,18 @@ const refreshCollection = async (name) => {
   }
 };
 
-const uploadCollection = async (name, force=false) => {
+const uploadCollection = async (name) => {
   const stid = toast(`Uploading ${name}`);
-  const code = await collections.upload(name);
-  if(code) {
-    navigator.clipboard.writeText(code);
+  const col = await collections.upload(user.token, name);
+  if(col) {
     toast.dismiss(stid);
-    toast(`${name} uploaded. Code copied to clipboard`);
+    toast(`${name} uploaded.`);
+    user.collections.set(name, col);
   }
   else {
     toast.dismiss(stid);
     toast.error(`${name} failed to upload.`);
   }
-};
-
-const copySyncCode = async (name) => {
-  const collection = await collections.get(name);
-  navigator.clipboard.writeText(collection.syncCode);
-  toast(`${name} sync code copied to clipboard.`);
 };
 
 const newCollection = async (name) => {
@@ -95,25 +91,28 @@ const deleteCollection = async (name) => {
           :key="name"
         >
           <div>{{ name }}</div>
-          <!-- <a
-          class="action icon icon-arrow_downward"
-        /> -->
-          <span
-            class="code"
-            @click.exact="copySyncCode(name)"
-          >{{ col.code }}</span>
+          <span>
+            <span 
+              v-if="user.collections.has(name)"
+            >
+              {{ user.collections.get(name).id }}
+            </span>
+          </span>
           <a
+            v-if="user.token && col.downloaded"
             class="action icon icon-arrow-up"
             @click.exact="uploadCollection(name)"
-            @click.ctrl="uploadCollection(name, true)"
+            @click.ctrl="uploadCollection(name)"
           />
           <a
+          
+            v-if="user.token && user.collections.has(name)"
             class="action icon icon-arrow-down"
             @click.exact="refreshCollection(name)"
           />
           <!-- <a
             class="action icon icon-clipboard"
-            @click.exact="copySyncCode(name)"
+            @click.exact="copyUrl(name)"
           /> -->
           <a
             class="action"
@@ -129,12 +128,6 @@ const deleteCollection = async (name) => {
           type="text"
           v-model="ui.name"
         >
-
-        <label>Sync code (optional)</label>
-        <input
-          type="text"
-          v-model="ui.code"
-        >
       </div>
       
       <button
@@ -142,6 +135,13 @@ const deleteCollection = async (name) => {
       >
         Add
       </button>
+      <div class="google-sync">
+        <GoogleLogin
+          :callback="user.handleGoogleLogin"
+          popup-type="TOKEN"
+          prompt
+        />
+      </div>
     </div>
   </div>
 </template>

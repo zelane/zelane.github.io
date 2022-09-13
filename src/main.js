@@ -4,6 +4,7 @@ import App from './App.vue';
 import Toast, { POSITION } from "vue-toastification";
 import { createRouter, createWebHashHistory } from 'vue-router';
 import Page from './components/Page.vue';
+import vue3GoogleLogin from 'vue3-google-login';
 
 import "vue-toastification/dist/index.css";
 
@@ -37,4 +38,7 @@ app.use(Toast, {
         move: "fade-move"
     }
 });
+app.use(vue3GoogleLogin, {
+    clientId: '348408322067-4t4ks9d03r9gfp84c54kk18l0d0gv1ev.apps.googleusercontent.com'
+})
 app.mount('#app');

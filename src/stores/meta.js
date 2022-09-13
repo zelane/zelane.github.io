@@ -63,7 +63,7 @@ export const useMeta = defineStore('meta', {
       for (const [k, v] of Object.entries(groups)) {
         this.precons.push({ label: k, options: v });
       };
-    }
+    },
   },
 });
 

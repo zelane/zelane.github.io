@@ -27,3 +27,14 @@ export const post = async (url = '', data = {}) => {
   });
   return response.json();
 };
+
+
+export const _delete = async (url = '', data = {}) => {
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+};

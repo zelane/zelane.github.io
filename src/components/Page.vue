@@ -39,6 +39,7 @@ watch(cards.sort, () => {
   cards.applyFilters();
 });
 
+
 onBeforeMount(async () => {
   await collections.init();
   await meta.init();

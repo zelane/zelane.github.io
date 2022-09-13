@@ -1,7 +1,10 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import Dexie from 'dexie';
-import { post } from '../utils/network';
+import { post, _delete } from '../utils/network';
+import { useUser } from '../stores/user';
+
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 
 const db = new Dexie('mtg');
 db.version(4).stores({
@@ -23,8 +26,10 @@ export const useCollections = defineStore('collections', {
   actions: {
     async init() {
       db.collections.toCollection().each(col => {
+        if(col.name === 'clipboard') return;
         this.collections.set(col.name, {
-          code: col.syncCode,
+          lastSync: 0,
+          downloaded: true,
         });
       });
     },
@@ -49,27 +54,23 @@ export const useCollections = defineStore('collections', {
       }
     },
     async delete(name) {
+      const user = useUser();
+      if(user.collections.has(name)) {
+        await _delete(backendUrl + '/collection', {
+          id: user.collections.get(name).id
+        });
+        // user.collections.delete(name);
+      }
       await db.collections.delete(name);
       this.collections.delete(name);
       this.open.splice(this.open.indexOf(name), 1);
     },
-    async save(name, cards, syncCode=null) {
-      if(syncCode !== null) {
-        await db.collections.put({ name: name, cards: cards, syncCode: syncCode });
-      }
-      else {
-        await db.collections.put({ name: name, cards: cards });
-      }
+    async save(name, cards) {
+      await db.collections.put({ name: name, cards: cards });
       if (!this.collections.has(name)) {
-        this.collections.set(name, {code: syncCode});
+        this.collections.set(name, {lastSync: 0});
       }
       return this.all;
-    },
-    async saveCode(name, code) {
-      await db.collections.update(name, {
-        "syncCode": code
-      });
-      this.collections.get(name).code = code;
     },
     async deleteCard(collectionNames, card) {
       for (const colName of collectionNames) {
@@ -83,6 +84,15 @@ export const useCollections = defineStore('collections', {
     },
     async load(names) {
       this.open = names;
+      if(!names) return;
+
+      const user = useUser();
+      for(const name of names) {
+        const co = this.collections.get(name);
+        if (co && !co.downloaded) {
+          await this.download(user.collections.get(name).id);
+        }
+      }
       return await this.getCards(names);
     },
     async getCards(names) {
@@ -91,7 +101,7 @@ export const useCollections = defineStore('collections', {
         let collection = await db.collections.get({ name: name });
         if (collection && Object.keys(collection.cards).length > 0) {
           for (const card of collection.cards) {
-            if (card === undefined) {
+            if (!card) {
               continue;
             }
             const cardKey = card.id + card.finish;
@@ -110,10 +120,12 @@ export const useCollections = defineStore('collections', {
       }
       return [...cardMap.values()];
     },
-    async upload(name) {
+    async upload(userToken, name) {
       try {
         const collection = await this.get(name);
         let data = {
+          name: collection.name,
+          userToken: userToken,
           cards: collection.cards.map(c => {
             return {
               id: c.id,
@@ -123,40 +135,19 @@ export const useCollections = defineStore('collections', {
             };
           })
         };
-        let code = collection.syncCode;
-        if (code) {
-          data.id = code;
-        }
         const resp = await post(backendUrl + '/collection', data);
-        code = resp.data;
-        this.saveCode(name, code);
-        return code;
+        return resp.data;
       }
       catch (error) {
         console.error(error);
       }
     },
-    async download(name, code) {
+    async download(id) {
       try {
-        const resp = await fetch(backendUrl + '/collection?id=' + code);
+        const resp = await fetch(backendUrl + '/collection?id=' + id);
         const json = await resp.json();
-        await this.save(name, json.data, code);
-      }
-      catch (error) {
-        console.error(error);
-        return false;
-      }
-      return true;
-    },
-    async refresh(name) {
-      try {
-        const collection = await this.get(name);
-        if (!collection.syncCode) {
-          return;
-        }
-        const resp = await fetch(backendUrl + '/collection?id=' + collection.syncCode);
-        const json = await resp.json();
-        this.save(name, json.data, collection.syncCode);
+        await this.save(json.data.name, json.data.cards);
+        this.collections.get(json.data.name).downloaded = true;
       }
       catch (error) {
         console.error(error);
