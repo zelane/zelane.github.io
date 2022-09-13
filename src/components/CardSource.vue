@@ -136,16 +136,31 @@ onMounted(async () => {
     </div>
     <div class="view">
       <div
-        class="item collection"
+        class="item collections"
         v-if="ui.selected === 'collection'"
       >
         <Multiselect
           v-model="collections.open"
-          :options="collections.all"
+          :options="collections.obj"
+          label="name"
+          value-prop="name"
           mode="tags"
           :searchable="true"
           @change="loadCollections"
-        />
+        >
+          <template #option="{ option }">
+            <span
+              class="collection"
+              :class="{missing: !option.downloaded}"
+            >
+              <span class="name">{{ option.name }}</span>
+              <span
+                class="status icon icon-arrow-down"
+                v-if="!option.downloaded"
+              />
+            </span>
+          </template>
+        </Multiselect>
         <button
           class="small icon icon-loop"
           :class="{'active': ui.refreshingPrices}"
@@ -297,5 +312,14 @@ onMounted(async () => {
 }
 .multiselect-option .is-pointed .set .icon {
   filter: none;
+}
+.collections .collection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+.collections .collection.missing {
+  color: #aaa;
 }
 </style>

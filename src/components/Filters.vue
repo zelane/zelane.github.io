@@ -203,6 +203,19 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     placeholder="Border"
   />
 
+  <div class="filter-group quantity">
+    <input
+      type="number"
+      v-model="cardView.filters.quantity.value[0]"
+      placeholder="Count (min)"
+    >
+    <input
+      type="number"
+      v-model="cardView.filters.quantity.value[1]"
+      placeholder="Count (max)"
+    >
+  </div>
+
   <div class="filter-group">
     <h3>Other</h3>
     <label for="group">Group</label>
@@ -267,12 +280,12 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   flex-direction: column;
   gap: .5rem;
 }
-.price, .mana {
+.price, .mana, .quantity {
   display: grid;
   gap: 0 .5rem;
   grid-template-columns: auto auto;
 }
-.price h3, .mana h3 {
+.price h3, .mana h3, .quantity h3 {
   grid-column: span 2;
 }
 

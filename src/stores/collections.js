@@ -21,6 +21,14 @@ export const useCollections = defineStore('collections', {
   getters: {
     all(state) {
       return [... state.collections.keys()].sort();
+    },
+    obj(state) {
+      let o = [];
+      for(const [k, v] of state.collections.entries()) {
+        v.name = k;
+        o.push(v);
+      }
+      return o;
     }
   },
   actions: {
@@ -68,7 +76,7 @@ export const useCollections = defineStore('collections', {
     async save(name, cards) {
       await db.collections.put({ name: name, cards: cards });
       if (!this.collections.has(name)) {
-        this.collections.set(name, {lastSync: 0});
+        this.collections.set(name, {downloaded: true, lastSync: 0});
       }
       return this.all;
     },

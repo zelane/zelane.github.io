@@ -12,11 +12,13 @@ import CollectionsManager from './CollectionsManager.vue';
 import SideBar from './SideBar.vue';
 import CardSource from './CardSource.vue';
 import InfoBar from './InfoBar.vue';
+import { useUser } from '../stores/user';
 
 const clipboard = useClipboard();
 const collections = useCollections();
 const cards = useCardView();
 const meta = useMeta();
+const user = useUser();
 
 const uiGlobal = useUI();
 
@@ -56,6 +58,7 @@ onBeforeMount(async () => {
   catch (e) {
     console.error(e);
   }
+  user.loadCookie();
 });
 
 let touchYPos = 0;

@@ -25,6 +25,8 @@ const upload = reactive({
   total: 0
 });
 
+const file = reactive({path: null});
+
 watchEffect(() => {
   upload.name = collections.open[0];
 });
@@ -111,10 +113,9 @@ const handleTextUpload = async (e) => {
 };
 
 const handleFileUpload = async (e) => {
-  if (fileElem.value.files.length === 0) {
+  if (file.path === null) {
     return;
   }
-  let file = fileElem.value.files[0];
   const reader = new FileReader();
   upload.active = true;
   upload.progress = 0;
@@ -128,11 +129,9 @@ const handleFileUpload = async (e) => {
     let cardList = await parser(reader.result);
     updateCollection(upload.name, cardList);
   };
-  let encoding = await checkEncoding(file);
-  reader.readAsText(file, encoding);
+  let encoding = await checkEncoding(file.path);
+  reader.readAsText(file.path, encoding);
 };
-
-const fileElem = ref(null);
 
 Papa.parsePromise = (file) => {
   return new Promise((complete, error) => {
@@ -318,6 +317,10 @@ const formats = {
   'DragonShield Web': ['file', handleFileUpload],
   'Search': ['search', handleSearch]
 };
+
+const fileChange = e => {
+  file.path = e.target.files[0];
+};
 </script>
 
 <template>
@@ -342,8 +345,8 @@ const formats = {
     <input
       v-if="formats[upload.format][0] === 'file'"
       id="file-input"
-      ref="fileElem"
       type="file"
+      @change="fileChange"
       :disabled="upload.active"
     >
 
@@ -365,8 +368,9 @@ const formats = {
         v-if="formats[upload.format][0] === 'file'"
       >Choose file</label>
       <button
-        v-if="!upload.active && upload.format && (upload.text || fileElem)"
+        v-if="!upload.active && upload.format && (upload.text || file.path)"
         @click="formats[upload.format][1]()"
+        :disabled="file.path === null"
       >
         Add
       </button>
@@ -395,9 +399,6 @@ const formats = {
   max-width: 640px;
   align-items: center;
 }
-/* .upload input[type="file"] {
-  display: none;
-} */
 .file {
   display: block;
   width: 100%;
@@ -409,6 +410,10 @@ const formats = {
   flex-direction: row;
   text-align: center;
   gap: 1rem;
+  width: 100%;
+}
+.buttons label.button, .buttons button {
+  flex-grow: 1;
 }
 label.button {
   display: block;
@@ -426,6 +431,7 @@ input[type="file"] {
   text-align: center;
   font-family: "Beleren SmallCaps Bold";
   overflow: hidden;
+  width: 100%;
 }
 
 .progress .bar {

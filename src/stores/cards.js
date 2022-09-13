@@ -71,6 +71,7 @@ const config = {
         ors: {},
         finish: null,
         border: null,
+        quantity: { value: [null, null], min: 0, max: 100 },
       },
       sort: {
         val: 'Price',
@@ -99,7 +100,11 @@ const config = {
         let existing = grouped.get(card.name);
         let price = card.price > 0 ? card.price : Infinity;
         if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
-          grouped.set(card.name, card);
+          grouped.set(card.name, {... card});
+        }
+        if(existing) {
+          existing.count += (card.count || 1);
+          grouped.set(card.name, existing);
         }
       }
       return [... grouped.values()].sort(dynamicSort(state.sort));
@@ -210,9 +215,6 @@ const config = {
         // return card.frame == '2003';
         // return card.full_art == true;
 
-        if (_filters.dupesOnly === true && card.count === 1) {
-          return false;
-        }
         const hasFinish = !_filters.finish || card.finish === _filters.finish;
         if (!hasFinish) return false;
         const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
@@ -249,6 +251,9 @@ const config = {
 
         const haPrice = card.price >= (_filters.price.value[0] || 0) && card.price <= (_filters.price.value[1] || 9999);
         if (!haPrice) return false;
+
+        const hasCount = card.count >= (_filters.quantity.value[0] || 0) && card.count <= (_filters.quantity.value[1] || 9999);
+        if (!hasCount) return false;
 
         const hasBorder = _filters.border ? card.border_color == _filters.border : true;
         if (!hasBorder) return false;

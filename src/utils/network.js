@@ -25,7 +25,11 @@ export const post = async (url = '', data = {}) => {
     },
     body: JSON.stringify(data),
   });
-  return response.json();
+  if(!response.ok) {
+    throw Error(response.statusText);
+  }
+  const json = await response.json();
+  return json;
 };
 
 

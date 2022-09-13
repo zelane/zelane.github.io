@@ -7,4 +7,9 @@ export default defineConfig({
     outDir: "docs",
     assetsDir: "assets"
   },
+  server: {
+    watch: {
+      usePolling: true
+    }
+  }
 });

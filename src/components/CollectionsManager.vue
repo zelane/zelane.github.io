@@ -93,9 +93,14 @@ const deleteCollection = async (name) => {
           <div>{{ name }}</div>
           <span>
             <span 
-              v-if="user.collections.has(name)"
+              v-if="user.collections.has(name) && user.collections.get(name).lastSync"
             >
-              {{ user.collections.get(name).id }}
+              {{ (
+                new Intl.DateTimeFormat('en-GB', {
+                  dateStyle: 'short',
+                  timeStyle: 'medium',
+                  timeZone: 'UTC'
+                }).format(new Date(user.collections.get(name).lastSync * 1))) }}
             </span>
           </span>
           <a
@@ -120,27 +125,33 @@ const deleteCollection = async (name) => {
           >-</a>
         </div>
       </div>
-      <hr>
-      <h3>New collection</h3>
-      <div class="form">
-        <label>Name</label>
+      <div class="new-collection">
         <input
           type="text"
           v-model="ui.name"
+          placeholder="New collection"
         >
-      </div>
       
-      <button
-        @click="ui.code ? downloadCollection(ui.name, ui.code) : newCollection(ui.name)"
-      >
-        Add
-      </button>
+        <button
+          @click="newCollection(ui.name)"
+          class="button small icon icon-plus"
+        />
+      </div>
       <div class="google-sync">
         <GoogleLogin
-          :callback="user.handleGoogleLogin"
+          v-if="!user.token"
+          :callback="r => user.handleGoogleLogin(r.credential)"
           popup-type="TOKEN"
-          prompt
         />
+        <div
+          class="logged-in"
+          v-if="user.token"
+          @click="user.logout()"
+        >
+          <img :src="user.info.picture">
+          <span>Syncing as {{ user.info.given_name }}</span>
+          <span class="icon icon-close" />
+        </div>
       </div>
     </div>
   </div>
@@ -199,9 +210,35 @@ const deleteCollection = async (name) => {
   flex-grow: 1;
   font-weight: 500;
 }
-.form {
-  display: grid;
-  gap: 1rem;
+.new-collection {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  gap: .5rem;
+}
+.new-collection input {
+  flex-grow: 2;
+}
+.logged-in {
+  background-color: var(--colour-input-grey);
+  box-shadow: var(--default-shadow);
+  border-radius: var(--default-br);
+  display: flex;
+  flex-direction: row;
   align-items: center;
+  padding-right: 1rem;
+  gap: 1rem;
+  cursor: pointer;
+}
+.logged-in img {
+  box-shadow: inset 0 0 2px 2px;
+  height: 50px;
+}
+.logged-in .icon {
+  display: inline-block;
+  box-shadow: -1px 0px 0 rgba(255,255,255,0.05);
+  padding-left: .8rem;
+  border-left: 1px solid rgba(0,0,0,0.3);
+  line-height: 1.5rem;
 }
 </style>
