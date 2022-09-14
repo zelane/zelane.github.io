@@ -2,6 +2,7 @@
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { post } from '../utils/network';
+import { useMeta } from '../stores/meta';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -12,6 +13,7 @@ const props = defineProps({
   }
 });
 
+const meta = useMeta();
 const toast = useToast();
 
 const exportList = async (format) => {
@@ -27,13 +29,24 @@ const exportList = async (format) => {
     };
   }
   else if(format === 'mkm') {
-    const ids = props.cards.map(c => c.id);
     const versions = await post(`${backendUrl}/mkmVersions`, {
-      ids: ids,
+      ids: props.cards.map(c => c.id),
     });
     for(const card of props.cards.values()) {
       const version = versions.data[card.id] || 1;
-      list += `${card.count || 1}x ${card.name} (V.${version}) (${card.set_name})\n`;
+      let set_name = "" + card.set_name;
+      if(card.promo) {
+        set_name = set_name.replace(" Promos", ": Promos");
+      }
+      else if(!card.booster) {
+        set_name = set_name += ": Extras";
+      }
+      if(versions.data[card.id]) {
+        list += `${card.count || 1}x ${card.name} (V.${version}) (${set_name})\n`;
+      }
+      else {
+        list += `${card.count || 1}x ${card.name} (${set_name})\n`;
+      }
     };
   }
   else if (format === 'moxfield') {

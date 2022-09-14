@@ -105,6 +105,7 @@ const deleteCard = async (card) => {
     <p class="name">
       {{ props.card.count }} {{ props.card.name }} {{ markings[props.card.finish] }}
     </p>
+    <!-- <p>{{ props.card.id }}</p> -->
     <p>
       {{ props.card.set_name }}
       <a

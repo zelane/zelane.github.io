@@ -33,7 +33,7 @@ const loadCollections = collections => {
 
 const loadSet = (setId, force) => {
  uiGlobal.source = 'set';
-  router.push({ path: '/set', query: {q: setId, force: true} });
+  router.push({ path: '/set', query: {q: setId, force: force} });
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
@@ -81,7 +81,7 @@ const loadRoute = async (view, params) => {
     }
     else if(view === 'set') {
       ui.set = params.q;
-      await cards.loadSet(ui.set, params.force);
+      await cards.loadSet(ui.set, params.force === 'true');
     }
     else if(view === 'precons') {
       ui.precons = params.q;

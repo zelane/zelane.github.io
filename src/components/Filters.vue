@@ -234,7 +234,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   line-height: 1rem;
   background-color: var(--colour-input-grey);
   padding: 0.5rem;
-  max-height: 11rem;
+  max-height: 10rem;
   overflow: auto;
   gap: 1rem;
 }

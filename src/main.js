@@ -39,6 +39,6 @@ app.use(Toast, {
     }
 });
 app.use(vue3GoogleLogin, {
-    clientId: '348408322067-4t4ks9d03r9gfp84c54kk18l0d0gv1ev.apps.googleusercontent.com'
-})
+    clientId: import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID
+});
 app.mount('#app');

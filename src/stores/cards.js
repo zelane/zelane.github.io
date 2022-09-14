@@ -100,7 +100,8 @@ const config = {
         let existing = grouped.get(card.name);
         let price = card.price > 0 ? card.price : Infinity;
         if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
-          grouped.set(card.name, {... card});
+          existing = { ...card };
+          grouped.set(card.name, existing);
         }
         if(existing) {
           existing.count += (card.count || 1);

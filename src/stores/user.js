@@ -24,12 +24,12 @@ export const useUser = defineStore('user', {
     logout() {
       this.$reset();
     },
-    loadCookie() {
+    async loadCookie() {
       const cookies = useCookies();
       const cookieToken = cookies.cookies.get('token');
       if (cookieToken) {
         try {
-          this.handleGoogleLogin(cookieToken);
+          await this.handleGoogleLogin(cookieToken);
           console.log("User restored from cookie");
         }
         catch(e) {
