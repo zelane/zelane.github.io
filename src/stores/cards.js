@@ -99,12 +99,12 @@ const config = {
       for (const card of state.cards.values()) {
         let existing = grouped.get(card.name);
         let price = card.price > 0 ? card.price : Infinity;
-        if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
-          existing = { ...card };
+        if (existing) {
+          existing.count += (card.count || 1);
           grouped.set(card.name, existing);
         }
-        if(existing) {
-          existing.count += (card.count || 1);
+        if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
+          existing = { ...card };
           grouped.set(card.name, existing);
         }
       }
