@@ -31,7 +31,8 @@ const downloadCollection = async (name, code) => {
 
 const refreshCollection = async (name) => {
   const stid = toast(`Refreshing collection ${name}`);
-  const success = await collections.refresh(name);
+  const id = user.collections.get(name).id;
+  const success = await collections.download(id);
   if(success) {
     toast.dismiss(stid);
     toast(`${name} refreshed.`);
