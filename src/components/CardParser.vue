@@ -368,9 +368,9 @@ const fileChange = e => {
         v-if="formats[upload.format][0] === 'file'"
       >Choose file</label>
       <button
-        v-if="!upload.active && upload.format && (upload.text || file.path)"
+        v-if="!upload.active && upload.format && (upload.text || file.path) && upload.format !== 'search'"
         @click="formats[upload.format][1]()"
-        :disabled="file.path === null"
+        :disabled="file.path === null && upload.text === ''"
       >
         Add
       </button>

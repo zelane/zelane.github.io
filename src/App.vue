@@ -200,9 +200,11 @@ button.icon.active::before {
   animation-timing-function: linear;
   line-height: 1.4;
 }
+button.icon.active {
+  color: var(--colour-green);
+}
 button:disabled {
   cursor: default !important;
-  color: var(--colour-green);
   background-color: #221e26 !important;
 }
 .slider-target {
