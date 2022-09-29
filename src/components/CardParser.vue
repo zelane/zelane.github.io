@@ -93,7 +93,7 @@ const handleTextUpload = async (e) => {
     }
   }
   else if (upload.format === 'MKM Email') {
-    const re = /([0-9]+)x ([a-zA-Z ,/']+)/g;
+    const re = /([0-9]+)x ([a-zA-Z ,/\-']+)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       // if(m[2].includes('Token')) {
@@ -296,7 +296,7 @@ const fetchCardData = async (cardList) => {
         continue;
       }
       data.count = _card.count || 1;
-      data.finish = _card.finish;
+      data.finish = data.finishes.length === 1 ? data.finishes[0] : _card.finish;
       data.tags = _card.tags;
       cardData.push(data);
     }
