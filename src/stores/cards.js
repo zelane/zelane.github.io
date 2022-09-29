@@ -273,6 +273,7 @@ const config = {
     },
     add(card) {
       let ex = 0.9;
+      card.finish = card.finishes.length === 1 ? card.finishes[0] : card.finish;
       if (!card.count) card.count = 1;
       if (card.isCommander) {
         card.finish = 'foil';
