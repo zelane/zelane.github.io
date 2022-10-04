@@ -93,7 +93,7 @@ const handleTextUpload = async (e) => {
     }
   }
   else if (upload.format === 'MKM Email') {
-    const re = /([0-9]+)x ([a-zA-Z ,/\-']+)/g;
+    const re = /([0-9]+)x ([a-zA-Z ,/\-:']+) \(([a-zA-Z ,/\-:']+)\)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
       // if(m[2].includes('Token')) {

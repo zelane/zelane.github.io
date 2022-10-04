@@ -88,6 +88,7 @@ const loadRoute = async (view, params) => {
       await cards.loadPrecon(params.q);
     }
     else if(view === 'search') {
+      ui.search = params.q;
       await cards.loadSearch(params.q, params.unique, params.force);
     }
   }

@@ -13,7 +13,8 @@ const toast = useToast();
 
 const addToCollection = async (name, newCards) => {
   let collection = await collections.get(name);
-
+  const isOpen = collections.open.includes(name);
+  let added = 0;
   for(const newCard of newCards) {
     let existing = collection.cards.filter(card => card.id === newCard.id);
     if(existing.length === 0) {
@@ -22,9 +23,13 @@ const addToCollection = async (name, newCards) => {
     else {
       existing[0].count += newCard.count || 1;
     }
+    added += 1;
+    if(isOpen) {
+      cards.add({... newCard});
+    }
   }
   await collections.save(name, collection.cards, collection.syncCode);
-  toast(`${newCards.length} added to ${name}`);
+  toast(`${added} added to ${name}`);
 };
 
 const clear = async () => {
@@ -35,7 +40,12 @@ const clear = async () => {
 };
 
 const clipAll = async() => {  
-  clipboard.addMany(cards.filtered);
+  // clipboard.addMany(cards.filtered);
+  cards.filtered.forEach(card => {
+    let copy = {... card};
+    copy.count = 1;
+    clipboard.add(copy);
+  });
   await collections.save('clipboard', clipboard.unrefCards());
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');

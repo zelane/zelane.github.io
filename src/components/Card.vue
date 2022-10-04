@@ -31,7 +31,9 @@ const markings = {
 };
 
 const clip = async (card) => {
-  clipboard.add(card);
+  let copy = {... card};
+  copy.count = 1;
+  clipboard.add(copy);
   await collections.save('clipboard', clipboard.unrefCards());
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');

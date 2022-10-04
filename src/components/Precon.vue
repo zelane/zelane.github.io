@@ -4,6 +4,7 @@ import { reactive } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import { useToast } from "vue-toastification";
 import { useMeta } from '../stores/meta';
+import { post } from '../utils/network';
 
 const meta = useMeta();
 const toast = useToast();
@@ -16,17 +17,6 @@ const values = reactive({
 });
 
 const emit = defineEmits(['close']);
-
-const post = async (url = '', data = {}) => {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-  return response.json();
-};
 
 const uploadPrecon = async () => {
   const re = /([0-9]+) (.+)/g;

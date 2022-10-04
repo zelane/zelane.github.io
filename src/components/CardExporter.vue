@@ -2,7 +2,7 @@
 import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { post } from '../utils/network';
-import { useMeta } from '../stores/meta';
+import { reactive } from 'vue';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,7 +13,10 @@ const props = defineProps({
   }
 });
 
-const meta = useMeta();
+const ui = reactive({
+  downloadUrl: ""
+});
+
 const toast = useToast();
 
 const exportList = async (format) => {
@@ -54,7 +57,15 @@ const exportList = async (format) => {
     for(const card of props.cards.values()) {
       list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
     };
-  }
+    var blob = new Blob([list], { 
+      type: 'text/csv;charset=utf-8;' 
+    });
+    var url = URL.createObjectURL(blob);
+    ui.downloadUrl = url;
+    // pom.setAttribute('download', 'foo.csv');
+    // downloadButton.value.click();
+    return;
+  } 
   navigator.clipboard.writeText(list);
   toast(`Copied to Clipboard`);
 };
@@ -70,6 +81,12 @@ const exportList = async (format) => {
     }"
     @click="exportList"
   />
+  <a
+    class="button"
+    download="moxfield.csv"
+    v-if="ui.downloadUrl"
+    :href="ui.downloadUrl"
+  >Download</a>
 </template>
 
 <style scoped>
