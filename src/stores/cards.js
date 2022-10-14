@@ -390,7 +390,7 @@ const config = {
     async loadSync(code) {
       const resp = await fetch(backendUrl + '/collection?id=' + code);
       const json = await resp.json();
-      this.addMany(json.data);
+      this.addMany(json.data.cards);
     },
     unrefCards() {
       return [... this.cards.values()].map(deepUnref);
