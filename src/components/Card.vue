@@ -137,6 +137,19 @@ const deleteCard = async (card) => {
       >
         {{ tag }}
       </div>
+      <template 
+        v-if="props.card.promo_types"
+      >
+        <div
+          class="tag"
+          v-for="tag in props.card.promo_types.filter(card => {
+            return card !== 'boosterfun';
+          })"
+          :key="tag"
+        >
+          {{ tag }}
+        </div>
+      </template>
     </div>
     <!-- <p>{{ props.card.id }}</p> -->
     <!-- <p>{{ props.card.finish }}</p> -->

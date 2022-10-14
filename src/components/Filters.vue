@@ -122,7 +122,10 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     />
   </div>
 
-  <div class="filter-group">
+  <div
+    class="filter-group"
+    v-if="cardView.tags.length > 0"
+  >
     <Multiselect
       v-model="cardView.filters.tags"
       :options="[...cardView.tags]"

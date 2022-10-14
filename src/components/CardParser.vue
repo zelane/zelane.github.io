@@ -15,11 +15,11 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const upload = reactive({
   name: null,
   file: null, 
-  text: null, 
+  text: '', 
   append: true, 
   encoding: null, 
   format: "Search", 
-  active: false, 
+  active: false,
   progress: 0, 
   count: 0, 
   total: 0
@@ -93,17 +93,17 @@ const handleTextUpload = async (e) => {
     }
   }
   else if (upload.format === 'MKM Email') {
-    const re = /([0-9]+)x ([a-zA-Z ,/\-:']+) \(([a-zA-Z ,/\-:']+)\)/g;
+    const re = /([0-9]+)x ([a-zA-Z ,/\-:']+)?(?:\(V.([0-9])+\))? \(([a-zA-Z0-9 ,/\-:']+)\)/g;
     const matches = upload.text.matchAll(re);
     for (const m of matches) {
-      // if(m[2].includes('Token')) {
-
-      // }
+      let setName = m[4].replace(": Extras", "");
+      let set = '' ;// meta.setNames.get(setName);
       cards[m[2]] = {
         name: m[2].replace(" Token", "").trim(),
         count: parseInt(m[1]) || 1,
-        set: '',
+        set: set,
         number: '',
+        mkm_version: m[3] ? parseInt(m[3]) : 1,
         finish: 'nonfoil',
         tags: [],
       };
@@ -154,6 +154,9 @@ const parseDSWeb = async (csv) => {
     'rmh1' :'h1r'
   };
   parsed.data.forEach(row => {
+    if(row['Card Number'] === null) {
+      return;
+    }
     const setName = row['Set Name'];
     let setCode = row['Set Code'].toLowerCase();
     if(setSwaps[setCode]) {
