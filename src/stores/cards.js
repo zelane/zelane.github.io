@@ -281,34 +281,12 @@ const config = {
     },
     add(card) {
       let ex = 0.9;
-      card.finish = card.finishes.length === 1 ? card.finishes[0] : card.finish;
+      card.finish = card.finish;
       if (!card.count) card.count = 1;
-      if (card.isCommander) {
-        card.finish = 'foil';
-      }
-      if (card.prices === undefined) {
-        card.price = 0;
-      }
-      else if (card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
-        if (card.prices.usd_etched !== null) {
-          card.price = parseFloat(card.prices.usd_etched);
-          if (!card.finish) card.finish = 'etched';
-        }
-        else if (card.prices.eur_foil || card.prices.usd_foil) {
-          card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
-          if (!card.finish) card.finish = 'foil';
-        }
-        else {
-          card.finish = 'nonfoil';
-          card.price = 0;
-        }
-      }
-      else {
-        card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
-        card.finish = 'nonfoil';
-      }
-      card.type_line = card.type_line || '';
-      card.type = superTypes.filter(t => card.type_line.includes(t))[0];
+      card.price = parseFloat(card.cardmarket.prices.trendPrice) || 0;
+      card.finish = 'nonfoil';
+      card.type_line = '';
+      card.type = card.supertype;
 
       const existing = this.cards.get(card.id + card.finish);
       if (existing) {
@@ -317,6 +295,7 @@ const config = {
       else {
         this.cards.set(card.id + card.finish, {... card});
       }
+      console.log(card);
       this.filtered.push({ ...card });
     },
     addMany(cards) {
@@ -327,8 +306,8 @@ const config = {
         this.add(card);
       });
       // this.filters = {};
-
-      this.applyFilters();
+      this.filtered = this.sorted;
+      // this.applyFilters();
     },
     async loadSearch(query, unique='card', force=false) {
       if (query.length === 0) {

@@ -55,26 +55,9 @@ const deleteCard = async (card) => {
     :style="{opacity: cardView.filters.cmpCol.length === 0 || cardView.have.get(card.oracle_id) ? 1 : 0.5}"
   >
     <div class="img">
-      <!-- <img
-          v-if="props.card.image_uris"
-          :src="`${props.card.image_uris.normal}`"
-          loading="lazy"
-        > -->
       <img
-        v-if="props.card.image_uris"
-        :srcset="`${props.card.image_uris.normal}, ${props.card.image_uris.large} 2x, ${props.card.image_uris.large} 400w`"
-        loading="lazy"
-      >
-      <img
-        class="flip front"
-        v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
-        :src="props.card.card_faces[0].image_uris.normal"
-        loading="lazy"
-      >
-      <img
-        class="flip back"
-        v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
-        :src="props.card.card_faces[1].image_uris.normal"
+        v-if="props.card.images"
+        :srcset="`${props.card.images.small}, ${props.card.images.large} 2x, ${props.card.images.large} 400w`"
         loading="lazy"
       >
       <div class="buttons">
@@ -107,27 +90,18 @@ const deleteCard = async (card) => {
     <p class="name">
       {{ props.card.count }} {{ props.card.name }} {{ markings[props.card.finish] }}
     </p>
-    <!-- <p>{{ props.card.id }}</p> -->
     <p>
-      {{ props.card.set_name }}
+      {{ props.card.set.name }}
       <a
-        v-if="props.card.purchase_uris"
-        :href="props.card.purchase_uris.cardmarket"
+        v-if="props.card.cardmarket?.url"
+        :href="props.card.cardmarket.url"
         target="_blank"
         class="set-id"
-      >{{ props.card.set }}:{{ props.card.collector_number }}</a>
+      >{{ props.card.id }}</a>
     </p>
-    <!-- <p class="price">
-        <span>{{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.price) }}</span>
-        <a
-          v-if="props.card.purchase_uris"
-          :href="props.card.purchase_uris.cardmarket"
-          target="_blank"
-          class="set"
-        >{{ props.card.set }}:{{ props.card.collector_number }}</a>
-      </p> -->
     <p>
-      <Prices :card="props.card" />
+      {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.price) }}
+      <!-- <Prices :card="props.card" /> -->
     </p>
     <div class="tags">
       <div 

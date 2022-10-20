@@ -174,32 +174,33 @@ const parseDSWeb = async (csv) => {
     let card = {
       name: row['Card Name'],
       count: count,
-      set: '',
-      number: '',
+      set: setCode,
+      number: row['Card Number'],
       finish: finish, 
       tags: [row['Folder Name']],
     };
+    cards.set(row['Card Name']+setCode, card);
 
     // Find set id for mismatched set ids
-    let key = null;
-    if (!meta.setIds.has(setCode)) {
-      console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
-      key = card.name + card.finish;
-    }
-    else {
-      card.set = setCode,
-      card.number = row['Card Number'].toString().replace("etc", "");
-      key = setCode + row['Card Number'] + card.finish;
-    }
-    if(cards.has(key)) {
-      let ex = cards.get(key);
-      ex.count += count;
-      ex.tags.push(row['Folder Name']);
-      cards.set(key, ex);
-    }
-    else {
-      cards.set(key, card);
-    }
+    // let key = null;
+    // if (!meta.setIds.has(setCode)) {
+    //   console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
+    //   key = card.name + card.finish;
+    // }
+    // else {
+    //   card.set = setCode,
+    //   card.number = row['Card Number'].toString().replace("etc", "");
+    //   key = setCode + row['Card Number'] + card.finish;
+    // }
+    // if(cards.has(key)) {
+    //   let ex = cards.get(key);
+    //   ex.count += count;
+    //   ex.tags.push(row['Folder Name']);
+    //   cards.set(key, ex);
+    // }
+    // else {
+    //   cards.set(key, card);
+    // }
   });
   return cards;
 };
@@ -261,25 +262,20 @@ const fetchCardData = async (cardList) => {
   try {
     for (const [key, _card] of cardList.entries()) {
       let elem = {};
-      if (_card.set === '' && _card.number === '') {
-        elem.name = _card.name;
-      }
-      else {
-        elem.set = _card.set;
-        elem.collector_number = _card.number;
-      }
+      elem.name = _card.name;
+      elem.set = _card.set;
       ids.push(elem);
     };
     const chunk = 1000;
     upload.total = ids.length;
     for (let i = 0; i < ids.length; i += chunk) {
-      const resp = await post(backendUrl + '/cards', { identifiers: ids.slice(i, i + chunk) });
-      if (resp.not_found.length > 0) {
-        console.log(resp.not_found);
-      }
-      resp.data.forEach(c => {
-        mapName.set(c.name, c);
-        mapSet.set(c.set + c.collector_number, c);
+      // const resp = await post(backendUrl + '/cards', { identifiers: ids.slice(i, i + chunk) });
+      const resp = await fetch('https://api.pokemontcg.io/v2/cards?' + new URLSearchParams({
+          q: ids.slice(0, 20).map(id => `(set.id:${id.set} !name:${id.name})`).join(' OR '),
+      }));
+      const data = await resp.json();
+      data.data.forEach(c => {
+        mapSet.set(c.name + c.set.id, c);
       });
       upload.count = i;
       upload.progress = (i / ids.length) * 100;
@@ -287,19 +283,14 @@ const fetchCardData = async (cardList) => {
     }
 
     for (const [key, _card] of cardList.entries()) {
-      let data = null;
-      if (_card.set === '' && _card.number === '') {
-        data = {... mapName.get(_card.name)};
-      }
-      else {
-        data = {... mapSet.get(_card.set + _card.number)};
-      }
+      let data = {... mapSet.get(_card.name + _card.set)};
       if(!data.name) {
         console.log("Missing data", data, _card);
         continue;
       }
       data.count = _card.count || 1;
-      data.finish = data.finishes.length === 1 ? data.finishes[0] : _card.finish;
+      // data.finish = data.finishes.length === 1 ? data.finishes[0] : _card.finish;
+      data.finish = data.rarity;
       data.tags = _card.tags;
       cardData.push(data);
     }
