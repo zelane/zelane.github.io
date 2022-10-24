@@ -22,7 +22,8 @@ const upload = reactive({
   active: false,
   progress: 0, 
   count: 0, 
-  total: 0
+  total: 0,
+  errors: [],
 });
 
 const file = reactive({path: null});
@@ -61,6 +62,7 @@ const checkEncoding = async (file) => {
 };
 
 const handleTextUpload = async (e) => {
+  upload.errors = [];
   upload.active = true;
   upload.progress = 0;
   let cards = {};
@@ -116,6 +118,7 @@ const handleFileUpload = async (e) => {
   if (file.path === null) {
     return;
   }
+  upload.errors = [];
   const reader = new FileReader();
   upload.active = true;
   upload.progress = 0;
@@ -151,7 +154,12 @@ const parseDSWeb = async (csv) => {
   let parsed = await Papa.parsePromise(csv);
   let cards = new Map();
   let setSwaps = {
-    'rmh1' :'h1r'
+    'rmh1': 'h1r',
+    // 'pslr': 'slr',
+    'psld': 'sld',
+    'gk1_golgar': 'gk1',
+    'gk1_dimir': 'gk1',
+    'vthb': 'thb',
   };
   parsed.data.forEach(row => {
     if(row['Card Number'] === null) {
@@ -184,6 +192,7 @@ const parseDSWeb = async (csv) => {
     let key = null;
     if (!meta.setIds.has(setCode)) {
       console.log(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} ${setName} [${setCode}]`);
+      upload.errors.push(`Couldn't find set for ${row['Card Name']} ${row['Card Number']} [${setCode}]`);
       key = card.name + card.finish;
     }
     else {
@@ -296,6 +305,7 @@ const fetchCardData = async (cardList) => {
       }
       if(!data.name) {
         console.log("Missing data", data, _card);
+        upload.errors.push(`Missing data for ${_card.name} ${_card.number} [${_card.set}]`);
         continue;
       }
       data.count = _card.count || 1;
@@ -390,6 +400,17 @@ const fileChange = e => {
       />
     </div>
   </div>
+  <ul
+    v-if="upload.errors.length > 0"
+    class="errors"
+  >
+    <li
+      v-for="(error, index) in upload.errors"
+      :key="index"
+    >
+      {{ error }}
+    </li>
+  </ul>
 </template>
 
 <style scoped>
@@ -443,5 +464,14 @@ input[type="file"] {
   height: 3px;
   background-color: var(--colour-accent);
   transition: all 0.3s;
+}
+.errors {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: var(--colour-input-grey);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 </style>

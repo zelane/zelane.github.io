@@ -10,7 +10,6 @@ const collections = useCollections();
 const toast = useToast();
 const ui = reactive({
   name: null,
-  upload: false,
 });
 
 const emit = defineEmits(['change', 'delete', 'close']);
@@ -60,6 +59,7 @@ const uploadCollection = async (name) => {
 
 const newCollection = async (name) => {
   collections.save(name.trim(), []);
+  ui.name = null;
   emit('change', name.trim());
   emit('close');
 };

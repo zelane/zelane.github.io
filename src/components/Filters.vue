@@ -221,12 +221,18 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 
   <div class="filter-group">
     <h3>Other</h3>
-    <label for="group">Group</label>
+    <!-- <label for="group">Group by</label>
     <input
       id="group"
       type="checkbox"
       v-model="cardView.filters.group"
-    >
+    > -->
+    <Multiselect
+      :options="['Name']"
+      mode="single"
+      placeholder="Group by"
+      v-model="cardView.filters.group"
+    />
   </div>
 </template>
 

@@ -64,7 +64,7 @@ const config = {
         mana: { value: [null, null], min: 0, max: 20 },
         price: { value: [null, null], min: 0, max: 100 },
         dupesOnly: false,
-        group: false,
+        group: null,
         incCol: [],
         excCol: [],
         cmpCol: [],
@@ -95,6 +95,7 @@ const config = {
       return [... state.cards.values()].sort(dynamicSort(state.sort));
     },
     grouped(state) {
+      let by = state.filters.group;
       let grouped = new Map();
       for (const card of state.cards.values()) {
         let existing = grouped.get(card.name);
@@ -184,7 +185,7 @@ const config = {
       const collections = useCollections();
       let _filters = this.filters;
       // let to = setTimeout(() => this.loading = true, 300);
-      let filtered = _filters.group ? this.grouped : this.sorted;
+      let filtered = _filters.group !== null ? this.grouped : this.sorted;
 
       if (_filters.cardText && _filters.cardText !== '') {
         const fuse = new Fuse(filtered, {
