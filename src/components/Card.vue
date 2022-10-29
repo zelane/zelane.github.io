@@ -296,8 +296,18 @@ img {
   img {
     /* aspect-ratio: .72; */
   }
-  .focused .buttons {
-    display: flex !important;
+  .img {
+    /* aspect-ratio: .72; */
+    box-shadow: none;
+  }
+  .focused .img .buttons {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    margin-top: 1rem;
+    align-items: center;
+    justify-content: center;
+    inset: 0;
   }
 }
 </style>

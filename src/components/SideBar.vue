@@ -39,7 +39,7 @@ const touchStart = (e) => {
 const touchEnd = (e) => {
   const delta = e.changedTouches[0].screenX - touchXPos;
   console.log(delta);
-  if(ui.sidebar.show === true && delta > 50) {
+  if(ui.sidebar.show === true && delta > 100) {
     ui.sidebar.show = false;
   }
 };
@@ -227,6 +227,9 @@ const touchEnd = (e) => {
   gap: .5rem;
 }
 @media (max-width: 640px) {
+  .item.prints, .item.details {
+    display: none;
+  }
   .sidepanel {
     width: 100vw;
     max-width: 100vw;
