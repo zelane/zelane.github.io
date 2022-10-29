@@ -61,24 +61,6 @@ onBeforeMount(async () => {
   user.loadCookie();
 });
 
-let touchYPos = 0;
-const sidebar = ref(null);
-
-const touchStart = (e) => {
-  touchYPos = e.touches[0].screenY;
-};
-
-const touchEnd = (e) => {
-  const delta = e.changedTouches[0].screenY - touchYPos;
-  if(ui.showMenu === true && delta > 50 && sidebar.value.scrollTop === 0) {
-    ui.showMenu = false;
-  }
-  else if(ui.showMenu === false && delta < -50) {
-    sidebar.value.scrollTop = 0;
-    ui.showMenu = true;
-  }
-};
-
 </script>
 
 <template>
@@ -86,18 +68,9 @@ const touchEnd = (e) => {
     id="window"
   >
     <div
-      ref="sidebar"
       id="sidebar" 
       :class="{show: ui.showMenu}"
-      @touchstart="touchStart"
-      @touchend="touchEnd"
     >
-      <div
-        class="tab"
-        @click.stop="ui.showMenu = !ui.showMenu"
-      >
-        <span class="icon icon-chevron-up" />
-      </div>
       <CardSource />
       <Filters />
     </div>
@@ -175,26 +148,6 @@ const touchEnd = (e) => {
   display: flex;
   flex-direction: column;
 }
-#sidebar .tab {
-  display: none;
-  display: block;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--colour-input-grey);
-  text-align: center;
-  line-height: 2rem;
-  transform: translate(0, -100%);
-  border-radius: 8px 8px 0 0;
-  box-shadow: var(--default-shadow);
-
-  margin: auto;
-  height: 3rem;
-  width: 4rem;
-  line-height: 3rem;
-  font-size: 1.5rem;
-}
 
 #main {
   position: relative;
@@ -225,9 +178,6 @@ const touchEnd = (e) => {
   #sidebar.show {
     transform: translate(0, 0);
     overflow: auto;
-  }
-  #sidebar .tab {
-    display: block;
   }
 }
 </style>

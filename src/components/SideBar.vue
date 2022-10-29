@@ -5,6 +5,8 @@ import CardDetails from './CardDetails.vue';
 import CardParser from './CardParser.vue';
 import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
+import Filters from './Filters.vue';
+import CardSource from './CardSource.vue';
 import { useUI } from '../stores/ui';
 import { useCardView } from '../stores/cards';
 
@@ -30,16 +32,18 @@ const groupBySet = (cards) => {
 };
 
 let touchXPos = 0;
+let touchYPos = 0;
 const sidebar = ref(null);
 
 const touchStart = (e) => {
   touchXPos = e.touches[0].screenX;
+  touchYPos = e.touches[0].screenY;
 };
 
 const touchEnd = (e) => {
-  const delta = e.changedTouches[0].screenX - touchXPos;
-  console.log(delta);
-  if(ui.sidebar.show === true && delta > 75) {
+  const deltaX = e.changedTouches[0].screenX - touchXPos;
+  const deltaY = Math.abs(e.changedTouches[0].screenY - touchYPos);
+  if(ui.sidebar.show === true && deltaX > 75 && deltaX > deltaY) {
     ui.sidebar.show = false;
   }
 };
@@ -61,6 +65,7 @@ const touchEnd = (e) => {
         class="item" 
         @click.stop="setMenu(name)"
         v-for="(icon, name) in {
+          'filters': 'filter',
           'collection': 'collection-add2', 
           'clipboard':'clipboard', 
           'prints': 'prints', 
@@ -118,6 +123,14 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'prints'"
     >
       <PrintsView />
+    </div>
+
+    <div
+      class="panel filters"
+      v-show="ui.sidebar.selected === 'filters'"
+    >
+      <CardSource />
+      <Filters />
     </div>
 
     <!-- <div
@@ -215,7 +228,7 @@ const touchEnd = (e) => {
   flex-grow: 1;
   padding: 1rem 1rem;
 }
-.cards {
+.panel.prints .cards {
   grid-template-columns: auto;
   padding: 3rem;
 }
@@ -226,7 +239,21 @@ const touchEnd = (e) => {
   display: grid;
   gap: .5rem;
 }
+.panel.filters {
+  text-align: left;
+  padding: 40px 20px;
+  background-color: var(--colour-sidebar);
+  gap: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+.item.filters {
+  display: none;
+}
 @media (max-width: 640px) {
+  .item.filters {
+    display: initial;
+  }
   .item.prints, .item.details {
     display: none;
   }
