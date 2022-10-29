@@ -220,6 +220,7 @@ const touchEnd = (e) => {
     transition: all 0.2s;
     width: 100%;
     overflow: visible;
+    min-width: 0;
   }
   #sidebar.show {
     transform: translate(0, 0);

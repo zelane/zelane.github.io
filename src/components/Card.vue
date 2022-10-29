@@ -5,6 +5,7 @@ import { useCardView } from '../stores/cards';
 import { usePrintsView, useClipboard } from '../stores/cards';
 import { useDetails } from '../stores/details';
 import { useUI } from '../stores/ui';
+import { reactive } from 'vue';
 
 const clipboard = useClipboard();
 const cardView = useCardView();
@@ -23,6 +24,8 @@ const props = defineProps({
     default: () => ['clip', 'delete', 'prints']
   }
 });
+
+const vals = reactive({focused: false});
 
 const markings = {
   'nonfoil': '',
@@ -51,8 +54,13 @@ const deleteCard = async (card) => {
 <template>
   <div
     class="card"
-    :class="props.card.finish"
-    :style="{opacity: cardView.filters.cmpCol.length === 0 || cardView.have.get(card.oracle_id) ? 1 : 0.5}"
+    :class="{
+      [props.card.finish]: true,
+      focused: vals.focused
+    }"
+    :style="{
+      opacity: cardView.filters.cmpCol.length === 0 || cardView.have.get(card.oracle_id) ? 1 : 0.5
+    }"
   >
     <div class="img">
       <!-- <img
@@ -64,18 +72,21 @@ const deleteCard = async (card) => {
         v-if="props.card.image_uris"
         :srcset="`${props.card.image_uris.normal}, ${props.card.image_uris.large} 2x, ${props.card.image_uris.large} 400w`"
         loading="lazy"
+        @click="vals.focused = !vals.focused"
       >
       <img
         class="flip front"
         v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
         :src="props.card.card_faces[0].image_uris.normal"
         loading="lazy"
+        @click="vals.focused = !vals.focused"
       >
       <img
         class="flip back"
         v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
         :src="props.card.card_faces[1].image_uris.normal"
         loading="lazy"
+        @click="vals.focused = !vals.focused"
       >
       <div class="buttons">
         <button
@@ -285,7 +296,7 @@ img {
   img {
     /* aspect-ratio: .72; */
   }
-  .buttons {
+  .focused .buttons {
     display: flex !important;
   }
 }

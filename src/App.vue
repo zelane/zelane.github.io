@@ -77,6 +77,7 @@ html {
   --ms-bg: var(--colour-input-grey);
   --ms-dropdown-bg: var(--colour-input-grey);
   --ms-tag-bg: #6f334c;
+  --ms-max-height: min(10rem, 50vh);
 
   --ms-color: var(--colour-light-font);
   --ms-font-size: 1rem;
@@ -110,6 +111,7 @@ body {
   color: #efefef;
   background-color: #100c0f;
   background-color: var(--colour-dark-grey);
+  overscroll-behavior: contain;
 }
 a {
   text-decoration: none;
@@ -253,6 +255,8 @@ input[type="number"] {
   background-color: var(--colour-input-grey);
   border: var(--default-border);
   max-height: var(--ms-max-height);
+  min-height: 20rem;
+  max-height: 50vh;
 }
 .multiselect-option {
   background-color: var(--colour-input-grey);

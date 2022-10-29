@@ -72,7 +72,7 @@ const props = defineProps({
 
 @media (max-width: 640px) {
   #main .cards {
-    padding: 0 10vw;
+    padding: 2rem 10vw;
 
   }
   .cards {

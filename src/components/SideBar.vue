@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue';
 import PrintsView from './PrintsView.vue';
 import CardDetails from './CardDetails.vue';
 import CardParser from './CardParser.vue';
@@ -28,12 +29,30 @@ const groupBySet = (cards) => {
   return new Map([...grouped.entries()].sort((a, b) => a[1] > b[1] ? -1 : 1));
 };
 
+let touchXPos = 0;
+const sidebar = ref(null);
+
+const touchStart = (e) => {
+  touchXPos = e.touches[0].screenX;
+};
+
+const touchEnd = (e) => {
+  const delta = e.changedTouches[0].screenX - touchXPos;
+  console.log(delta);
+  if(ui.sidebar.show === true && delta > 50) {
+    ui.sidebar.show = false;
+  }
+};
+
 </script>
 
 <template>
   <div
     class="sidepanel"
     :class="{'show': ui.sidebar.show}"
+    ref="sidebar"
+    @touchstart="touchStart"
+    @touchend="touchEnd"
   >
     <div
       class="menu"
@@ -206,5 +225,18 @@ const groupBySet = (cards) => {
 .buttons {
   display: grid;
   gap: .5rem;
+}
+@media (max-width: 640px) {
+  .sidepanel {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .sidepanel.show {
+    transform: translate(0, 0);
+    z-index: 5;
+  }
+  .sidepanel .panel {
+    /* bottom: 3rem; */
+  }
 }
 </style>

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 
 const colours = {
-  Red: 'R', Green: 'G', Black: 'B', Blue: 'U', White: 'W', Colourless: 'C',
+  White: 'W', Blue: 'U', Black: 'B', Red: 'R', Green: 'G', Colourless: 'C',
 };
 
 const value = reactive({ colours: [] });
