@@ -254,9 +254,7 @@ input[type="number"] {
 .multiselect-dropdown {
   background-color: var(--colour-input-grey);
   border: var(--default-border);
-  max-height: var(--ms-max-height);
-  min-height: 20rem;
-  max-height: 50vh;
+  max-height: min(20rem, 50vh);
 }
 .multiselect-option {
   background-color: var(--colour-input-grey);

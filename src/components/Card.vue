@@ -300,6 +300,9 @@ img {
     /* aspect-ratio: .72; */
     box-shadow: none;
   }
+  .img .buttons {
+    display: none;
+  }
   .focused .img .buttons {
     display: flex;
     position: relative;

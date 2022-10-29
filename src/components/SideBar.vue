@@ -39,7 +39,7 @@ const touchStart = (e) => {
 const touchEnd = (e) => {
   const delta = e.changedTouches[0].screenX - touchXPos;
   console.log(delta);
-  if(ui.sidebar.show === true && delta > 100) {
+  if(ui.sidebar.show === true && delta > 75) {
     ui.sidebar.show = false;
   }
 };
