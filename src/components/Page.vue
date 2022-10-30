@@ -81,6 +81,7 @@ onBeforeMount(async () => {
       :data-source="uiGlobal.source"
     >
       <InfoBar />
+      <CardSource class="card-source" />
       <SideBar />
 
       <Precon
@@ -150,7 +151,24 @@ onBeforeMount(async () => {
   height: 100%;
   overflow: hidden;
 }
+.card-source {
+  display: none;
+}
 @media (max-width: 640px) {
+  .info-bar {
+    display: none;
+  }
+  .card-source {
+    display: initial;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--colour-sidebar);
+    z-index: 4;
+    padding: .5rem 1rem;
+    box-shadow: var(--default-shadow);
+  }
   #window {
     flex-direction: column;
   }

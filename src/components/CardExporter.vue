@@ -41,7 +41,7 @@ const exportList = async (format) => {
       if(card.promo) {
         set_name = set_name.replace(" Promos", ": Promos");
       }
-      else if(!card.booster) {
+      else if(card.promo_types.includes('boosterfun')) {
         set_name = set_name += ": Extras";
       }
       if(versions.data[card.id]) {

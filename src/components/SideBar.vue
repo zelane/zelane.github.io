@@ -67,12 +67,12 @@ const touchEnd = (e) => {
         class="item" 
         @click.stop="setMenu(name)"
         v-for="([icon, text], name) in {
-          'filters': ['filter', 'Source'],
-          'collections': [ 'collection','Collections'],
+          'filters': ['filter', 'Filter'],
+          'collections': [ 'collection','Manage'],
           'collection': [ 'folder-add', 'Add'],
           'clipboard': ['clipboard', 'Clipboard'],
-          'prints': [ 'prints', 'Test'],
-          'details': [ 'details', 'Test'],
+          'prints': [ 'prints', 'Prints'],
+          'details': [ 'details', 'Card details'],
           'settings': [ 'settings','Settings'],
         }"
         :key="name"
@@ -144,7 +144,6 @@ const touchEnd = (e) => {
       class="panel filters"
       v-show="ui.sidebar.selected === 'filters'"
     >
-      <CardSource />
       <Filters />
     </div>
 
@@ -285,23 +284,33 @@ const touchEnd = (e) => {
   .menu {
     width: 100vw;
     flex-direction: row;
-    background: #222;
     bottom: 0px;
+    gap: 5px;
+    padding: 1rem;
+    /* background: rgb(17, 13, 18); */
+    /* background: linear-gradient(0deg, rgb(17, 13, 18) 0%, rgb(17, 13, 18) 50%, rgba(255,255,255,0) 100%); */
+    background: rgb(23, 19, 23);
+    /* box-shadow: -10px 0 15px 10px rgb(17, 13, 18); */
   }
   .menu .item {
     flex-grow: 1;
     width: 20%;
     border-radius: 0;
-    border-right: 1px solid rgba(0,0,0,0.3);
-    box-shadow: -1px 0 0 1px rgba(255,255,255,0.05);
+    box-shadow: none;
+    background: none;
     text-align: center;
-    padding: .5rem 0;
+    padding: 0;
   }
   .menu .item .name{
     display: block;
-    font-size: .7rem;
-    margin-top: .4rem;
-    text-transform: capitalize;
+    font-size: .6rem;
+    margin-top: .5rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .menu .item .icon {
+    color: #a86bb3;
   }
   .item.filters {
     display: initial;
@@ -312,13 +321,14 @@ const touchEnd = (e) => {
   .sidepanel {
     width: 100vw;
     max-width: 100vw;
+    top: 0;
   }
   .sidepanel.show {
     transform: translate(0, 0);
     z-index: 5;
   }
   .sidepanel .panel {
-    /* bottom: 3rem; */
+    top: 1rem;
   }
 }
 </style>

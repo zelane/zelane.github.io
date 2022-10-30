@@ -295,6 +295,8 @@ img {
   }
   img {
     /* aspect-ratio: .72; */
+    aspect-ratio: .71;
+    aspect-ratio: .7176;
   }
   .img {
     /* aspect-ratio: .72; */

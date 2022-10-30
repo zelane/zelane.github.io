@@ -72,10 +72,11 @@ const props = defineProps({
 
 @media (max-width: 640px) {
   #main .cards {
-    padding: 2rem 10vw;
-
+    /* padding: 5rem 10vw; */
   }
   .cards {
+    
+    inset: 5rem 0 0 0;
     justify-content: center;
 	  /* scroll-snap-type: y mandatory; */
   }

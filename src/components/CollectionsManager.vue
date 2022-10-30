@@ -85,7 +85,7 @@ const deleteCollection = async (name) => {
           :key="name"
         >
           <div>{{ name }}</div>
-          <span>
+          <!-- <span>
             <span 
               v-if="user.collections.has(name) && user.collections.get(name).lastSync"
             >
@@ -96,7 +96,7 @@ const deleteCollection = async (name) => {
                   timeZone: 'UTC'
                 }).format(new Date(user.collections.get(name).lastSync * 1))) }}
             </span>
-          </span>
+          </span> -->
           <a
             v-if="user.token && col.downloaded"
             class="action icon icon-arrow-up"

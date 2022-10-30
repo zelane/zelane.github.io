@@ -319,4 +319,9 @@ onMounted(async () => {
 .collections .collection.missing {
   color: #aaa;
 }
+@media (max-width: 640px) {
+  .cards .tabs {
+    justify-content: space-evenly;
+  }
+}
 </style>
