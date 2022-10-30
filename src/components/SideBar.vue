@@ -310,7 +310,7 @@ const touchEnd = (e) => {
     letter-spacing: 1px;
   }
   .menu .item .icon {
-    color: #a86bb3;
+    color: var(--colour-anchor);
   }
   .item.filters {
     display: initial;
