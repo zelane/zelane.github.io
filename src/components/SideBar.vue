@@ -6,12 +6,13 @@ import CardParser from './CardParser.vue';
 import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import Filters from './Filters.vue';
-import CardSource from './CardSource.vue';
 import { useUI } from '../stores/ui';
 import { useCardView, useClipboard } from '../stores/cards';
 import CollectionsManager from './CollectionsManager.vue';
+import { useDetails } from '../stores/details';
+import CardImage from './CardImage.vue';
 
-
+const details = useDetails();
 const cards = useCardView();
 const ui = useUI();
 const clipboard = useClipboard();
@@ -72,7 +73,7 @@ const touchEnd = (e) => {
           'collection': [ 'folder-add', 'Add'],
           'clipboard': ['clipboard', 'Clipboard'],
           'prints': [ 'prints', 'Prints'],
-          'details': [ 'details', 'Card details'],
+          // 'details': [ 'details', 'Card details'],
           'settings': [ 'settings','Settings'],
         }"
         :key="name"
@@ -130,7 +131,8 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'details'"
     >
       <h3>Details</h3>
-      <CardDetails />
+      <CardImage :card="details.card" />
+      <CardDetails :card="details.card" />
     </div>
         
     <div

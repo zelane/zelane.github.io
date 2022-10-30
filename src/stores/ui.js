@@ -10,6 +10,9 @@ export const useUI = defineStore('ui', {
       mainView: 'cards',
       zoom: 0,
       source: 'collection',
+      details: {
+        show: false,
+      }, 
     };
   },
   getters: {

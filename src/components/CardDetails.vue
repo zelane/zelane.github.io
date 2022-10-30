@@ -8,6 +8,13 @@ const meta = useMeta();
 
 const emit = defineEmits(["changed"]);
 
+const props = defineProps({
+  card: {
+    type: Object,
+    required: true
+  }
+});
+
 const ui = reactive({
   face: 0
 });
@@ -33,21 +40,10 @@ const copyJson = card => {
   <div class="root">
     <div
       class="face"
-      v-for="(face, index) in (details.card.card_faces || [details.card])"
+      v-for="(face, index) in (props.card.card_faces || [props.card])"
       :key="face + index"
       :class="{show: ui.face === index}"
     >
-      <img
-        v-if="face.image_uris"
-        :srcset="`${face.image_uris.normal}, ${face.image_uris.large} 2x, ${face.image_uris.large} 400w`"
-        loading="lazy"
-      >
-      <a
-        v-if="details.card.card_faces"
-        @click="ui.face = (index + 1) % details.card.card_faces.length"
-      >
-        Flip
-      </a>
       <div class="oracle-text">
         <div
           v-for="(text, i) in face.oracle_text?.split('\n')"
@@ -61,11 +57,11 @@ const copyJson = card => {
     </div>
 
     <!-- <p>
-      {{ parsecolours(details.card.oracle_text) }}
+      {{ parsecolours(props.card.oracle_text) }}
     </p> -->
     <div
       class="rulings"
-      v-if="details.rulings.length > 0"
+      v-if="details.rulings.length > 0 && false"
     >
       <h3>Rulings</h3> 
       <div class="list">
@@ -81,7 +77,7 @@ const copyJson = card => {
       </div>
     </div>
   
-    <a @click="copyJson(details.card)">
+    <a @click="copyJson(props.card)">
       Copy Json
     </a>
   </div>
@@ -133,7 +129,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin: 1rem -2rem;
+  margin: 1rem 0;
 }
 .icon {
   font-size: 1.2em;

@@ -28,17 +28,13 @@ const props = defineProps({
     class="cards"
     :style="{ 'font-size': 18 + (ui.zoom * 2) + 'px' }"
   >
-    <div
-      class="fix"
+    <Card
+      :card="card"
+      :actions="props.actions"
       v-for="card in props.store.filtered.slice(0, 500)"
       :key="card.id + card.finish"
       :style="{order: card.isCommander ? -1 : null}"
-    >
-      <Card 
-        :card="card"
-        :actions="props.actions"
-      />
-    </div>
+    />
   </div>
 </template>
 
@@ -58,9 +54,7 @@ const props = defineProps({
   grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
   gap: 2em;
   padding: 2rem;
-  position: absolute;
-  inset: 3rem 0 0 0;
-  overflow: auto;
+  /* inset: 3rem 0 0 0; */
 }
 .cards .card {
   margin: 0 auto;
@@ -72,11 +66,9 @@ const props = defineProps({
 
 @media (max-width: 640px) {
   #main .cards {
-    /* padding: 5rem 10vw; */
+    padding: 1rem 10vw;
   }
   .cards {
-    
-    inset: 5rem 0 0 0;
     justify-content: center;
 	  /* scroll-snap-type: y mandatory; */
   }

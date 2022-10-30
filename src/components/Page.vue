@@ -8,11 +8,15 @@ import Filters from './Filters.vue';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-import CollectionsManager from './CollectionsManager.vue';
+import Card from './Card.vue';
 import SideBar from './SideBar.vue';
 import CardSource from './CardSource.vue';
+import CardDetails from './CardDetails.vue';
 import InfoBar from './InfoBar.vue';
 import { useUser } from '../stores/user';
+import { useDetails } from '../stores/details';
+
+const details = useDetails();
 
 const clipboard = useClipboard();
 const collections = useCollections();
@@ -61,6 +65,21 @@ onBeforeMount(async () => {
   user.loadCookie();
 });
 
+let touchYPos = 0;
+const det = ref(null);
+
+const touchStart = (e) => {
+  touchYPos = e.touches[0].screenY;
+};
+
+const touchEnd = (e) => {
+  const deltaY = e.changedTouches[0].screenY - touchYPos;
+  if(det.value.scrollTop === 0 && details.card && deltaY > 75) {
+    uiGlobal.details.show = false;
+    details.card = {};
+  }
+};
+
 </script>
 
 <template>
@@ -88,8 +107,29 @@ onBeforeMount(async () => {
         v-show="uiGlobal.mainView === 'precon'"
         @close="uiGlobal.mainView = 'cards'"
       />
+      <div
+        ref="det"
+        class="details"
+        :class="{
+          show: details.card.image_uris !== undefined
+        }"
+        @click="details.card = {}"
+        @touchstart="touchStart"
+        @touchend="touchEnd"
+      >
+        <div class="content">
+          <Card
+            :card="details.card" 
+            @click.stop=""
+          />
+          <CardDetails
+            :card="details.card"
+          />
+        </div>
+      </div>
 
-      <div 
+      <div
+        class="card-view"
         @click="uiGlobal.sidebar.show = false"
       >
         <CardView
@@ -107,6 +147,55 @@ onBeforeMount(async () => {
 </template>
 
 <style scoped>
+.details {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(0deg, rgb(23, 19, 23) 0% , rgba(23, 19, 23, 0.8) 100%);
+  opacity: 0;
+  padding: 1rem;
+  transition: transform 0.2s, opacity 0.2s;
+  display: none;
+}
+.details.show {
+  display: initial;
+  opacity: 1;
+}
+.details .content {
+  margin: auto;
+}
+@media (min-width: 640px) {
+  .details .content {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-content: center;
+    height: 100%;
+    max-width: 1280px;
+    gap: 1rem;
+  }
+.details .content .card, .details .content .root {
+  /* flex-grow: 1; */
+  width: 50%;
+  align-self: center;
+}
+}
+@media (max-width: 640px) {
+  .details {
+    position: absolute;
+    inset: 6rem 0 4rem 0;
+    transform: translate(0, 100%);
+    display: initial;
+    overflow: auto;
+  }
+  .details .content  {
+    flex-direction: column;
+  }
+  .details.show {
+    transform: translate(0, 0);
+  }
+}
+
 .sets .set {
   display: flex;
   flex-direction: row;
@@ -154,9 +243,19 @@ onBeforeMount(async () => {
 .card-source {
   display: none;
 }
+.card-view {
+  height: 100%;
+  overflow: auto;
+}
 @media (max-width: 640px) {
   .info-bar {
     display: none;
+  }
+  .card-view {
+    position: absolute;
+    inset: 6rem 0 4rem 0;
+    overflow: auto;
+    height: auto;
   }
   .card-source {
     display: initial;

@@ -406,4 +406,18 @@ h3 {
 .main:not([data-source="collection"]) .sidepanel .item.collection{
   display: none;
 }
+
+@media (max-width: 640px) {
+  #main .card-view .card .buttons, .card-view .card .details {
+    display: none !important;
+  }
+  #main .card-view .cards {
+    grid-template-columns: repeat(3, 1fr) !important;
+    padding: 1rem !important;
+    gap: 1rem;
+  }
+  #main .card-view .cards .card {
+    min-width: 0 !important;
+  }
+}
 </style>
