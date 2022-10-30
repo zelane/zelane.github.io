@@ -294,18 +294,12 @@ img {
     /* scroll-snap-align: start; */
   }
   img {
-    /* aspect-ratio: .72; */
-    aspect-ratio: .71;
-    aspect-ratio: .7176;
+    aspect-ratio: 2.5/3.5;
   }
   .img {
-    /* aspect-ratio: .72; */
     box-shadow: none;
   }
   .img .buttons {
-    display: none;
-  }
-  .focused .img .buttons {
     display: flex;
     position: relative;
     flex-direction: row;
