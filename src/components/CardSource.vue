@@ -118,8 +118,8 @@ onMounted(async () => {
     loadRoute(route.params.view, route.query);
   }
   else {
-    // console.log(collections.all);
-    // loadRoute('collection', collections.all[0]);
+    // console.log(collections.names);
+    // loadRoute('collection', collections.names[0]);
   }
 });
 

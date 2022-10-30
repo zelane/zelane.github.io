@@ -137,7 +137,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 
   <div
     class="filter-group compare"
-    v-if="collections.all.length > 0"
+    v-if="collections.names.length > 0"
   >
     <div class="header">
       <h3>Compare</h3>
@@ -148,7 +148,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     </div>
     <div class="grid">
       <template
-        v-for="col in collections.all"
+        v-for="col in collections.names"
         :key="col"
       >
         <div>{{ col }}</div>

@@ -4,6 +4,7 @@ import { reactive } from 'vue';
 import { useToast } from "vue-toastification";
 import { useCollections } from '../stores/collections';
 import { useUser } from '../stores/user';
+import CardExporter from './CardExporter.vue';
 
 const user = useUser();
 const collections = useCollections();
@@ -77,15 +78,21 @@ const deleteCollection = async (name) => {
     <div class="flex">
       <div
         class="collections"
-        v-if="collections.all.length > 0"
+        v-if="collections.names.length > 0"
       >
         <div
           class="collection"
           v-for="[name, col] in collections.collections.entries()"
           :key="name"
+          :style="{
+            'background-image': `url(${col.image})`
+          }"
         >
-          <div>{{ name }}</div>
-          <!-- <span>
+          <div class="row">
+            <div class="name">
+              {{ name }}
+            </div>
+            <!-- <span>
             <span 
               v-if="user.collections.has(name) && user.collections.get(name).lastSync"
             >
@@ -97,26 +104,54 @@ const deleteCollection = async (name) => {
                 }).format(new Date(user.collections.get(name).lastSync * 1))) }}
             </span>
           </span> -->
-          <a
-            v-if="user.token && col.downloaded"
-            class="action icon icon-arrow-up"
-            @click.exact="uploadCollection(name)"
-            @click.ctrl="uploadCollection(name)"
-          />
-          <a
+          </div>
+          <div class="row actions">
+            <div
+              class="act"
+              v-if="user.token && col.downloaded"
+              @click.exact="uploadCollection(name)"
+              @click.ctrl="uploadCollection(name)"
+            >
+              <span class="icon icon-arrow-up" />
+              <div class="text">
+                Upload
+              </div>
+            </div>
+            <div
+              class="act"
+              v-if="user.token && user.collections.has(name)"
+              @click.exact="refreshCollection(name)"
+            >
+              <span class="icon icon-arrow-down" />
+              <div class="text">
+                Download
+              </div>
+            </div>
+            <div
+              class="act"
+              @click.exact="() => {}"
+            >
+              <span class="icon icon-arrow-right" />
+              <div class="text">
+                Export
+              </div>
+            </div>
+            <div
+              class="act"
+              @click="deleteCollection(name)"
+            >
+              <span class="icon icon-delete" />
+              <div class="text">
+                Delete
+              </div>
+            </div>
           
-            v-if="user.token && user.collections.has(name)"
-            class="action icon icon-arrow-down"
-            @click.exact="refreshCollection(name)"
-          />
+            <!-- <CardExporter :cards="[]" /> -->
+          </div>
           <!-- <a
             class="action icon icon-clipboard"
             @click.exact="copyUrl(name)"
           /> -->
-          <a
-            class="action"
-            @click="deleteCollection(name)"
-          >-</a>
         </div>
       </div>
       <div class="new-collection">
@@ -161,8 +196,6 @@ const deleteCollection = async (name) => {
   color: var(--colour-accent);
   cursor: copy;
 }
-.upload {
-}
 .flex {
   display: flex;
   flex-direction: column;
@@ -178,29 +211,61 @@ const deleteCollection = async (name) => {
   transform: rotate(45deg);
 }
 .collections {
-  max-height: 20rem;
+  max-height: 60vh;
   overflow: auto;
   width: 100%;
   max-width: 640px;
-  gap: .5rem;
+  gap: 1rem;
   display: flex;
   flex-direction: column;
 }
 .collection {
-  display: flex;
-  gap: 1rem;
-  flex-direction: row;
-  height: 3rem;
-  align-items: center;
-  padding: 1rem;
-  color: var(--colour-light-text);
+  background-size: cover;
   background-color: var(--colour-input-grey);
-  /* border-bottom: 1px solid var(--colour-accent); */
+  box-shadow: var(--default-shadow);
+  border-radius: var(--default-br);
+  background-position: center center;
+  /* background-image: none !important; */
 }
-.collection div:first-child {
+.collection .row {
+  display: flex;
+  padding: .5rem;
+}
+.collection .name {
+  width: 100%;
   flex-grow: 1;
   font-weight: 500;
+  line-height: 3rem;
+  text-shadow: 1px 1px 10px black, 1px 1px 1px black;
+  font-family: var(--font-magic-smallcaps);
 }
+.collection .actions {
+  gap: .5rem;
+  background: rgb(37, 32, 40);
+  justify-content: space-evenly;
+  align-content: center;
+}
+
+.actions .act {
+  flex-grow: 1;
+  border-radius: 0;
+  text-align: center;
+  padding: 0;
+  cursor: pointer;
+}
+.actions .act .text {
+  display: block;
+  font-size: .6rem;
+  margin-top: .5rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.actions .act .icon {
+  color: var(--colour-anchor);
+  font-size: 1.2em;
+}
+
 .new-collection {
   width: 100%;
   max-width: 640px;

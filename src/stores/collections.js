@@ -19,8 +19,12 @@ export const useCollections = defineStore('collections', {
     };
   },
   getters: {
+    names(state) {
+      return [... state.collections.keys()].sort();
+    },
     all(state) {
       return [... state.collections.keys()].sort();
+      // https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382
     },
     obj(state) {
       let o = [];
@@ -38,6 +42,8 @@ export const useCollections = defineStore('collections', {
         this.collections.set(col.name, {
           lastSync: 0,
           downloaded: true,
+          // image: col.image || "https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382",
+          image: col.cards[0]?.image_uris?.art_crop || "https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382",
         });
       });
     },

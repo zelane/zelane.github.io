@@ -105,11 +105,6 @@ const touchEnd = (e) => {
       <CardParser
         @parsed="cards.loadCollections"
       />
-      <hr>
-      <h4>Manage collection</h4>
-      <div class="buttons">
-        <CardExporter :cards="cards.filtered" />
-      </div>
     </div>
 
     <div
@@ -216,7 +211,6 @@ const touchEnd = (e) => {
   vertical-align: middle;
 }
 .menu .item .icon {
-  /* margin-right: .5rem; */
   font-size: 1.2em;
 }
 .menu .item .name {
@@ -289,10 +283,7 @@ const touchEnd = (e) => {
     bottom: 0px;
     gap: 5px;
     padding: 1rem;
-    /* background: rgb(17, 13, 18); */
-    /* background: linear-gradient(0deg, rgb(17, 13, 18) 0%, rgb(17, 13, 18) 50%, rgba(255,255,255,0) 100%); */
     background: rgb(23, 19, 23);
-    /* box-shadow: -10px 0 15px 10px rgb(17, 13, 18); */
   }
   .menu .item {
     flex-grow: 1;

@@ -406,6 +406,9 @@ h3 {
 .main:not([data-source="collection"]) .sidepanel .item.collection{
   display: none;
 }
+.main:not([data-source="collection"]) .sidepanel .item.collections{
+  display: none;
+}
 
 @media (max-width: 640px) {
   #main .card-view .card .buttons, .card-view .card .details {

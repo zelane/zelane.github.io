@@ -72,7 +72,7 @@ const clipAll = async() => {
       
       <MenuButton 
         text="Add to"
-        :actions="Object.fromEntries(collections.all.map(col => [col, col]))"
+        :actions="Object.fromEntries(collections.names.map(col => [col, col]))"
         @click="col => addToCollection(col, clipboard.cards.values())"
       />
 
