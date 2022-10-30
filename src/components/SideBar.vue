@@ -3,7 +3,6 @@ import { ref } from 'vue';
 import PrintsView from './PrintsView.vue';
 import CardDetails from './CardDetails.vue';
 import CardParser from './CardParser.vue';
-import CardExporter from './CardExporter.vue';
 import ClipBoard from './ClipBoard.vue';
 import Filters from './Filters.vue';
 import { useUI } from '../stores/ui';
@@ -11,6 +10,7 @@ import { useCardView, useClipboard } from '../stores/cards';
 import CollectionsManager from './CollectionsManager.vue';
 import { useDetails } from '../stores/details';
 import CardImage from './CardImage.vue';
+import Settings from './SettingsView.vue';
 
 const details = useDetails();
 const cards = useCardView();
@@ -69,9 +69,9 @@ const touchEnd = (e) => {
         @click.stop="setMenu(name)"
         v-for="([icon, text], name) in {
           'filters': ['filter', 'Filter'],
-          'collections': [ 'collection','Manage'],
-          'collection': [ 'folder-add', 'Add'],
           'clipboard': ['clipboard', 'Clipboard'],
+          'collection': [ 'add', 'Add'],
+          'collections': [ 'collection','Manage'],
           'prints': [ 'prints', 'Prints'],
           // 'details': [ 'details', 'Card details'],
           'settings': [ 'settings','Settings'],
@@ -111,15 +111,7 @@ const touchEnd = (e) => {
       class="settings panel"
       v-show="ui.sidebar.selected === 'settings'"
     >
-      <h3>Settings</h3>
-      <span class="zoom">
-        <label for="zoom">Zoom</label>
-        <input
-          id="zoom"
-          type="number"
-          v-model="ui.zoom"
-        >
-      </span>
+      <Settings />
     </div>
     <div
       class="details panel"
@@ -254,8 +246,8 @@ const touchEnd = (e) => {
   flex-grow: 1;
   padding: 1rem 1rem;
 }
-.panel.prints .cards {
-  grid-template-columns: auto;
+.panel.prints:deep(.cards) {
+  grid-template-columns: auto !important;
   padding: 3rem;
 }
 .card {
@@ -279,7 +271,7 @@ const touchEnd = (e) => {
 @media (max-width: 640px) {
   .menu {
     width: 100vw;
-    flex-direction: row;
+    flex-direction: row-reverse;
     bottom: 0px;
     gap: 5px;
     padding: 1rem;

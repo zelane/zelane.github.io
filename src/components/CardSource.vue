@@ -7,6 +7,8 @@ import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import Multiselect from '@vueform/multiselect';
 import ManaCost from './ManaCost.vue';
 import { useUI } from '../stores/ui';
+import DetailsView from './DetailsView.vue';
+import { useDetails } from '../stores/details';
 
 const router = useRouter();
 const cards = useCardView();
@@ -14,6 +16,7 @@ const meta = useMeta();
 const collections = useCollections();
 const route = useRoute();
 const uiGlobal = useUI();
+const details = useDetails();
 
 const ui = reactive({
   selected: 'collection',
@@ -49,6 +52,7 @@ const loadPrecon = (name) => {
 const loadView = async item => {
   if(ui.selected === item) return;
   ui.selected = item;
+  details.card = {};
   if(item === 'collection') {
     if(ui.collections) loadCollections(ui.collections);
   }

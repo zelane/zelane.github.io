@@ -9,6 +9,7 @@ import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
 import Card from './Card.vue';
+import CardImage from './CardImage.vue';
 import SideBar from './SideBar.vue';
 import CardSource from './CardSource.vue';
 import CardDetails from './CardDetails.vue';
@@ -80,6 +81,12 @@ const touchEnd = (e) => {
   }
 };
 
+const clickOut = (e) => {
+  if(e.target.id === 'details-overlay') {
+    details.card = {};
+  }
+};
+
 </script>
 
 <template>
@@ -109,21 +116,24 @@ const touchEnd = (e) => {
       />
       <div
         ref="det"
+        id="details-overlay"
         class="details"
         :class="{
           show: details.card.image_uris !== undefined
         }"
-        @click="details.card = {}"
-        @touchstart="touchStart"
-        @touchend="touchEnd"
+        @touchstart.passive="touchStart"
+        @touchend.passive="touchEnd"
+        @wheel="() => {}"
+        @click="clickOut"
       >
         <div class="content">
-          <Card
+          <CardImage
             :card="details.card" 
             @click.stop=""
           />
           <CardDetails
             :card="details.card"
+            :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'delete'] : ['prints', 'clip']"
           />
         </div>
       </div>
@@ -151,48 +161,62 @@ const touchEnd = (e) => {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(0deg, rgb(23, 19, 23) 0% , rgba(23, 19, 23, 0.8) 100%);
+  background: linear-gradient(0deg, rgb(23, 19, 23) 0%, rgb(23, 19, 23) 20%, rgba(23, 19, 23, 0.8) 100%);
   opacity: 0;
   padding: 1rem;
   transition: transform 0.2s, opacity 0.2s;
-  display: none;
+  transform: translate(0, 100%);
 }
 .details.show {
   display: initial;
   opacity: 1;
+  transform: translate(0, 0);
+  backdrop-filter: blur(2px);
+  backdrop-filter: blur(5px) grayscale(50%);
 }
 .details .content {
   margin: auto;
 }
+.details .content:deep(.details) {
+  font-size: 1.2rem !important;
+}
+.details .content {
+  display: grid;
+  justify-content: center;
+  align-content: center;
+  max-width: 920px;
+  gap: 1rem;
+  grid-template-columns: 1fr 1fr;
+}
 @media (min-width: 640px) {
   .details .content {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-content: center;
     height: 100%;
-    max-width: 1280px;
-    gap: 1rem;
   }
-.details .content .card, .details .content .root {
-  /* flex-grow: 1; */
-  width: 50%;
-  align-self: center;
-}
+  .details .content .img {
+    max-width: 480px;
+    align-self: center;
+  }
+  .details .content .details {
+    grid-column: 2;
+  }
+  .details .content .img  {
+    grid-column: 1;
+    grid-row: span 5;
+  }
 }
 @media (max-width: 640px) {
   .details {
     position: absolute;
     inset: 6rem 0 4rem 0;
-    transform: translate(0, 100%);
     display: initial;
     overflow: auto;
   }
   .details .content  {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
-  .details.show {
-    transform: translate(0, 0);
+  .details .content:deep(.img) {
+    max-width: 280px;
+    margin: auto;
   }
 }
 

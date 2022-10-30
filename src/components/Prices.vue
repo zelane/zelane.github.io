@@ -52,6 +52,7 @@
 .prices {
   display: flex;
   flex-wrap: wrap;
+  gap: .5em;
 }
 .price {
   opacity: .4;

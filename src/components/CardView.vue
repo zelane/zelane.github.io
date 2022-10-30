@@ -22,11 +22,14 @@ const props = defineProps({
     class="loader"
     v-if="props.store.loading"
   >
-    Loading
+    <span>Loading</span>
   </div>
   <div
     class="cards"
-    :style="{ 'font-size': 18 + (ui.zoom * 2) + 'px' }"
+    :style="{ 
+      'font-size': 18 + (ui.zoom * 2) + 'px',
+      'grid-template-columns': `repeat(${ui.columns}, 1fr)`
+    }"
   >
     <Card
       :card="card"
@@ -45,16 +48,19 @@ const props = defineProps({
   inset: 0;
   background-color: rgba(0, 0, 0, 0.8);
   z-index: 99;
-  line-height: 100vh;
-  text-align: center;
   font-size: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  background: linear-gradient(0deg, rgb(23, 19, 23) 0%, rgb(23, 19, 23) 20%, rgba(23, 19, 23, 0.8) 100%);
+  backdrop-filter: blur(2px);
+  backdrop-filter: blur(5px) grayscale(50%);
 }
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr));
   gap: 2em;
   padding: 2rem;
-  /* inset: 3rem 0 0 0; */
 }
 .cards .card {
   margin: 0 auto;
@@ -63,7 +69,14 @@ const props = defineProps({
   max-width: 20rem;
 }
 
-
+@media (min-width: 640px) {
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)) !important;
+  gap: 2em;
+  padding: 2rem;
+}
+}
 @media (max-width: 640px) {
   #main .cards {
     padding: 1rem 10vw;

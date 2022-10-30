@@ -220,11 +220,11 @@ const deleteCollection = async (name) => {
   flex-direction: column;
 }
 .collection {
-  background-size: cover;
   background-color: var(--colour-input-grey);
   box-shadow: var(--default-shadow);
   border-radius: var(--default-br);
-  background-position: center center;
+  background-position: center top;
+  background-size: cover;
   /* background-image: none !important; */
 }
 .collection .row {

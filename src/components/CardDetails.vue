@@ -1,7 +1,8 @@
 <script setup>
-import { reactive } from 'vue';
 import { useDetails } from '../stores/details';
 import { useMeta } from '../stores/meta';
+import CardSummary from './CardSummary.vue';
+import CardActions from './CardActions.vue';
 
 const details = useDetails();
 const meta = useMeta();
@@ -12,12 +13,17 @@ const props = defineProps({
   card: {
     type: Object,
     required: true
+  },
+  actions: {
+    type: Array,
+    default: () => ['clip'],
+  },
+  face: {
+    type: Number,
+    default: 0
   }
 });
 
-const ui = reactive({
-  face: 0
-});
 
 const parseColours = (text) => {
   if(!text) {
@@ -37,33 +43,36 @@ const copyJson = card => {
 </script>
 
 <template>
-  <div class="root">
-    <div
-      class="face"
-      v-for="(face, index) in (props.card.card_faces || [props.card])"
-      :key="face + index"
-      :class="{show: ui.face === index}"
-    >
-      <div class="oracle-text">
-        <div
-          v-for="(text, i) in face.oracle_text?.split('\n')"
-          :key="'oracle' + i"
-        >
-          <!-- {{ text }} -->
-          <span v-html="parseColours(text)" />
-        </div>
+  <CardActions
+    :card="props.card"
+    :actions="props.actions"
+  />
+  <CardSummary :card="props.card" />
+  <div
+    class="face"
+    v-for="(face, index) in (props.card.card_faces || [props.card])"
+    :key="face + index"
+    :class="{show: props.face === index}"
+  >
+    <div class="oracle-text">
+      <div
+        v-for="(text, i) in face.oracle_text?.split('\n')"
+        :key="'oracle' + i"
+      >
+        <span v-html="parseColours(text)" />
       </div>
-      <!-- <p v-html="face.oracle_text.replace('\n', '<br><br>')" /> -->
     </div>
+  </div>
 
-    <!-- <p>
-      {{ parsecolours(props.card.oracle_text) }}
-    </p> -->
-    <div
-      class="rulings"
-      v-if="details.rulings.length > 0 && false"
-    >
-      <h3>Rulings</h3> 
+  <div
+    class="rulings"
+    v-if="details.rulings.length > 0"
+  >
+    <details @click.stop="">
+      <summary>
+        Rulings
+      </summary>
+
       <div class="list">
         <div
           class="ruling"
@@ -75,23 +84,15 @@ const copyJson = card => {
           </span>
         </div>
       </div>
-    </div>
-  
-    <a @click="copyJson(props.card)">
-      Copy Json
-    </a>
+    </details>
   </div>
+  
+  <a @click="copyJson(props.card)">
+    Copy Json
+  </a>
 </template>
 
 <style scoped>
-.root {
-  /* height: 100%; */
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  font-size: 1.1rem;
-  line-height: 1.2;
-}
 img {
   width: 100%;
   border-radius: 4%;
@@ -99,9 +100,6 @@ img {
 a {
   cursor: pointer;
   user-select: none;
-}
-.face {
-  display: none;
 }
 .face a {
   display: block;
@@ -124,14 +122,33 @@ a {
   font-weight: 600;
 }
 .oracle-text {
-  background-color: rgba(255,255,255,0.1);
-  padding: 1rem 2rem;
+  background-color: var(--colour-input-grey);
+  padding: 1rem;
+  margin: 0 -1rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin: 1rem 0;
+  box-shadow: 3px 6px 0px #0b0b0b4d;
+  font-size: 1.1rem;
+  line-height: 1.2;
 }
 .icon {
   font-size: 1.2em;
+}
+details summary {
+  font-size: 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+details .list {
+  max-height: 30vh;
+  overflow: auto;
+  line-height: 1.2;
+}
+
+@media (max-width: 640px) {
+  details .list {
+    max-height: none;
+  }
 }
 </style>

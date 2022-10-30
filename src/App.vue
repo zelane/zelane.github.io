@@ -415,7 +415,7 @@ h3 {
     display: none !important;
   }
   #main .card-view .cards {
-    grid-template-columns: repeat(3, 1fr) !important;
+    /* grid-template-columns: repeat(3, 1fr) !important; */
     padding: 1rem !important;
     gap: 1rem;
   }

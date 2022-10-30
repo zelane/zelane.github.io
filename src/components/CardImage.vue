@@ -36,8 +36,7 @@ const props = defineProps({
       loading="lazy"
     >
   </div>
-<!--   
-  <a
+  <!-- <a
     v-if="details.card.card_faces"
     @click="ui.face = (index + 1) % details.card.card_faces.length"
   >

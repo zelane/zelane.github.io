@@ -364,10 +364,12 @@ const config = {
       this.loadSearch(`!"${cardName}" -border:silver -is:digital`, 'prints');
     },
     async loadSet(setId, force = false) {
+      this.loading = true;
       const cache = await caches.open('cardDataCache');
       // await this.loadSearch('e:' + setId, 'prints', true);
       let json = await cachedGet(cache, `${backendUrl}/set/?set=` + setId, force);
       this.addMany(json.data);
+      this.loading = false;
     },
     async loadCollections(names) {
       this.loading = true;
@@ -384,14 +386,18 @@ const config = {
       this.loading = false;
     },
     async loadPrecon(name) {
+      this.loading = true;
       const cache = await caches.open('cardDataCache');
       const cards = await cachedGet(cache, `${backendUrl}/precon?name=${name}`, true);
       this.addMany(cards.data);
+      this.loading = false;
     },
     async loadSync(code) {
+      this.loading = true;
       const resp = await fetch(backendUrl + '/collection?id=' + code);
       const json = await resp.json();
       this.addMany(json.data.cards);
+      this.loading = false;
     },
     unrefCards() {
       return [... this.cards.values()].map(deepUnref);
