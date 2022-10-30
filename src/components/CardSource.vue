@@ -168,10 +168,6 @@ onMounted(async () => {
           :disabled="ui.refreshingPrices"
           @click="refreshPrices"
         />
-        <button
-          class="small add icon icon-settings"
-          @click="uiGlobal.loadMain('upload')"
-        />
       </div>
       <div
         class="item"

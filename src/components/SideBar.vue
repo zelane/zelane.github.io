@@ -8,11 +8,13 @@ import ClipBoard from './ClipBoard.vue';
 import Filters from './Filters.vue';
 import CardSource from './CardSource.vue';
 import { useUI } from '../stores/ui';
-import { useCardView } from '../stores/cards';
+import { useCardView, useClipboard } from '../stores/cards';
+import CollectionsManager from './CollectionsManager.vue';
 
 
 const cards = useCardView();
 const ui = useUI();
+const clipboard = useClipboard();
 
 const setMenu = item => {
   if(item === ui.sidebar.selected) ui.sidebar.show = !ui.sidebar.show;
@@ -64,13 +66,14 @@ const touchEnd = (e) => {
       <div
         class="item" 
         @click.stop="setMenu(name)"
-        v-for="(icon, name) in {
-          'filters': 'filter',
-          'collection': 'collection-add2', 
-          'clipboard':'clipboard', 
-          'prints': 'prints', 
-          'details': 'details', 
-          'settings': 'settings'
+        v-for="([icon, text], name) in {
+          'filters': ['filter', 'Source'],
+          'collections': [ 'collection','Collections'],
+          'collection': [ 'folder-add', 'Add'],
+          'clipboard': ['clipboard', 'Clipboard'],
+          'prints': [ 'prints', 'Test'],
+          'details': [ 'details', 'Test'],
+          'settings': [ 'settings','Settings'],
         }"
         :key="name"
         :class="name"
@@ -79,6 +82,18 @@ const touchEnd = (e) => {
           class="icon"
           :class="'icon-' + icon"
         />
+        <div
+          v-if="name === 'clipboard'" 
+          class="name"
+        >
+          Clip: {{ clipboard.count }}
+        </div>
+        <div
+          v-else
+          class="name"
+        >
+          {{ text }}
+        </div>
       </div>
     </div>
 
@@ -131,6 +146,16 @@ const touchEnd = (e) => {
     >
       <CardSource />
       <Filters />
+    </div>
+
+    <div
+      class="panel collections"
+      v-show="ui.sidebar.selected === 'collections'"
+    >
+      <h3>Collections</h3>
+      <CollectionsManager
+        @change="name => cards.loadCollections([name])"
+      />
     </div>
 
     <!-- <div
@@ -193,6 +218,9 @@ const touchEnd = (e) => {
   /* margin-right: .5rem; */
   font-size: 1.2em;
 }
+.menu .item .name {
+  display: none;
+}
 .sidepanel {
   max-height: 100%;
   position: absolute;
@@ -215,6 +243,9 @@ const touchEnd = (e) => {
   inset: 0;
   padding: 1rem 2rem;
   overflow: auto;
+}
+.panel h3 {
+  margin-bottom: 1rem;
 }
 .info {
   width: 100%;
@@ -251,6 +282,27 @@ const touchEnd = (e) => {
   display: none;
 }
 @media (max-width: 640px) {
+  .menu {
+    width: 100vw;
+    flex-direction: row;
+    background: #222;
+    bottom: 0px;
+  }
+  .menu .item {
+    flex-grow: 1;
+    width: 20%;
+    border-radius: 0;
+    border-right: 1px solid rgba(0,0,0,0.3);
+    box-shadow: -1px 0 0 1px rgba(255,255,255,0.05);
+    text-align: center;
+    padding: .5rem 0;
+  }
+  .menu .item .name{
+    display: block;
+    font-size: .7rem;
+    margin-top: .4rem;
+    text-transform: capitalize;
+  }
   .item.filters {
     display: initial;
   }

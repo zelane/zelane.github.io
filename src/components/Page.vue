@@ -83,12 +83,6 @@ onBeforeMount(async () => {
       <InfoBar />
       <SideBar />
 
-      <CollectionsManager
-        v-show="uiGlobal.mainView === 'upload'"
-        @change="name => cards.loadCollections([name])"
-        @close="uiGlobal.mainView = 'cards'"
-      />
-
       <Precon
         v-show="uiGlobal.mainView === 'precon'"
         @close="uiGlobal.mainView = 'cards'"
@@ -166,6 +160,7 @@ onBeforeMount(async () => {
     height: auto;
   }
   #sidebar {
+    display: none;
     position: absolute;
     inset: 0;
     z-index: 5;

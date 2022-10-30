@@ -75,13 +75,6 @@ const deleteCollection = async (name) => {
 <template>
   <div class="upload">
     <div class="flex">
-      <button
-        class="small close"
-        @click="emit('close')"
-      >
-        <span>+</span>
-      </button>
-
       <div
         class="collections"
         v-if="collections.all.length > 0"
@@ -138,6 +131,7 @@ const deleteCollection = async (name) => {
           class="button small icon icon-plus"
         />
       </div>
+      <hr>
       <div class="google-sync">
         <GoogleLogin
           v-if="!user.token"
@@ -150,7 +144,7 @@ const deleteCollection = async (name) => {
           @click="user.logout()"
         >
           <img :src="user.info.picture">
-          <span>Syncing as {{ user.info.given_name }}</span>
+          <span class="text">Syncing as {{ user.info.given_name }}</span>
           <span class="icon icon-close" />
         </div>
       </div>
@@ -168,10 +162,6 @@ const deleteCollection = async (name) => {
   cursor: copy;
 }
 .upload {
-  position: absolute;
-  padding: 1rem;
-  inset: 0;
-  overflow: auto;
 }
 .flex {
   display: flex;
@@ -220,6 +210,9 @@ const deleteCollection = async (name) => {
 .new-collection input {
   flex-grow: 2;
 }
+.google-sync {
+  width: 100%;
+}
 .logged-in {
   background-color: var(--colour-input-grey);
   box-shadow: var(--default-shadow);
@@ -234,6 +227,9 @@ const deleteCollection = async (name) => {
 .logged-in img {
   box-shadow: inset 0 0 2px 2px;
   height: 50px;
+}
+.logged-in .text {
+  flex-grow: 1;
 }
 .logged-in .icon {
   display: inline-block;
