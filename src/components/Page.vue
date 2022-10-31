@@ -104,7 +104,8 @@ const touchMove = e => {
     initDir = direction;
   }
   if(initDir === 'left' || initDir === 'right') {
-    det.value.style.overflow = 'hidden';
+    e.preventDefault();
+    e.stopPropagation();
     if(initDir === 'left' && deltaX < -50) {
       moveCard(1);
       ui.dragging = false;
@@ -118,14 +119,15 @@ const touchMove = e => {
   
   if(!startedAtTop) return;
 
-  if(volY < -20 || deltaY > 200) {
+  if(volY < -15 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
   }
   else if(deltaY > 0) {
     ui.dragY = deltaY;
-    det.value.style.overflow = 'hidden';
+    e.preventDefault();
+    e.stopPropagation();
     det.value.style.transform = `translate(0, ${deltaY}px)`;
   }
 };
@@ -133,7 +135,6 @@ const touchMove = e => {
 const touchEnd = e => {
   lastX = lastY = startX = startY = null;
   det.value.style.transform = '';
-  det.value.style.overflow = null;
   ui.dragging = false;
   initDir = null;
 };
