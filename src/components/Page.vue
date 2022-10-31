@@ -76,12 +76,12 @@ const touchStart = (e) => {
 
 const touchEnd = (e) => {
   const deltaY = e.changedTouches[0].screenY - touchYPos;
-  if(det.value.scrollTop === 0 && details.card && deltaY > 75) {
+  const deltaX = e.changedTouches[0].screenX - touchXPos;
+  if(det.value.scrollTop === 0 && details.card && deltaY > 75 && Math.abs(deltaX) < 50) {
     uiGlobal.details.show = false;
     return;
   }
-  const deltaX = e.changedTouches[0].screenX - touchXPos;
-  if(deltaX > 50) {
+  if(deltaX > 50 && Math.abs(deltaY) < 25) {
     if(uiGlobal.details.index === 0) {
       uiGlobal.details.index = cards.filtered.length - 1;
     }
@@ -92,7 +92,7 @@ const touchEnd = (e) => {
     details.loadDetails(next);
     return;
   }
-  if(deltaX < -50) {
+  if(deltaX < -50 && Math.abs(deltaY) < 25) {
     if(uiGlobal.details.index > cards.filtered.length - 2) {
       uiGlobal.details.index = 0;
     }
