@@ -10,11 +10,11 @@ const emit = defineEmits(['changed']);
 <template>
   <h3>Prints</h3>
   <CardView
+    class="prints"
     :store="prints"
     :actions="['clip']"
   />
 </template>
 
 <style scoped>
-
 </style>

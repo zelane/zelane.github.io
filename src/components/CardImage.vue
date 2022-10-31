@@ -4,6 +4,10 @@ const props = defineProps({
     type: Object,
     required: true
   },
+  effects: {
+    type: Array,
+    default: () => []
+  },
   actions: {
     type: Array,
     default: () => ['clip', 'delete', 'prints']
@@ -16,6 +20,7 @@ const props = defineProps({
     class="img"
     :class="{
       [props.card.finish]: true,
+      [props.effects]: true,
     }"
   >
     <img
@@ -66,6 +71,16 @@ img {
   right: 0;
   pointer-events: none;
   border-radius: 5%;
+  transition: all 0.2s;
+}
+.img.missing {
+  /* opacity: 0.5; */
+}
+.img.missing::after {
+  /* opacity: 0.5; */
+  /* background-color: rgba(0,0,0,0.6); */
+  backdrop-filter: brightness(50%) grayscale(75%);
+
 }
 .img.foil::after {
   background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);

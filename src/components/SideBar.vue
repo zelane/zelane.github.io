@@ -248,7 +248,12 @@ const touchEnd = (e) => {
 }
 .panel.prints:deep(.cards) {
   grid-template-columns: auto !important;
-  padding: 3rem;
+  padding: 0;
+  max-width: 280px;
+  margin: auto;
+}
+.panel.prints:deep(.details .name) {
+  display: none !important;
 }
 .card {
   min-width: 100%;

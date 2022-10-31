@@ -81,7 +81,7 @@ const touchEnd = (e) => {
     uiGlobal.details.show = false;
     return;
   }
-  if(deltaX > 50 && Math.abs(deltaY) < 25) {
+  if(deltaX > 50 && Math.abs(deltaY) < 40) {
     if(uiGlobal.details.index === 0) {
       uiGlobal.details.index = cards.filtered.length - 1;
     }
@@ -92,7 +92,7 @@ const touchEnd = (e) => {
     details.loadDetails(next);
     return;
   }
-  if(deltaX < -50 && Math.abs(deltaY) < 25) {
+  if(deltaX < -50 && Math.abs(deltaY) < 40) {
     if(uiGlobal.details.index > cards.filtered.length - 2) {
       uiGlobal.details.index = 0;
     }
@@ -242,6 +242,12 @@ const clickOut = (e) => {
   .details .content:deep(.img) {
     max-width: 280px;
     margin: auto;
+  }
+  .details .content:deep(.details) {
+    text-align: center;
+  }
+  .details .content:deep(.details .prices), .details .content:deep(.details .tags){
+    justify-content: center;
   }
 }
 

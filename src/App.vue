@@ -411,8 +411,15 @@ h3 {
 }
 
 @media (max-width: 640px) {
-  #main .card-view .card .buttons, .card-view .card .details {
+  #main .card-view .card .buttons, .card-view .card .set-line,  .card-view .card .prices, .card-view .card .tags{
     display: none !important;
+  }
+  #main .card-view .card {
+    font-size: .8rem;
+  }
+  #main .card-view .card .name {
+    font-weight: normal;
+    font-family: var(--default-fonts) !important;
   }
   #main .card-view .cards {
     /* grid-template-columns: repeat(3, 1fr) !important; */

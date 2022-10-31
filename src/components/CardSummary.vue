@@ -20,7 +20,7 @@ const markings = {
     <span class="name">
       {{ props.card.count }} {{ props.card.name }} {{ markings[props.card.finish] }}
     </span>
-    <span>
+    <span class="set-line">
       {{ props.card.set_name }}
       <a
         v-if="props.card.purchase_uris"
@@ -29,9 +29,7 @@ const markings = {
         class="set-id"
       >{{ props.card.set }}:{{ props.card.collector_number }}</a>
     </span>
-    <span>
-      <Prices :card="props.card" />
-    </span>
+    <Prices :card="props.card" />
     <div class="tags">
       <div 
         class="tag" 
@@ -62,6 +60,10 @@ const markings = {
   font-size: 1rem;
   font-size: 1em;
   line-height: 1.6;
+  text-align: center;
+}
+.details:deep(.prices) {
+  justify-content: center;
 }
 .name {
   font-weight: bold;
@@ -75,6 +77,7 @@ const markings = {
   flex-wrap: wrap;
   line-height: 1;
   margin-top: .5em;
+  justify-content: center;
 }
 .tags .tag {
   font-size: .8em;

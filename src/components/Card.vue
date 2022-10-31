@@ -1,10 +1,10 @@
 <script setup>
-import { useCardView } from '../stores/cards';
 import { useDetails } from '../stores/details';
 import CardImage from './CardImage.vue';
 import CardSummary from './CardSummary.vue';
 import CardActions from './CardActions.vue';
 import { useUI } from '../stores/ui';
+import { useCardView } from '../stores/cards';
 
 const cardView = useCardView();
 const details = useDetails();
@@ -30,14 +30,12 @@ const props = defineProps({
 <template>
   <div
     class="card"
-    :style="{
-      opacity: cardView.filters.cmpCol.length === 0 || cardView.have.get(card.oracle_id) ? 1 : 0.5
-    }"
     :data-id="props.card.id"
   >
     <div class="wrap">
       <CardImage 
         :card="props.card"
+        :effects="cardView.filters.cmpCol.length > 0 && !cardView.have.get(props.card.oracle_id) ? ['missing'] : []"
         @click.stop="() => {details.loadDetails(card, includeRulings=true); ui.details.show = true; ui.details.index = index}"
       />
       <CardActions
@@ -52,7 +50,7 @@ const props = defineProps({
 <style scoped>
 .wrap {
   position: relative;
-  margin-bottom: 1rem;
+  margin-bottom: 1em;
 }
 .wrap:hover:deep(.buttons) {
   display: flex;
@@ -61,7 +59,11 @@ const props = defineProps({
 .card {
   width: 100%;
 }
-
+@media (min-width: 640px) {
+  .wrap:deep(.buttons) {
+    display: none;
+  }
+}
 @media (max-width: 640px) {
   .card {
     /* scroll-snap-align: start; */
