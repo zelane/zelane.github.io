@@ -43,6 +43,7 @@ import { useDetails } from '../stores/details';
       x.push(card);
     }
     ui.groups = groups;
+    
   });
 
   const markings = {

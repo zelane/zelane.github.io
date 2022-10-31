@@ -9,11 +9,12 @@ const emit = defineEmits(['changed']);
 
 <template>
   <h3>Prints</h3>
-  <CardView
-    class="prints"
-    :store="prints"
-    :actions="['clip']"
-  />
+  <div class="prints">
+    <CardView
+      :store="prints"
+      :actions="['clip']"
+    />
+  </div>
 </template>
 
 <style scoped>

@@ -67,82 +67,58 @@ onBeforeMount(async () => {
   user.loadCookie();
 });
 
-let touchXPos = 0;
-let touchYPos = 0;
+let startX = null;
+let startY = null;
+let lastX = null;
+let lastY = null;
+let direction = null;
+let initDir = null;
+let startedAtTop = false;
+
 const det = ref(null);
 
 const touchStart = (e) => {
-  touchXPos = e.touches[0].screenX;
-  touchYPos = e.touches[0].screenY;
-};
-
-const touchEnd = (e) => {
-  const deltaY = e.changedTouches[0].screenY - touchYPos;
-  const deltaX = e.changedTouches[0].screenX - touchXPos;
-  if(det.value.scrollTop === 0 && details.card && deltaY > 75 && Math.abs(deltaX) < 50) {
-    uiGlobal.details.show = false;
-    return;
-  }
-  if(deltaX > 50 && Math.abs(deltaY) < 40) {
-    if(uiGlobal.details.index === 0) {
-      uiGlobal.details.index = cards.filtered.length - 1;
-    }
-    else {
-      uiGlobal.details.index -= 1;
-    }
-    const next = cards.filtered[uiGlobal.details.index];
-    details.loadDetails(next);
-    return;
-  }
-  if(deltaX < -50 && Math.abs(deltaY) < 40) {
-    if(uiGlobal.details.index > cards.filtered.length - 2) {
-      uiGlobal.details.index = 0;
-    }
-    else {
-      uiGlobal.details.index += 1;
-    }
-    const next = cards.filtered[uiGlobal.details.index];
-    details.loadDetails(next);
-    return;
-  }
-};
-
-const handleSwipe = (e) => {
-  if(e === 'left') {
-    if(uiGlobal.details.index === 0) {
-      uiGlobal.details.index = cards.filtered.length - 1;
-    }
-    else {
-      uiGlobal.details.index -= 1;
-    }
-    const next = cards.filtered[uiGlobal.details.index];
-    details.loadDetails(next);
-  }
-  else if(e === 'right') {
-    if(uiGlobal.details.index > cards.filtered.length - 2) {
-      uiGlobal.details.index = 0;
-    }
-    else {
-      uiGlobal.details.index += 1;
-    }
-    const next = cards.filtered[uiGlobal.details.index];
-    details.loadDetails(next);
-    return;
-  }
-};
-
-let posY = 0;
-const startDrag = e => {
-  if(det.value.scrollTop !== 0) return;
-  posY = e.touches ? e.touches[0].clientY : e.clientY;
   ui.dragging = true;
+  startX = lastX = e.touches[0].clientX;
+  startY = lastY = e.touches[0].clientY;
+  startedAtTop = det.value.scrollTop === 0;
 };
 
-const drag = e => {
+const touchMove = e => {
   if(!ui.dragging) return;
+  let newX = e.touches ? e.touches[0].clientX : e.clientX;
   let newY = e.touches ? e.touches[0].clientY : e.clientY;
-  const deltaY = newY - posY;
-  if(deltaY > 200) {
+  const deltaX = newX - startX;
+  const deltaY = newY - startY;
+  const volY = lastY - newY;
+  lastX = newX;
+  lastY = newY;
+
+  if(Math.abs(deltaX) > Math.abs(deltaY)) {
+    direction = deltaX > 0 ? 'right' : 'left';
+  }
+  else {
+    direction = deltaY > 0 ? 'down' : 'up';
+  }
+  if(initDir === null) {
+    initDir = direction;
+  }
+  if(initDir === 'left' || initDir === 'right') {
+    det.value.style.overflow = 'hidden';
+    if(initDir === 'left' && deltaX < -50) {
+      moveCard(1);
+      ui.dragging = false;
+    }
+    else if(initDir === 'right' && deltaX > 50) {
+      moveCard(-1);
+      ui.dragging = false;
+    }
+    return;
+  }
+  
+  if(!startedAtTop) return;
+
+  if(volY < -15 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
@@ -153,10 +129,21 @@ const drag = e => {
   }
 };
 
-const endDrag = e => {
-  posY = 0;
+const touchEnd = e => {
+  lastX = lastY = startX = startY = null;
   det.value.style.transform = '';
+  det.value.style.overflow = null;
   ui.dragging = false;
+  initDir = null;
+};
+
+const moveCard = dir => {
+  let newIndex = uiGlobal.details.index + dir;
+  if(newIndex < 0) newIndex = cards.filtered.length - 1;
+  if(newIndex >= cards.filtered.length) newIndex = 0;
+  uiGlobal.details.index = newIndex;
+  const next = cards.filtered[uiGlobal.details.index];
+  details.loadDetails(next);
 };
 
 const clickOut = (e) => {
@@ -203,11 +190,9 @@ const clickOut = (e) => {
         :style="{
           // transform: ui.dragging ? `translate(0, ${ui.dragY}px)` : false
         }"
-        v-touch:swipe.left="handleSwipe"
-        v-touch:swipe.right="handleSwipe"
-        @touchstart="startDrag"
-        @touchmove="drag"
-        @touchend="endDrag"
+        @touchstart="touchStart"
+        @touchmove="touchMove"
+        @touchend="touchEnd"
         @wheel="() => {}"
         @click="clickOut"
       >
@@ -285,13 +270,17 @@ const clickOut = (e) => {
   .details .content .img {
     max-width: 480px;
     align-self: center;
-  }
-  .details .content .details {
-    grid-column: 2;
-  }
-  .details .content .img  {
     grid-column: 1;
     grid-row: span 5;
+  }
+  .details .content:deep(.details) {
+    grid-column: 2;
+  }
+  .details .content:deep(.buttons) {
+    position: relative;
+    flex-direction: row;
+    justify-content: center;
+    order: 1;
   }
 }
 @media (max-width: 640px) {
@@ -299,7 +288,6 @@ const clickOut = (e) => {
     position: absolute;
     inset: 6rem 0 4rem 0;
     display: initial;
-    /* overflow: auto; */
   }
   .details .content  {
     grid-template-columns: 1fr;

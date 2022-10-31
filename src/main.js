@@ -5,7 +5,6 @@ import Toast, { POSITION } from "vue-toastification";
 import { createRouter, createWebHashHistory } from 'vue-router';
 import Page from './components/Page.vue';
 import vue3GoogleLogin from 'vue3-google-login';
-import Vue3TouchEvents from "vue3-touch-events";
 
 import "vue-toastification/dist/index.css";
 
@@ -21,7 +20,6 @@ const router = createRouter({
 const app = createApp(App);
 app.use(pinia);
 app.use(router);
-app.use(Vue3TouchEvents);
 app.use(Toast, {
     position: POSITION.BOTTOM_CENTER,
     closeButton: false,

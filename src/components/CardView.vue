@@ -66,7 +66,7 @@ const props = defineProps({
 .cards .card {
   margin: 0 auto;
   min-width: 15em;
-	content-visibility: auto;
+	/* content-visibility: auto; */
   max-width: 20rem;
 }
 

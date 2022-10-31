@@ -60,6 +60,7 @@ img {
 .img {
   border-radius: 5%;
   position: relative;
+  /* height: 158px; */
 }
 .img::after {
   content: '';

@@ -209,6 +209,9 @@ button:disabled {
   cursor: default !important;
   background-color: #221e26 !important;
 }
+button:active, a.btn:active {
+  background: #3e3844;
+}
 .slider-target {
   box-shadow: var(--default-shadow);
 }

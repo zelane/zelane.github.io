@@ -68,5 +68,6 @@ const props = defineProps({
   .card {
     /* scroll-snap-align: start; */
   }
+  
 }
 </style>

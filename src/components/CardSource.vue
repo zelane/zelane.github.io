@@ -7,7 +7,6 @@ import { useRoute, useRouter, onBeforeRouteUpdate } from 'vue-router';
 import Multiselect from '@vueform/multiselect';
 import ManaCost from './ManaCost.vue';
 import { useUI } from '../stores/ui';
-import DetailsView from './DetailsView.vue';
 import { useDetails } from '../stores/details';
 
 const router = useRouter();

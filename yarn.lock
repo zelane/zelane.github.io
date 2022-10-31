@@ -1671,11 +1671,6 @@ vue3-google-login@^2.0.12:
   resolved "https://registry.yarnpkg.com/vue3-google-login/-/vue3-google-login-2.0.12.tgz#b235c10d83109d04fd67057336fc15d77bb14664"
   integrity sha512-gKc9yS6NDgU2JLKXZGYu9NQzIBd/CTXFFo1IU8nUZsP5QFjRuylSDZQ7tLUeueL+SYHJiE/FzxB5bQlcTdQ7Wg==
 
-vue3-touch-events@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/vue3-touch-events/-/vue3-touch-events-4.1.0.tgz#053500d1e9ab4870efcd5de29530641064d0a7d5"
-  integrity sha512-fZKusOiBJzDPsY34tXYl/Wo9c2ONzBuQmF0+oHqVWr+TDbf90CgMWLHZsTv1KaShXjt+oeLow7BDVBpXW6lfXQ==
-
 vue@^3, vue@^3.0.0, vue@^3.2.39:
   version "3.2.39"
   resolved "https://registry.yarnpkg.com/vue/-/vue-3.2.39.tgz#de071c56c4c32c41cbd54e55f11404295c0dd62d"
