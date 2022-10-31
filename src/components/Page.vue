@@ -30,7 +30,9 @@ const ui = reactive({
   view: '',
   set: '',
   precons: '',
-  showMenu: false
+  showMenu: false,
+  dragging: false,
+  dragY: 0,
 });
 
 let to = null;
@@ -105,6 +107,58 @@ const touchEnd = (e) => {
   }
 };
 
+const handleSwipe = (e) => {
+  if(e === 'left') {
+    if(uiGlobal.details.index === 0) {
+      uiGlobal.details.index = cards.filtered.length - 1;
+    }
+    else {
+      uiGlobal.details.index -= 1;
+    }
+    const next = cards.filtered[uiGlobal.details.index];
+    details.loadDetails(next);
+  }
+  else if(e === 'right') {
+    if(uiGlobal.details.index > cards.filtered.length - 2) {
+      uiGlobal.details.index = 0;
+    }
+    else {
+      uiGlobal.details.index += 1;
+    }
+    const next = cards.filtered[uiGlobal.details.index];
+    details.loadDetails(next);
+    return;
+  }
+};
+
+let posY = 0;
+const startDrag = e => {
+  if(det.value.scrollTop !== 0) return;
+  posY = e.touches ? e.touches[0].clientY : e.clientY;
+  ui.dragging = true;
+};
+
+const drag = e => {
+  if(!ui.dragging) return;
+  let newY = e.touches ? e.touches[0].clientY : e.clientY;
+  const deltaY = newY - posY;
+  if(deltaY > 200) {
+    uiGlobal.details.show = false;
+    det.value.style.transform = '';
+    ui.dragging = false;
+  }
+  else if(deltaY > 0) {
+    ui.dragY = deltaY;
+    det.value.style.transform = `translate(0, ${deltaY}px)`;
+  }
+};
+
+const endDrag = e => {
+  posY = 0;
+  det.value.style.transform = '';
+  ui.dragging = false;
+};
+
 const clickOut = (e) => {
   if(e.target.id === 'details-overlay') {
     uiGlobal.details.show = false;
@@ -143,10 +197,17 @@ const clickOut = (e) => {
         id="details-overlay"
         class="details"
         :class="{
-          show: uiGlobal.details.show
+          show: uiGlobal.details.show,
+          dragging: ui.dragging,
         }"
-        @touchstart.passive="touchStart"
-        @touchend.passive="touchEnd"
+        :style="{
+          // transform: ui.dragging ? `translate(0, ${ui.dragY}px)` : false
+        }"
+        v-touch:swipe.left="handleSwipe"
+        v-touch:swipe.right="handleSwipe"
+        @touchstart="startDrag"
+        @touchmove="drag"
+        @touchend="endDrag"
         @wheel="() => {}"
         @click="clickOut"
       >
@@ -186,11 +247,15 @@ const clickOut = (e) => {
   inset: 0;
   z-index: 1;
   background: linear-gradient(0deg, rgb(23, 19, 23) 0%, rgb(23, 19, 23) 20%, rgba(23, 19, 23, 0.8) 100%);
-  opacity: 0;
+  /* opacity: 0; */
   padding: 1rem;
   transition: transform 0.2s, opacity 0.2s;
   transition: all 0.3s;
   transform: translate(0, 100%);
+  overflow: auto;
+}
+.details.dragging {
+  transition: none;
 }
 .details.show {
   display: initial;
@@ -234,7 +299,7 @@ const clickOut = (e) => {
     position: absolute;
     inset: 6rem 0 4rem 0;
     display: initial;
-    overflow: auto;
+    /* overflow: auto; */
   }
   .details .content  {
     grid-template-columns: 1fr;

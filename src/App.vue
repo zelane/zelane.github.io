@@ -417,14 +417,17 @@ h3 {
   #main .card-view .card {
     font-size: .8rem;
   }
+  #main .card-view .card .wrap {
+    margin-bottom: .5em;
+  }
   #main .card-view .card .name {
     font-weight: normal;
     font-family: var(--default-fonts) !important;
+    line-height: 1.2;
   }
   #main .card-view .cards {
-    /* grid-template-columns: repeat(3, 1fr) !important; */
     padding: 1rem !important;
-    gap: 1rem;
+    gap: .8rem;
   }
   #main .card-view .cards .card {
     min-width: 0 !important;
