@@ -4,14 +4,20 @@ import { useDetails } from '../stores/details';
 import CardImage from './CardImage.vue';
 import CardSummary from './CardSummary.vue';
 import CardActions from './CardActions.vue';
+import { useUI } from '../stores/ui';
 
 const cardView = useCardView();
 const details = useDetails();
+const ui = useUI();
 
 const props = defineProps({
   card: {
     type: Object,
     required: true
+  },
+  index: {
+    type: Number,
+    default: 0,
   },
   actions: {
     type: Array,
@@ -32,7 +38,7 @@ const props = defineProps({
     <div class="wrap">
       <CardImage 
         :card="props.card"
-        @click.stop="() => {details.loadDetails(card, includeRulings=true);}"
+        @click.stop="() => {details.loadDetails(card, includeRulings=true); ui.details.show = true; ui.details.index = index}"
       />
       <CardActions
         :card="props.card"
@@ -50,6 +56,10 @@ const props = defineProps({
 }
 .wrap:hover:deep(.buttons) {
   display: flex;
+}
+
+.card {
+  width: 100%;
 }
 
 @media (max-width: 640px) {

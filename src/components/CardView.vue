@@ -33,8 +33,9 @@ const props = defineProps({
   >
     <Card
       :card="card"
+      :index="index"
       :actions="props.actions"
-      v-for="card in props.store.filtered.slice(0, 500)"
+      v-for="(card, index) in props.store.filtered.slice(0, 500)"
       :key="card.id + card.finish"
       :style="{order: card.isCommander ? -1 : null}"
     />

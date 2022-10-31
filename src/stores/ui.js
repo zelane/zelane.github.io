@@ -12,6 +12,7 @@ export const useUI = defineStore('ui', {
       columns: 3,
       source: 'collection',
       details: {
+        index: 0,
         show: false,
       }, 
     };

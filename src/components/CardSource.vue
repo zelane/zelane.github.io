@@ -53,6 +53,7 @@ const loadView = async item => {
   if(ui.selected === item) return;
   ui.selected = item;
   details.card = {};
+  uiGlobal.details.show = false;
   if(item === 'collection') {
     if(ui.collections) loadCollections(ui.collections);
   }

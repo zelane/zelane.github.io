@@ -50,9 +50,9 @@ img {
   width: 100%;
   border-radius: 5%;
   aspect-ratio: 2.5/3.5;
+  box-shadow: 0px 2px 5px #000000f2;
 }
 .img {
-  box-shadow: 0px 2px 5px #000000f2;
   border-radius: 5%;
   position: relative;
 }

@@ -8,7 +8,6 @@ import Filters from './Filters.vue';
 import CardView from './CardView.vue';
 import CardList from './CardList.vue';
 import Precon from './Precon.vue';
-import Card from './Card.vue';
 import CardImage from './CardImage.vue';
 import SideBar from './SideBar.vue';
 import CardSource from './CardSource.vue';
@@ -66,10 +65,12 @@ onBeforeMount(async () => {
   user.loadCookie();
 });
 
+let touchXPos = 0;
 let touchYPos = 0;
 const det = ref(null);
 
 const touchStart = (e) => {
+  touchXPos = e.touches[0].screenX;
   touchYPos = e.touches[0].screenY;
 };
 
@@ -77,13 +78,36 @@ const touchEnd = (e) => {
   const deltaY = e.changedTouches[0].screenY - touchYPos;
   if(det.value.scrollTop === 0 && details.card && deltaY > 75) {
     uiGlobal.details.show = false;
-    details.card = {};
+    return;
+  }
+  const deltaX = e.changedTouches[0].screenX - touchXPos;
+  if(deltaX > 50) {
+    if(uiGlobal.details.index === 0) {
+      uiGlobal.details.index = cards.filtered.length - 1;
+    }
+    else {
+      uiGlobal.details.index -= 1;
+    }
+    const next = cards.filtered[uiGlobal.details.index];
+    details.loadDetails(next);
+    return;
+  }
+  if(deltaX < -50) {
+    if(uiGlobal.details.index > cards.filtered.length - 2) {
+      uiGlobal.details.index = 0;
+    }
+    else {
+      uiGlobal.details.index += 1;
+    }
+    const next = cards.filtered[uiGlobal.details.index];
+    details.loadDetails(next);
+    return;
   }
 };
 
 const clickOut = (e) => {
   if(e.target.id === 'details-overlay') {
-    details.card = {};
+    uiGlobal.details.show = false;
   }
 };
 
@@ -119,7 +143,7 @@ const clickOut = (e) => {
         id="details-overlay"
         class="details"
         :class="{
-          show: details.card.image_uris !== undefined
+          show: uiGlobal.details.show
         }"
         @touchstart.passive="touchStart"
         @touchend.passive="touchEnd"
@@ -165,6 +189,7 @@ const clickOut = (e) => {
   opacity: 0;
   padding: 1rem;
   transition: transform 0.2s, opacity 0.2s;
+  transition: all 0.3s;
   transform: translate(0, 100%);
 }
 .details.show {
