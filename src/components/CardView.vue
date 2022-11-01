@@ -71,12 +71,19 @@ const props = defineProps({
 }
 
 @media (min-width: 640px) {
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)) !important;
-  gap: 2em;
-  padding: 2rem;
-}
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)) !important;
+    gap: 2em;
+    padding: 2rem;
+  }
+  .cards .card:deep(.buttons) {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    flex-direction: column;
+    gap: .5rem;
+  }
 }
 @media (max-width: 640px) {
   #main .cards {

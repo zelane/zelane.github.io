@@ -203,16 +203,26 @@ const clickOut = (e) => {
         @wheel="() => {}"
         @click="clickOut"
       >
+        <a
+          class="move-card icon icon-chevron-left"
+          @click="moveCard(-1)"
+        />
         <div class="content">
           <CardImage
             :card="details.card" 
             @click.stop=""
           />
-          <CardDetails
-            :card="details.card"
-            :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
-          />
+          <div class="right">
+            <CardDetails
+              :card="details.card"
+              :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
+            />
+          </div>
         </div>
+        <a
+          class="move-card icon icon-chevron-right"
+          @click="moveCard(1)"
+        />
       </div>
 
       <div
@@ -245,59 +255,78 @@ const clickOut = (e) => {
   transition: all 0.3s;
   transform: translate(0, 100%);
   overflow: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .details.dragging {
   transition: none;
 }
 .details.show {
-  display: initial;
   opacity: 1;
   transform: translate(0, 0);
   backdrop-filter: blur(2px);
   backdrop-filter: blur(5px) grayscale(50%);
 }
 .details .content {
-  margin: auto;
-}
-.details .content:deep(.details) {
-  font-size: 1.2rem !important;
-}
-.details .content {
-  display: grid;
+  display: flex;
   justify-content: center;
   align-content: center;
   max-width: 920px;
   gap: 1rem;
-  grid-template-columns: 1fr 1fr;
 }
+.details .move-card {
+  font-size: 5rem;
+  cursor: pointer;
+}
+.details .content:deep(.details) {
+  font-size: 1.2rem !important;
+}
+
+.details .content .right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 @media (min-width: 640px) {
   .details .content {
-    height: 100%;
+    row-gap: 1rem;
+    flex-grow: 1;
   }
   .details .content .img {
     max-width: 480px;
-    align-self: center;
-    grid-column: 1;
-    grid-row: span 5;
+  }
+  .details .content .right {
+    width: 50%;
   }
   .details .content:deep(.details) {
-    grid-column: 2;
+    order: -2;
   }
   .details .content:deep(.buttons) {
     position: relative;
     flex-direction: row;
     justify-content: center;
-    order: 1;
+    order: -1;
   }
 }
+
 @media (max-width: 640px) {
   .details {
+    display: block;
     position: absolute;
     inset: 6rem 0 4rem 0;
-    display: initial;
+  }
+  .details.show {
+  }
+  .details .move-card {
+    display: none;
   }
   .details .content  {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .details .content .right {
+    gap: 1rem;
   }
   .details .content:deep(.img) {
     max-width: 280px;

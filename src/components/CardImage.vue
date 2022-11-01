@@ -72,7 +72,7 @@ img {
   right: 0;
   pointer-events: none;
   border-radius: 5%;
-  transition: all 0.2s;
+  transition: backdrop-filter 0.2s;
 }
 .img.missing {
   /* opacity: 0.5; */

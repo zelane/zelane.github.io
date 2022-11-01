@@ -76,10 +76,6 @@ const deleteCard = async (card) => {
 <style scoped>
 .buttons {
   display: none;
-  position: absolute;
-  bottom: 1rem;
-  right: 1rem;
-  flex-direction: column;
   gap: .5rem;
 }
 .buttons {
