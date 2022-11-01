@@ -122,7 +122,7 @@ const touchMove = e => {
   }
   
   if(!startedAtTop) return;
-  if(volY > 30 || deltaY > 200) {
+  if(volY > 15 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
