@@ -69,10 +69,11 @@ onBeforeMount(async () => {
 
 let startX = null;
 let startY = null;
+let lastY = null;
 let direction = null;
 let initDir = null;
 let startedAtTop = false;
-let past = [];
+let startT = null;
 
 const det = ref(null);
 
@@ -81,7 +82,8 @@ const touchStart = (e) => {
   startX = e.touches[0].clientX;
   startY = e.touches[0].clientY;
   startedAtTop = det.value.scrollTop === 0;
-  past.push(startY);
+  lastY = startY;
+  startT = Date.now();
 };
 
 const touchMove = e => {
@@ -91,12 +93,9 @@ const touchMove = e => {
   const deltaX = newX - startX;
   const deltaY = newY - startY;
 
-  let volY = 0;
-  past.push(newY);
-  if(past.length > 5) {
-    past = past.length > 5 ? past.slice(1, 4) : past;
-    volY = past[past.length-1] - past[0];
-  }
+  let volY = (newY - lastY) / (Date.now() - startT);
+  startT = Date.now();
+  lastY = newY;
 
   if(Math.abs(deltaX) > Math.abs(deltaY)) {
     direction = deltaX > 0 ? 'right' : 'left';
@@ -122,7 +121,8 @@ const touchMove = e => {
   }
   
   if(!startedAtTop) return;
-  if(volY > 25 || deltaY > 200) {
+  // console.log(volY);
+  if(volY >= 1.2 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
@@ -140,7 +140,8 @@ const touchEnd = e => {
   det.value.style.transform = '';
   ui.dragging = false;
   initDir = null;
-  past = [];
+  lastY = null;
+  startT = null;
 };
 
 const moveCard = dir => {
