@@ -93,8 +93,8 @@ const touchMove = e => {
 
   let volY = 0;
   past.push(newY);
-  if(past.length > 10) {
-    past = past.length > 10 ? past.slice(1, 9) : past;
+  if(past.length > 5) {
+    past = past.length > 5 ? past.slice(1, 4) : past;
     volY = past[past.length-1] - past[0];
   }
 
@@ -122,7 +122,7 @@ const touchMove = e => {
   }
   
   if(!startedAtTop) return;
-  if(volY > 70 || deltaY > 200) {
+  if(volY > 30 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
