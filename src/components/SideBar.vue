@@ -11,6 +11,7 @@ import CollectionsManager from './CollectionsManager.vue';
 import { useDetails } from '../stores/details';
 import CardImage from './CardImage.vue';
 import Settings from './SettingsView.vue';
+import CardEdit from './CardEdit.vue';
 
 const details = useDetails();
 const cards = useCardView();
@@ -134,6 +135,14 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'filters'"
     >
       <Filters />
+    </div>
+
+    <div
+      class="panel edit"
+      v-show="ui.sidebar.selected === 'edit'"
+    >
+      <h3>Edit</h3>
+      <CardEdit />
     </div>
 
     <div

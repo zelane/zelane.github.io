@@ -6,9 +6,11 @@ import Multiselect from '@vueform/multiselect';
 import CardSearch from './CardSearch.vue';
 import { useCollections } from '../stores/collections';
 import { useMeta } from '../stores/meta';
+import { useToast } from 'vue-toastification';
 
 const collections = useCollections();
 const meta = useMeta();
+const toast = useToast();
 
 const emit = defineEmits(['parsed']);
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -246,19 +248,20 @@ const updateCollection = async (name, cardList) => {
 };
 
 const handleSearch = async (data) => {
-  data.count = 1;
+  // Todo: Add finish
   const collection = await collections.get(upload.name);
   let existing = collection.cards.filter(c => {
     return c.id === data.id && c.finish === 'nonfoil';
   });
   if (existing.length > 0) {
-    existing[0].count += 1;
+    existing[0].count += data.count;
   }
   else {
     collection.cards.push(data);
   }
   collections.save(upload.name, collection.cards, collection.syncCode);
   emit('parsed', collections.open);
+  toast(`${'' + data.name} added to ${upload.name}`);
 };
 
 const fetchCardData = async (cardList) => {

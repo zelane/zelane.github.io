@@ -14,7 +14,10 @@ export const useUI = defineStore('ui', {
       details: {
         index: 0,
         show: false,
-      }, 
+      },
+      edit: {
+        card: null
+      }
     };
   },
   getters: {

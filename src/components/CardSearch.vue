@@ -1,20 +1,24 @@
 <script setup>
 import { reactive } from 'vue';
-import ManaCost from './ManaCost.vue';
 import { deepUnref } from 'vue-deepunref';
 import { useSearchView } from '../stores/cards';
 import { useMeta } from '../stores/meta';
 import Multiselect from '@vueform/multiselect';
+import CardImage from './CardImage.vue';
+import CheckBar from './CheckBar.vue';
 
 const search = useSearchView();
 const meta = useMeta();
 
 const ui = reactive({
-    search: '',
-    cn: null,
-    set: null,
-    results: [],
-    loading: false,
+  search: '',
+  cn: '',
+  set: null,
+  count: 1,
+  autoAdd: false,
+  results: [],
+  loading: false,
+  preview: null,
 });
 
 const emit = defineEmits(['selected']);
@@ -23,9 +27,13 @@ const clear = () => {
   ui.search = null;
   ui.cn = null;
   ui.set = null;
+  ui.count = 1;
+  search.$reset();
 };
 
-const runSearch = () => {
+// Power mode? Shift + Enter add foil
+
+const runSearch = async () => {
   if((!ui.search || ui.search.length < 3) && (!ui.cn && !ui.set)) {
     return;
   }
@@ -36,13 +44,20 @@ const runSearch = () => {
   if(ui.set) {
     query += " set:" + ui.set;
   }
-  search.loadSearch(query);
+  await search.loadSearch(query, 'prints');
+  if(ui.autoAdd && search.count === 1) emit('selected', deepUnref(search.cards.values().next().value));
+};
+
+const select = card => {
+  let obj = deepUnref(card);
+  obj.count = ui.count;
+  emit('selected', obj);
 };
 
 </script>
 
 <template>
-  <div class="row">
+  <div class="form">
     <input
       type="text"
       v-model="ui.search"
@@ -53,16 +68,12 @@ const runSearch = () => {
       class="small icon icon-search"
       @click="runSearch"
     /> -->
-  </div>
-  <div class="row">
     <input
       type="text"
       v-model="ui.cn"
       @keyup.enter="runSearch"
       placeholder="Collector number (Optional)"
     >
-  </div>
-  <div class="row">
     <Multiselect
       v-model="ui.set"
       :options="meta.sets"
@@ -72,8 +83,18 @@ const runSearch = () => {
       mode="single"
       placeholder="Set (Optional)"
     />
-  </div>
-  <div class="row">
+    <input
+      type="number"
+      v-model="ui.count"
+      placeholder="Quantity"
+    >
+    <CheckBar
+      v-model="ui.autoAdd"
+      v-if="false"
+    >
+      Auto add single result
+    </CheckBar>
+    
     <button
       @click="clear"
     >
@@ -85,33 +106,48 @@ const runSearch = () => {
       Search
     </button>
   </div>
+
   <div class="results">
     <div
       v-for="card in search.cards.values()"
       :key="card.name"
       class="result"
+      @click="ui.preview = ui.preview === null ? card.id : null"
     >
-      <span class="name">{{ card.name }}</span>
-      <ManaCost :mana="card.mana_cost" />
+      <div class="name">
+        <span class="cn">{{ card.collector_number }}</span> - {{ card.name }} 
+      </div>
+      <div class="set">
+        {{ card.set }} - {{ card.set_name }}
+      </div>
       <button
         class="small"
-        @click="emit('selected', deepUnref(card))"
+        @click.stop="select(card)"
       >
         +
       </button>
+      <div
+        class="preview"
+        v-if="ui.preview === card.id"
+      >
+        <CardImage :card="card" />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.row {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
+.form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
+  width: 100%;
 }
-.row input, .row button {
-  flex-grow: 1;
+.form input, .form .multiselect, .form .checkbar {
+  grid-column: span 2;
+}
+.form .row {
+  display: flex;
 }
 .results {
   max-height: min(30rem, 50vh);
@@ -123,10 +159,30 @@ const runSearch = () => {
   padding-right: 1rem;
 }
 .result {
-  display: flex;
-  flex-direction: row;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, auto);
   align-items: center;
+}
+.result .cn {
+  font-weight: 600;
+}
+.result .set {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  color: var(--colour-accent);
+}
+.result div {
+  grid-column: 1;
+}
+.result button {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  width: min-content;
+  justify-self: flex-end;
+}
+.result .preview {
+  margin-top: 1rem;
 }
 .name {
   flex-grow: 1;

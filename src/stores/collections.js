@@ -86,6 +86,12 @@ export const useCollections = defineStore('collections', {
       }
       return this.all;
     },
+    async replaceCard(collection, old, new_) {
+      const col = await db.collections.get({ name: collection });
+      let newCards = col.cards.filter(c => c.id !== old.id || c.finish !== old.finish);
+      newCards.push(new_);
+      await db.collections.update(collection, { cards: newCards });
+    },
     async deleteCard(collectionNames, card) {
       for (const colName of collectionNames) {
         const col = await db.collections.get({ name: colName });

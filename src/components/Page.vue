@@ -69,19 +69,19 @@ onBeforeMount(async () => {
 
 let startX = null;
 let startY = null;
-let lastX = null;
-let lastY = null;
 let direction = null;
 let initDir = null;
 let startedAtTop = false;
+let past = [];
 
 const det = ref(null);
 
 const touchStart = (e) => {
   ui.dragging = true;
-  startX = lastX = e.touches[0].clientX;
-  startY = lastY = e.touches[0].clientY;
+  startX = e.touches[0].clientX;
+  startY = e.touches[0].clientY;
   startedAtTop = det.value.scrollTop === 0;
+  past.push(startY);
 };
 
 const touchMove = e => {
@@ -90,9 +90,13 @@ const touchMove = e => {
   let newY = e.touches ? e.touches[0].clientY : e.clientY;
   const deltaX = newX - startX;
   const deltaY = newY - startY;
-  const volY = lastY - newY;
-  lastX = newX;
-  lastY = newY;
+
+  let volY = 0;
+  past.push(newY);
+  if(past.length > 10) {
+    past = past.length > 10 ? past.slice(1, 9) : past;
+    volY = past[past.length-1] - past[0];
+  }
 
   if(Math.abs(deltaX) > Math.abs(deltaY)) {
     direction = deltaX > 0 ? 'right' : 'left';
@@ -118,8 +122,7 @@ const touchMove = e => {
   }
   
   if(!startedAtTop) return;
-
-  if(volY < -15 || deltaY > 200) {
+  if(volY > 70 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
     ui.dragging = false;
@@ -133,10 +136,11 @@ const touchMove = e => {
 };
 
 const touchEnd = e => {
-  lastX = lastY = startX = startY = null;
+  startX = startY = null;
   det.value.style.transform = '';
   ui.dragging = false;
   initDir = null;
+  past = [];
 };
 
 const moveCard = dir => {
@@ -205,7 +209,7 @@ const clickOut = (e) => {
           />
           <CardDetails
             :card="details.card"
-            :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'delete'] : ['prints', 'clip']"
+            :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
           />
         </div>
       </div>

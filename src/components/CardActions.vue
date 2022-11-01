@@ -17,7 +17,7 @@ const props = defineProps({
   },
   actions: {
     type: Array,
-    default: () => ['clip', 'delete', 'prints']
+    default: () => ['clip', 'delete', 'prints', 'edit']
   }
 });
 
@@ -57,6 +57,12 @@ const deleteCard = async (card) => {
       class="small clip icon icon-add"
       @click.stop="clip(card)"
       title="Add to clipboard"
+    />
+    <button
+      v-if="props.actions.includes('edit')"
+      class="small edit icon icon-edit"
+      @click.stop="() => {ui.edit.card = props.card; ui.showSidebar('edit')}"
+      title="Edit"
     />
     <button
       v-if="props.actions.includes('delete')"

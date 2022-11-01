@@ -51,6 +51,7 @@ html {
 
   --font-magic: "Beleren Bold";
   --font-magic-smallcaps: "Beleren SmallCaps Bold";
+  --font-icons: 'icomoon';
 
   --height-input: 2.5rem;
   --slider-height: 2rem;
@@ -159,18 +160,12 @@ button,
   background-color: var(--colour-input-grey);
   color: var(--colour-light-font);
   font-size: 1rem;
-  /* font-weight: 600; */
   line-height: var(--height-input);
   text-align: center;
   cursor: pointer;
   transition: all 0.1s;
-  /* margin-top: 1px; */
-  /* margin-bottom: 1px; */
 }
 :is(button, button.small, .button, .button.small):hover {
-  /* margin-top: 2px; */
-  /* margin-bottom: 0px; */
-  /* box-shadow: 0px 1px 1px #000; */
   background-color: #39343e;
 }
 button.small,
