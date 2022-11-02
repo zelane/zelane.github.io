@@ -40,13 +40,15 @@ let touchYPos = 0;
 const sidebar = ref(null);
 
 const touchStart = (e) => {
-  touchXPos = e.touches[0].screenX;
-  touchYPos = e.touches[0].screenY;
+  touchXPos = e.touches ? e.touches[0].screenX : e.screenX;
+  touchYPos = e.touches ? e.touches[0].screenY : e.screenY;
 };
 
 const touchEnd = (e) => {
-  const deltaX = e.changedTouches[0].screenX - touchXPos;
-  const deltaY = Math.abs(e.changedTouches[0].screenY - touchYPos);
+  const posX = e.touches ? e.touches[0].screenX : e.screenX;
+  const posY = e.touches ? e.touches[0].screenY : e.screenY;
+  const deltaX = posX - touchXPos;
+  const deltaY = Math.abs(posY - touchYPos);
   if(ui.sidebar.show === true && deltaX > 75 && deltaX > deltaY) {
     ui.sidebar.show = false;
   }
@@ -59,6 +61,8 @@ const touchEnd = (e) => {
     class="sidepanel"
     :class="{'show': ui.sidebar.show}"
     ref="sidebar"
+    @mousedown="touchStart"
+    @mouseup="touchEnd"
     @touchstart="touchStart"
     @touchend="touchEnd"
   >
@@ -282,6 +286,15 @@ const touchEnd = (e) => {
 .item.filters {
   display: none;
 }
+@media (max-width: 1280px) {
+  
+  .item.filters {
+    display: initial;
+  }
+  .sidepanel {
+    top: 6rem;
+  }
+}
 @media (max-width: 640px) {
   .menu {
     width: 100vw;
@@ -310,9 +323,6 @@ const touchEnd = (e) => {
   }
   .menu .item .icon {
     color: var(--colour-anchor);
-  }
-  .item.filters {
-    display: initial;
   }
   .item.prints, .item.details {
     display: none;

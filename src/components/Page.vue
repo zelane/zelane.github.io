@@ -79,8 +79,8 @@ const det = ref(null);
 
 const touchStart = (e) => {
   ui.dragging = true;
-  startX = e.touches[0].clientX;
-  startY = e.touches[0].clientY;
+  startX = e.touches ? e.touches[0].clientX : e.clientX;
+  startY = e.touches ? e.touches[0].clientY : e.clientY;
   startedAtTop = det.value.scrollTop === 0;
   lastY = startY;
   startT = Date.now();
@@ -97,6 +97,8 @@ const touchMove = e => {
   startT = Date.now();
   lastY = newY;
 
+  console.log(e);
+
   if(Math.abs(deltaX) > Math.abs(deltaY)) {
     direction = deltaX > 0 ? 'right' : 'left';
   }
@@ -106,6 +108,7 @@ const touchMove = e => {
   if(initDir === null) {
     initDir = direction;
   }
+
   if(initDir === 'left' || initDir === 'right') {
     e.preventDefault();
     e.stopPropagation();
@@ -120,8 +123,8 @@ const touchMove = e => {
     return;
   }
   
-  if(!startedAtTop) return;
-  // console.log(volY);
+  if(!startedAtTop || direction === 'up') return;
+  
   if(volY >= 1.2 || deltaY > 200) {
     uiGlobal.details.show = false;
     det.value.style.transform = '';
@@ -217,6 +220,10 @@ const clickOut = (e) => {
               :card="details.card"
               :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
             />
+            <a
+              class="close icon icon-chevron-down"
+              @click="uiGlobal.details.show = false"
+            />
           </div>
         </div>
         <a
@@ -275,7 +282,7 @@ const clickOut = (e) => {
   max-width: 920px;
   gap: 1rem;
 }
-.details .move-card {
+.details a:is(.move-card, .close) {
   font-size: 5rem;
   cursor: pointer;
 }
@@ -288,8 +295,21 @@ const clickOut = (e) => {
   flex-direction: column;
   gap: 1rem;
 }
+.details .close {
+  display: none;
+}
 
 @media (min-width: 640px) {
+  .details {
+    top: 3rem;
+    gap: 5rem;
+  }
+  .details a.close {
+    display: block;
+    flex-basis: 100%;
+    justify-self: flex-start;
+    align-self: center;
+  }
   .details .content {
     row-gap: 1rem;
     flex-grow: 1;
@@ -316,8 +336,6 @@ const clickOut = (e) => {
     display: block;
     position: absolute;
     inset: 6rem 0 4rem 0;
-  }
-  .details.show {
   }
   .details .move-card {
     display: none;
@@ -391,13 +409,13 @@ const clickOut = (e) => {
   height: 100%;
   overflow: auto;
 }
-@media (max-width: 640px) {
+@media (max-width: 1280px) {
   .info-bar {
     display: none;
   }
   .card-view {
     position: absolute;
-    inset: 6rem 0 4rem 0;
+    inset: 6rem 0 0 0;
     overflow: auto;
     height: auto;
   }
@@ -434,6 +452,11 @@ const clickOut = (e) => {
   #sidebar.show {
     transform: translate(0, 0);
     overflow: auto;
+  }
+}
+@media (max-width: 640px) {
+  .card-view {
+    inset: 6rem 0 4rem 0;
   }
 }
 </style>

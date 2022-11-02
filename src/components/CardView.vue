@@ -70,7 +70,7 @@ const props = defineProps({
   max-width: 20rem;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 1280px) {
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(15em, 1fr)) !important;
@@ -83,6 +83,14 @@ const props = defineProps({
     right: 1rem;
     flex-direction: column;
     gap: .5rem;
+  }
+}
+@media (max-width: 1280px) {
+  .cards { 
+    grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
+  }
+  .cards .card {
+    min-width: 10em;
   }
 }
 @media (max-width: 640px) {
