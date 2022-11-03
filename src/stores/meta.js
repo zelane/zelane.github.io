@@ -9,6 +9,10 @@ export const useMeta = defineStore('meta', {
       _sets: new Map(),
       precons: [],
       types: [],
+      forex: {
+        'usd': 0.8,
+        'eur': 0.8,
+      },
       symbols: new Map(),
       cacheKeys: new Map(),
     };
@@ -29,9 +33,17 @@ export const useMeta = defineStore('meta', {
     }
   },
   actions: {
+    async getForex(from, to) {
+      const resp = await fetch(`https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/${from}/${to}.json`);
+      const forex = await resp.json();
+      return forex[to];
+    },
     async init() {
       // let cacheKeys = await (await fetch(backendUrl + "/cacheKeys")).json();
       // this.cacheKeys = new Map(Object.entries(cacheKeys));
+
+      this.forex['eur'] = await this.getForex('eur', 'gbp');
+      this.forex['usd'] = await this.getForex('usd', 'gbp');
 
       const cache = await caches.open('cardDataCache');
 

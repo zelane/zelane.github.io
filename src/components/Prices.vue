@@ -1,5 +1,7 @@
 <script setup>
+import { useMeta } from '../stores/meta';
 
+  const meta = useMeta();
   const props = defineProps({
     card: {
       type: Object,
@@ -33,7 +35,10 @@
         v-show="props.all || props.card.finish === finish"
         v-if="finish === 'nonfoil'"
       >
-        {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur'] || (props.card.prices['usd'] * 0.9)) }}
+        {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+          props.card.prices['eur'] * meta.forex['eur'] || (props.card.prices['usd'] * meta.forex['usd'])
+        ) 
+        }}
       </span>
       <span
         class="price"
@@ -41,7 +46,11 @@
         v-show="props.all || props.card.finish === finish"
         v-else
       >
-        {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' }).format(props.card.prices['eur_' + finish] || (props.card.prices['usd_' + finish] * 0.9)) }}
+        {{ markings[finish] }} {{ 
+          new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
+            props.card.prices['eur_' + finish] * meta.forex['eur'] || (props.card.prices['usd_' + finish] * meta.forex['usd']
+            )) 
+        }}
       </span>
     </span>
   </span>

@@ -217,7 +217,6 @@ const parseDSWeb = async (csv) => {
 
 const updateCollection = async (name, cardList) => {
   let collection = await collections.get(name);
-
   for (const [key, card] of cardList.entries()) {
     let existing = collection.cards.filter(c => {
       if(c === undefined) {

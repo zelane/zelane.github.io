@@ -3,10 +3,11 @@ import Fuse from 'fuse.js';
 import { useCollections } from './collections';
 import { cachedGet } from '../utils/network';
 import { deepUnref } from 'vue-deepunref';
+import { useMeta } from './meta';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 const superTypes = ['Planeswalker', 'Legendary Creature', 'Creature', 'Sorcery', 'Instant', 'Artifact', 'Enchantment', 'Land', 'Token'];
-const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR' });
+const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
 
 const dynamicSort = (sort) => (a, b) => {
   const dir = sort.dir;
@@ -52,6 +53,7 @@ const config = {
       filtered: [],
       tribes: [],
       loading: false,
+      selected: new Set(),
       filters: {
         colours: { colours: [], mode: 'commander' },
         rarity: [],
@@ -281,7 +283,7 @@ const config = {
       this.filtered = this.filtered.filter(c => c.id !== card.id || c.finish !== card.finish);
     },
     add(card) {
-      let ex = 0.9;
+      const meta = useMeta();
       card.finish = card.finishes.length === 1 ? card.finishes[0] : card.finish;
       if (!card.count) card.count = 1;
       if (card.isCommander) {
@@ -292,11 +294,11 @@ const config = {
       }
       else if (card.finish === 'foil' || card.finish === 'etched' || (card.prices.eur === null && card.prices.usd === null)) {
         if (card.prices.usd_etched !== null) {
-          card.price = parseFloat(card.prices.usd_etched);
+          card.price = parseFloat(card.prices.usd_etched) * meta.forex.usd;
           if (!card.finish) card.finish = 'etched';
         }
         else if (card.prices.eur_foil || card.prices.usd_foil) {
-          card.price = parseFloat(card.prices.eur_foil) || (parseFloat(card.prices.usd_foil) * ex) || 0;
+          card.price = parseFloat(card.prices.eur_foil) * meta.forex.eur || (parseFloat(card.prices.usd_foil) * meta.forex.usd) || 0;
           if (!card.finish) card.finish = 'foil';
         }
         else {
@@ -305,7 +307,7 @@ const config = {
         }
       }
       else {
-        card.price = parseFloat(card.prices.eur) || (parseFloat(card.prices.usd) * ex) || 0;
+        card.price = parseFloat(card.prices.eur) * meta.forex.eur || (parseFloat(card.prices.usd) * meta.forex.usd) || 0;
         card.finish = 'nonfoil';
       }
       card.type_line = card.type_line || '';
@@ -361,7 +363,7 @@ const config = {
       }
     },
     async loadPrints(cardName) {
-      this.loadSearch(`!"${cardName}" -border:silver -is:digital`, 'prints');
+      this.loadSearch(`!"${cardName}" -border:silver -is:digital`, 'prints', true);
     },
     async loadSet(setId, force = false) {
       this.loading = true;

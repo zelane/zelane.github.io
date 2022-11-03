@@ -97,8 +97,6 @@ const touchMove = e => {
   startT = Date.now();
   lastY = newY;
 
-  console.log(e);
-
   if(Math.abs(deltaX) > Math.abs(deltaY)) {
     direction = deltaX > 0 ? 'right' : 'left';
   }

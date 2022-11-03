@@ -40,13 +40,13 @@ let touchYPos = 0;
 const sidebar = ref(null);
 
 const touchStart = (e) => {
-  touchXPos = e.touches ? e.touches[0].screenX : e.screenX;
-  touchYPos = e.touches ? e.touches[0].screenY : e.screenY;
+  touchXPos = e.touches ? e.touches[0].clientX : e.clientX;
+  touchYPos = e.touches ? e.touches[0].clientY : e.clientY;
 };
 
 const touchEnd = (e) => {
-  const posX = e.touches ? e.touches[0].screenX : e.screenX;
-  const posY = e.touches ? e.touches[0].screenY : e.screenY;
+  const posX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+  const posY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
   const deltaX = posX - touchXPos;
   const deltaY = Math.abs(posY - touchYPos);
   if(ui.sidebar.show === true && deltaX > 75 && deltaX > deltaY) {
