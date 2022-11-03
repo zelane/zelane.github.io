@@ -145,6 +145,8 @@ const touchEnd = e => {
   startT = null;
 };
 
+
+const cardsWindow = ref(null);
 const moveCard = dir => {
   let newIndex = uiGlobal.details.index + dir;
   if(newIndex < 0) newIndex = cards.filtered.length - 1;
@@ -152,13 +154,27 @@ const moveCard = dir => {
   uiGlobal.details.index = newIndex;
   const next = cards.filtered[uiGlobal.details.index];
   details.loadDetails(next);
+  
+  if(cardsWindow.value) {
+    const focused = cardsWindow.value.querySelector(`.card[data-id="${next.id}"]`);
+    if(focused) {
+      // const scrollTo = focused.offsetTop;
+      const scrollTo = focused.offsetTop - (cardsWindow.value.offsetHeight / 2) + (focused.offsetHeight / 2);
+      cardsWindow.value.scrollTo({
+        top: scrollTo,
+        behavior: 'smooth'
+      });
+    }
+  }
 };
+
 
 const clickOut = (e) => {
   if(e.target.id === 'details-overlay') {
     uiGlobal.details.show = false;
   }
 };
+
 
 </script>
 
@@ -216,7 +232,7 @@ const clickOut = (e) => {
           <div class="right">
             <CardDetails
               :card="details.card"
-              :actions="uiGlobal.source === 'collection' ? ['prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
+              :actions="uiGlobal.source === 'collection' ? ['select', 'deselect', 'prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
             />
             <a
               class="close icon icon-chevron-down"
@@ -231,6 +247,8 @@ const clickOut = (e) => {
       </div>
 
       <div
+      
+        ref="cardsWindow"
         class="card-view"
         @click="uiGlobal.sidebar.show = false"
       >
@@ -404,6 +422,7 @@ const clickOut = (e) => {
   display: none;
 }
 .card-view {
+  position: relative;
   height: 100%;
   overflow: auto;
 }
