@@ -74,15 +74,6 @@ img {
   border-radius: 5%;
   transition: backdrop-filter 0.2s;
 }
-.img.missing {
-  /* opacity: 0.5; */
-}
-.img.missing::after {
-  /* opacity: 0.5; */
-  /* background-color: rgba(0,0,0,0.6); */
-  backdrop-filter: brightness(50%) grayscale(75%);
-
-}
 .img.foil::after {
   background: linear-gradient(115deg, rgba(0,255,0,0) 0%, rgba(0,255,0,0.25) 25%, rgba(255,255,0,0.3) 50%, rgba(255,0,0,0.15) 75%, rgba(255,0,0,0.3) 100%);
 }
@@ -97,6 +88,17 @@ img {
     opacity: 1;
     mix-blend-mode: multiply;
   }
+}
+.img.missing {
+  /* opacity: 0.5; */
+}
+.img.missing::after {
+  /* opacity: 0.5; */
+  /* background-color: rgba(0,0,0,0.6); */
+  mix-blend-mode: normal;
+  background: transparent;
+  backdrop-filter: brightness(50%) grayscale(75%);
+
 }
 .flip.back {
   display: none;

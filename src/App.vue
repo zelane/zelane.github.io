@@ -409,7 +409,7 @@ h3 {
 }
 
 @media (max-width: 640px) {
-  #main .card-view .card .buttons, .card-view .card .set-line,  .card-view .card .prices, .card-view .card .tags{
+  #main .card-view .card .buttons, .card-view .card .set-line,  .card-view .card .tags{
     display: none !important;
   }
   #main .card-view .card {

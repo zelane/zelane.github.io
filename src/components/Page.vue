@@ -195,7 +195,7 @@ const clickOut = (e) => {
       class="main"
       :data-source="uiGlobal.source"
     >
-      <InfoBar />
+      <!-- <InfoBar /> -->
       <CardSource class="card-source" />
       <SideBar />
 
@@ -252,6 +252,7 @@ const clickOut = (e) => {
         class="card-view"
         @click="uiGlobal.sidebar.show = false"
       >
+        <InfoBar />
         <CardView
           :store="cards"
           v-if="uiGlobal.mainView === 'cards'"
@@ -351,7 +352,7 @@ const clickOut = (e) => {
   .details {
     display: block;
     position: absolute;
-    inset: 6rem 0 4rem 0;
+    inset: 9rem 0 4rem 0;
   }
   .details .move-card {
     display: none;
@@ -422,13 +423,14 @@ const clickOut = (e) => {
   display: none;
 }
 .card-view {
-  position: relative;
-  height: 100%;
+  overflow: auto;
+  position: absolute;
+  inset: 0;
   overflow: auto;
 }
 @media (max-width: 1280px) {
   .info-bar {
-    display: none;
+    /* display: none; */
   }
   .card-view {
     position: absolute;

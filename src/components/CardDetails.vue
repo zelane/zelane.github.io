@@ -3,9 +3,11 @@ import { useDetails } from '../stores/details';
 import { useMeta } from '../stores/meta';
 import CardSummary from './CardSummary.vue';
 import CardActions from './CardActions.vue';
+import { useCardView } from '../stores/cards';
 
 const details = useDetails();
 const meta = useMeta();
+const cards = useCardView();
 
 const emit = defineEmits(["changed"]);
 
@@ -46,6 +48,8 @@ const copyJson = card => {
   <CardActions
     :card="props.card"
     :actions="props.actions"
+    @select="cards.selected.add(card.id + card.finish)"
+    @deselect="cards.selected.delete(card.id + card.finish)"
   />
   <CardSummary :card="props.card" />
   <div

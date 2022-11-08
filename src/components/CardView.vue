@@ -1,8 +1,14 @@
 <script setup>
+import { useCardView } from '../stores/cards';
+import { useCollections } from '../stores/collections';
+import { useDetails } from '../stores/details';
 import { useUI } from '../stores/ui';
 import Card from './Card.vue';
 
 const ui = useUI();
+const details = useDetails();
+const cards = useCardView();
+const collections = useCollections();
 
 const props = defineProps({
   store: {
@@ -11,10 +17,9 @@ const props = defineProps({
   },
   actions: {
     type: Array,
-    default: () => ['clip', 'delete', 'details', 'prints']
+    default: () => ['select', 'clip', 'delete', 'details', 'prints']
   }
 });
-
 </script>
 
 <template>
@@ -37,7 +42,17 @@ const props = defineProps({
       :actions="props.actions"
       v-for="(card, index) in props.store.filtered.slice(0, 500)"
       :key="card.id + card.finish"
-      :style="{order: card.isCommander ? -1 : null}"
+      :class="{
+        commander: card.isCommander,
+      }"
+      :selected="props.store.selected.has(card.id + card.finish)"
+      @select="props.store.selected.add(card.id + card.finish)"
+      @deselect="props.store.selected.delete(card.id + card.finish)"
+      @clicked="() => {
+        details.loadDetails(card, includeRulings=true); 
+        ui.details.show = true;
+        ui.details.index = index;
+      }"
     />
   </div>
 </template>
@@ -68,6 +83,14 @@ const props = defineProps({
   min-width: 15em;
 	/* content-visibility: auto; */
   max-width: 20rem;
+}
+
+.card.commander {
+  order: -1;
+}
+
+.card.selected .img {
+  box-shadow: inset;
 }
 
 @media (min-width: 1280px) {

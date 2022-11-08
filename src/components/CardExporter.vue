@@ -55,7 +55,7 @@ const exportList = async (format) => {
   else if (format === 'moxfield') {
     list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
     for(const card of props.cards.values()) {
-      list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English","","","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
+      list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English",${card.finish},"","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
     };
     var blob = new Blob([list], { 
       type: 'text/csv;charset=utf-8;' 

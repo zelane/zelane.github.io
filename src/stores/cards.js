@@ -333,6 +333,15 @@ const config = {
 
       this.applyFilters();
     },
+    getSelection() {
+      const cards = [];
+      for(const card of this.cards.values()) {
+        if(this.selected.has(card.id + card.finish)) {
+          cards.push(card);
+        }
+      }
+      return cards;
+    },
     async loadSearch(query, unique='card', force=false) {
       if (query.length === 0) {
         this.cards.clear();

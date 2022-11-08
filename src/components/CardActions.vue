@@ -9,6 +9,7 @@ const cardView = useCardView();
 const collections = useCollections();
 const prints = usePrintsView();
 const ui = useUI();
+const cards = useCardView();
 
 const props = defineProps({
   card: {
@@ -17,9 +18,11 @@ const props = defineProps({
   },
   actions: {
     type: Array,
-    default: () => ['clip', 'delete', 'prints', 'edit']
+    default: () => ['select', 'deselect', 'clip', 'delete', 'prints', 'edit']
   }
 });
+
+const emit = defineEmits(['select', 'deselect']);
 
 const clip = async (card) => {
   let copy = {... card};
@@ -47,6 +50,18 @@ const deleteCard = async (card) => {
       title="View details"
     /> -->
     <button
+      v-if="props.actions.includes('select') && !cards.selected.has(card.id + card.finish)"
+      class="small select icon icon-check"
+      @click.stop="() => {emit('select')}"
+      title="Select"
+    />
+    <button
+      v-if="props.actions.includes('deselect') && cards.selected.has(card.id + card.finish)"
+      class="small deselect icon icon-clear"
+      @click.stop="() => {emit('deselect')}"
+      title="Deselect"
+    />
+    <button
       v-if="props.actions.includes('prints')"
       class="small prints icon icon-prints"
       @click.stop="() => {prints.loadPrints(props.card.name); ui.showSidebar('prints')}"
@@ -67,7 +82,7 @@ const deleteCard = async (card) => {
     <button
       v-if="props.actions.includes('delete')"
       class="small delete icon icon-delete"
-      @click.stop="deleteCard(card)"
+      @click.stop="() => {deleteCard(card); ui.details.show = false; ui.details.card = {}}"
       title="Delete"
     />
   </div>
