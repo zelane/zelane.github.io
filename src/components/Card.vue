@@ -41,23 +41,24 @@ let triggered = false;
 let to = null;
 
 const mouseDown = e => {
-  e.stopPropagation();
-  to = setTimeout(()=> {
-    emit('select');
-    triggered = true;
-  }, 500);
+  // e.stopPropagation();
+  // to = setTimeout(()=> {
+  //   emit('select');
+  //   triggered = true;
+  // }, 500);
 };
 
 const mouseUp = e => {
 };
 
 const click = e => {
-  e.preventDefault();
-  clearTimeout(to);
-  if(!triggered) {
-    emit('clicked');
-  }
-  triggered = false;
+  // e.preventDefault();
+  // clearTimeout(to);
+  // if(!triggered) {
+  //   emit('clicked');
+  // }
+  // triggered = false;
+  emit('clicked');
 };
 
 </script>
