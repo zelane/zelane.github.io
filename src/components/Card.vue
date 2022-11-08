@@ -67,9 +67,6 @@ const click = e => {
   <div
     class="card"
     :data-id="props.card.id"
-    @touchstart="mouseDown"
-    @touchend="mouseUp"
-    @click.stop="emit('clicked')"
     @select="emit('select')"
     @deselect="emit('deselect')"
     :class="{
@@ -80,7 +77,9 @@ const click = e => {
       <CardImage 
         :card="props.card"
         :effects="calcEffects(card)"
-        @click="click"
+        @touchstart="mouseDown"
+        @touchend="mouseUp"
+        @click.stop="emit('clicked')"
       />
       <CardActions
         :card="props.card"
