@@ -16,10 +16,6 @@ const props = defineProps({
     type: Object,
     required: true
   },
-  actions: {
-    type: Array,
-    default: () => ['clip'],
-  },
   face: {
     type: Number,
     default: 0
@@ -47,7 +43,6 @@ const copyJson = card => {
 <template>
   <CardActions
     :card="props.card"
-    :actions="props.actions"
     @select="cards.selected.add(card.id + card.finish)"
     @deselect="cards.selected.delete(card.id + card.finish)"
   />

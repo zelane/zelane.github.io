@@ -75,6 +75,7 @@ const loadRoute = async (view, params) => {
       return;
     }
     else if(view === 'collection') {
+      uiGlobal.source = 'collection';
       if(params.code) {
         await cards.loadSync(params.code);
       }
@@ -85,14 +86,17 @@ const loadRoute = async (view, params) => {
     }
     else if(view === 'set') {
       ui.set = params.q;
+      uiGlobal.source = 'set';
       await cards.loadSet(ui.set, params.force === 'true');
     }
     else if(view === 'precons') {
       ui.precons = params.q;
+      uiGlobal.source = 'precons';
       await cards.loadPrecon(params.q);
     }
     else if(view === 'search') {
       ui.search = params.q;
+      uiGlobal.source = 'search';
       await cards.loadSearch(params.q, params.unique, params.force);
     }
   }

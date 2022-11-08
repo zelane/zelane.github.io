@@ -73,6 +73,8 @@ const props = defineProps({
   display: grid;
   gap: 2em;
   padding: 2rem;
+  overflow: auto;
+  height: 100%;
 }
 .cards .card {
   margin: 0 auto;

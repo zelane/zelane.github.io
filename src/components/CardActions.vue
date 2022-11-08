@@ -74,13 +74,13 @@ const deleteCard = async (card) => {
       title="Add to clipboard"
     />
     <button
-      v-if="props.actions.includes('edit')"
+      v-if="props.actions.includes('edit') && ui.source === 'collection'"
       class="small edit icon icon-edit"
       @click.stop="() => {ui.edit.card = props.card; ui.showSidebar('edit')}"
       title="Edit"
     />
     <button
-      v-if="props.actions.includes('delete')"
+      v-if="props.actions.includes('delete') && ui.source === 'collection'"
       class="small delete icon icon-delete"
       @click.stop="() => {deleteCard(card); ui.details.show = false; ui.details.card = {}}"
       title="Delete"

@@ -90,7 +90,10 @@ const clipSelection = async() => {
         <a @click="() => {cards.selected = new Set()}">Clear</a>
         <a @click="clipSelection">Clip</a>
         <!-- <a @click="() => {}">Move</a> -->
-        <a @click="deleteSelection">Delete</a>
+        <a
+          @click="deleteSelection"
+          v-if="ui.source === 'collection'"
+        >Delete</a>
       </div>
     </template>
   </div>
@@ -169,8 +172,20 @@ option {
 }
 @media (max-width: 640px) {
   .info-bar {
-    justify-content: space-evenly;
-    gap: 0;
+    position: absolute;
+    width: min-content;
+    margin: 0 auto;
+    padding: 0 1rem;
+    top: unset;
+    bottom: 1rem;
+    right: 1rem;
+    gap: 1rem;
+    white-space: nowrap;
+    border-radius: 4px;
+    background-color: #171317e8;
+  }
+  .info-bar .sort {
+    display: none;
   }
 }
 </style>

@@ -256,7 +256,6 @@ const clickOut = (e) => {
         <CardView
           :store="cards"
           v-if="uiGlobal.mainView === 'cards'"
-          :actions="uiGlobal.cardActions"
         />
         <CardList 
           :cards="cards.filtered"
@@ -282,6 +281,7 @@ const clickOut = (e) => {
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 3;
 }
 .details.dragging {
   transition: none;
@@ -352,7 +352,7 @@ const clickOut = (e) => {
   .details {
     display: block;
     position: absolute;
-    inset: 9rem 0 4rem 0;
+    inset: 6rem 0 4rem 0;
   }
   .details .move-card {
     display: none;
@@ -423,10 +423,8 @@ const clickOut = (e) => {
   display: none;
 }
 .card-view {
-  overflow: auto;
   position: absolute;
   inset: 0;
-  overflow: auto;
 }
 @media (max-width: 1280px) {
   .info-bar {
@@ -435,7 +433,6 @@ const clickOut = (e) => {
   .card-view {
     position: absolute;
     inset: 6rem 0 0 0;
-    overflow: auto;
     height: auto;
   }
   .card-source {

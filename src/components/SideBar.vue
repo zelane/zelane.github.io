@@ -196,7 +196,6 @@ const touchEnd = (e) => {
   position: absolute !important;
   left: 0;
   bottom: 50px;
-  z-index: 2;
   user-select: none;
   transform: translate(-100%, 0);
   left: 0px;
@@ -232,7 +231,7 @@ const touchEnd = (e) => {
   transform: translate(100%, 0);
   background-color: var(--colour-sidebar);
   transition: all 0.2s;
-  z-index: 2;
+  z-index: 4;
   color: var(--colour-light-font);
 }
 .sidepanel.show {
