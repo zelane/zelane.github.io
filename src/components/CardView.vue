@@ -1,14 +1,10 @@
 <script setup>
-import { useCardView } from '../stores/cards';
-import { useCollections } from '../stores/collections';
 import { useDetails } from '../stores/details';
 import { useUI } from '../stores/ui';
 import Card from './Card.vue';
 
 const ui = useUI();
 const details = useDetails();
-const cards = useCardView();
-const collections = useCollections();
 
 const props = defineProps({
   store: {

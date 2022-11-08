@@ -37,23 +37,27 @@ const calcEffects = card => {
   }
 };
 
+let triggered = false;
 let to = null;
-let triggered = null;
 
 const mouseDown = e => {
-  if(triggered === null) triggered = false;
-  to = setTimeout(() => {
-    triggered = true;
+  e.stopPropagation();
+  to = setTimeout(()=> {
     emit('select');
+    triggered = true;
   }, 500);
 };
 
 const mouseUp = e => {
+};
+
+const click = e => {
+  e.preventDefault();
+  clearTimeout(to);
   if(!triggered) {
     emit('clicked');
   }
-  triggered = null;
-  clearTimeout(to);
+  triggered = false;
 };
 
 </script>
@@ -64,6 +68,7 @@ const mouseUp = e => {
     :data-id="props.card.id"
     @touchstart="mouseDown"
     @touchend="mouseUp"
+    @click.stop="emit('clicked')"
     @select="emit('select')"
     @deselect="emit('deselect')"
     :class="{
@@ -74,7 +79,7 @@ const mouseUp = e => {
       <CardImage 
         :card="props.card"
         :effects="calcEffects(card)"
-        @click="emit('clicked')"
+        @click="click"
       />
       <CardActions
         :card="props.card"
