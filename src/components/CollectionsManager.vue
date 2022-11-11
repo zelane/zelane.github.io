@@ -1,16 +1,31 @@
 <script setup>
 
-import { reactive } from 'vue';
+import { reactive, watchEffect } from 'vue';
 import { useToast } from "vue-toastification";
 import { useCollections } from '../stores/collections';
 import { useUser } from '../stores/user';
 import CardExporter from './CardExporter.vue';
+import Multiselect from '@vueform/multiselect';
+import { useCardView } from '../stores/cards';
 
 const user = useUser();
 const collections = useCollections();
+const cards = useCardView();
+
 const toast = useToast();
 const ui = reactive({
-  name: null,
+  collection: null,
+  obj: null,
+});
+
+watchEffect(() => {
+  ui.collection = collections.open.length > 0 ? collections.open[0] : null;
+});
+
+watchEffect(() => {
+  ui.obj = collections.obj.filter(c => {
+    return c.name === ui.collection;
+  })[0];
 });
 
 const emit = defineEmits(['change', 'delete', 'close']);
@@ -71,126 +86,118 @@ const deleteCollection = async (name) => {
   }
 };
 
+const cardSource = async (name) => {
+  const cards = await collections.getCards([ui.collection]);
+  return cards;
+};
+
 </script>
 
 <template>
-  <div class="upload">
-    <div class="flex">
+  <div class="upload flex">
+    <div class="row">
+      <Multiselect
+        v-model="ui.collection"
+        :options="collections.names"
+        mode="single"
+      />
+      <button
+        class="small icon icon-delete" 
+        @click="deleteCollection(ui.collection)"
+      />
+    </div>
+    
+    <div
+      class="collection flex"
+      v-if="ui.obj"
+    >
       <div
-        class="collections"
-        v-if="collections.names.length > 0"
+        class="img"
+        :style="{
+          'background-image': `url(${ui.obj.image})`
+        }"
+      />
+      <div>
+        <span>Cards: </span><span> {{ ui.obj.count }}</span>
+      </div>
+      <div v-if="user.token && ui.obj.downloaded ">
+        <span>Last sync: </span>
+        {{ (
+          new Intl.DateTimeFormat('en-GB', {
+            dateStyle: 'short',
+            timeStyle: 'medium',
+            timeZone: 'UTC'
+          }).format(new Date(ui.obj.lastSync * 1))) }}
+      </div>
+      <div
+        class="row"
+        v-if="user.token"
       >
-        <div
-          class="collection"
-          v-for="[name, col] in collections.collections.entries()"
-          :key="name"
-          :style="{
-            'background-image': `url(${col.image})`
-          }"
-        >
-          <div class="row">
-            <div class="name">
-              {{ name }}
-            </div>
-            <!-- <span>
-            <span 
-              v-if="user.collections.has(name) && user.collections.get(name).lastSync"
-            >
-              {{ (
-                new Intl.DateTimeFormat('en-GB', {
-                  dateStyle: 'short',
-                  timeStyle: 'medium',
-                  timeZone: 'UTC'
-                }).format(new Date(user.collections.get(name).lastSync * 1))) }}
-            </span>
-          </span> -->
-          </div>
-          <div class="row actions">
-            <div
-              class="act"
-              v-if="user.token && col.downloaded"
-              @click.exact="uploadCollection(name)"
-              @click.ctrl="uploadCollection(name)"
-            >
-              <span class="icon icon-arrow-up" />
-              <div class="text">
-                Upload
-              </div>
-            </div>
-            <div
-              class="act"
-              v-if="user.token && user.collections.has(name)"
-              @click.exact="refreshCollection(name)"
-            >
-              <span class="icon icon-arrow-down" />
-              <div class="text">
-                Download
-              </div>
-            </div>
-            <div
-              class="act"
-              @click.exact="() => {}"
-            >
-              <span class="icon icon-arrow-right" />
-              <div class="text">
-                Export
-              </div>
-            </div>
-            <div
-              class="act"
-              @click="deleteCollection(name)"
-            >
-              <span class="icon icon-delete" />
-              <div class="text">
-                Delete
-              </div>
-            </div>
-          
-            <!-- <CardExporter :cards="[]" /> -->
-          </div>
-          <!-- <a
-            class="action icon icon-clipboard"
-            @click.exact="copyUrl(name)"
-          /> -->
-        </div>
-      </div>
-      <div class="new-collection">
-        <input
-          type="text"
-          v-model="ui.name"
-          placeholder="New collection"
-        >
-      
         <button
-          @click="newCollection(ui.name)"
-          class="button small icon icon-plus"
-        />
-      </div>
-      <hr>
-      <div class="google-sync">
-        <GoogleLogin
-          v-if="!user.token"
-          :callback="r => user.handleGoogleLogin(r.credential)"
-          popup-type="TOKEN"
-        />
-        <div
-          class="logged-in"
-          v-if="user.token"
-          @click="user.logout()"
+          v-if="ui.obj.downloaded"
+          @click.exact="uploadCollection(ui.collection)"
+          @click.ctrl="uploadCollection(ui.collection)"
         >
-          <img :src="user.info.picture">
-          <span class="text">Syncing as {{ user.info.given_name }}</span>
-          <span class="icon icon-close" />
-        </div>
+          <!-- <span class="icon icon-arrow-up" /> -->
+          <div class="text">
+            Upload
+          </div>
+        </button>
+        <button
+          v-if="user.collections.has(ui.collection)"
+          @click.exact="refreshCollection(ui.collection)"
+        >
+          <!-- <span class="icon icon-arrow-down" /> -->
+          <div class="text">
+            Download
+          </div>
+        </button>
+      </div>
+      <CardExporter
+        :source="cardSource"
+      />
+    </div>
+    <hr>
+
+    <div class="new-collection">
+      <input
+        type="text"
+        v-model="ui.name"
+        placeholder="New collection"
+      >
+      
+      <button
+        @click="newCollection(ui.name)"
+        class="button small icon icon-plus"
+      />
+    </div>
+    <hr>
+    <div class="google-sync">
+      <GoogleLogin
+        v-if="!user.token"
+        :callback="r => user.handleGoogleLogin(r.credential)"
+        popup-type="TOKEN"
+      />
+      <div
+        class="logged-in"
+        v-if="user.token"
+        @click="user.logout()"
+      >
+        <img :src="user.info.picture">
+        <span class="text">Syncing as {{ user.info.given_name }}</span>
+        <span class="icon icon-close" />
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.form {
-  display: grid;
-  grid-template-columns: fit-content(10rem) auto;
+.row {
+  display: flex;
+  gap: .5rem;
+}
+.row button {
+  flex-grow: 1;
 }
 .code {
   color: var(--colour-accent);
@@ -199,71 +206,14 @@ const deleteCollection = async (name) => {
 .flex {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-}
-.close {
-  align-self: flex-end;
-}
-.close span {
-  display: block;
-  transform: rotate(45deg);
-}
-.collections {
-  max-height: 60vh;
-  overflow: auto;
-  width: 100%;
-  max-width: 640px;
   gap: 1rem;
-  display: flex;
-  flex-direction: column;
-}
-.collection {
-  background-color: var(--colour-input-grey);
-  box-shadow: var(--default-shadow);
-  border-radius: var(--default-br);
-  background-position: center top;
-  background-size: cover;
-  /* background-image: none !important; */
-}
-.collection .row {
-  display: flex;
-  padding: .5rem;
-}
-.collection .name {
-  width: 100%;
-  flex-grow: 1;
-  font-weight: 500;
-  line-height: 3rem;
-  text-shadow: 1px 1px 10px black, 1px 1px 1px black;
-  font-family: var(--font-magic-smallcaps);
-}
-.collection .actions {
-  gap: .5rem;
-  background: rgb(37, 32, 40);
-  justify-content: space-evenly;
-  align-content: center;
 }
 
-.actions .act {
-  flex-grow: 1;
-  border-radius: 0;
-  text-align: center;
-  padding: 0;
-  cursor: pointer;
-}
-.actions .act .text {
-  display: block;
-  font-size: .6rem;
-  margin-top: .5rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-.actions .act .icon {
-  color: var(--colour-anchor);
-  font-size: 1.2em;
+.img {
+  background-size: cover;
+  background-position: center center;
+  height: 8rem;
+  width: 100%;
 }
 
 .new-collection {

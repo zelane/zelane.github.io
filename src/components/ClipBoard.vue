@@ -5,11 +5,17 @@ import { useCollections } from '../stores/collections';
 import { deepUnref } from 'vue-deepunref';
 import { useToast } from "vue-toastification";
 import { useCardView, useClipboard } from '../stores/cards';
+import Multiselect from '@vueform/multiselect';
+import { reactive } from 'vue';
 
 const clipboard = useClipboard();
 const collections = useCollections();
 const cards = useCardView();
 const toast = useToast();
+
+const ui = reactive({
+  copyTo: null,
+});
 
 const addToCollection = async (name, newCards) => {
   let collection = await collections.get(name);
@@ -67,16 +73,26 @@ const clipAll = async() => {
         <p>{{ card.count }}x {{ card.name }} ({{ card.set }}) {{ card.collector_number }}</p> 
       </div>
     </div>
-    <div class="buttons">
-      <CardExporter :cards="[... clipboard.cards.values()]" />
-      
-      <MenuButton 
-        text="Add to"
-        :actions="Object.fromEntries(collections.names.map(col => [col, col]))"
-        @click="col => addToCollection(col, clipboard.cards.values())"
+    <CardExporter
+      :source="() => [... clipboard.cards.values()]" 
+      open-direction="top"
+    />
+    <div class="row">
+      <Multiselect
+        :options="collections.names"
+        placeholder="Copy to"
+        open-direction="top"
+        v-model="ui.copyTo"
       />
-
-      <button @click="clipAll()">
+      <button
+        class="small icon icon-arrow-right"
+        @click="() => addToCollection(ui.copyTo, clipboard.cards.values())"
+      />
+    </div>
+    <div class="buttons">
+      <button
+        @click="clipAll()"
+      >
         Clip All
       </button>
       <button @click="clear()">
@@ -103,5 +119,10 @@ const clipAll = async() => {
   gap: 1rem;
   justify-content: center;
   padding-top: 1rem;
+}
+.row {
+  display: flex;
+  gap: .5rem;
+  margin-top: 1rem;
 }
 </style>

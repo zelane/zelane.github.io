@@ -232,7 +232,6 @@ const clickOut = (e) => {
           <div class="right">
             <CardDetails
               :card="details.card"
-              :actions="uiGlobal.source === 'collection' ? ['select', 'deselect', 'prints', 'clip', 'edit', 'delete'] : ['prints', 'clip']"
             />
             <a
               class="close icon icon-chevron-down"

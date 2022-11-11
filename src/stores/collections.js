@@ -40,10 +40,10 @@ export const useCollections = defineStore('collections', {
       db.collections.toCollection().each(col => {
         if(col.name === 'clipboard') return;
         this.collections.set(col.name, {
-          lastSync: 0,
+          lastSync: col.lastSync || 0,
           downloaded: true,
-          // image: col.image || "https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382",
           image: col.cards[0]?.image_uris?.art_crop || "https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382",
+          count: col.cards.length
         });
       });
     },
@@ -80,9 +80,10 @@ export const useCollections = defineStore('collections', {
       this.open.splice(this.open.indexOf(name), 1);
     },
     async save(name, cards) {
-      await db.collections.put({ name: name, cards: cards });
+      let now = Date.now();
+      await db.collections.put({ name: name, cards: cards, lastSync: now });
       if (!this.collections.has(name)) {
-        this.collections.set(name, {downloaded: true, lastSync: 0});
+        this.collections.set(name, { downloaded: true, lastSync: now });
       }
       return this.all;
     },

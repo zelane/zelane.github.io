@@ -1,94 +1,92 @@
 <script setup>
-import MenuButton from './MenuButton.vue';
 import { useToast } from "vue-toastification";
 import { post } from '../utils/network';
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
+import Multiselect from '@vueform/multiselect';
+import { cardsToText } from '../utils/formatters';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const props = defineProps({
-  cards: {
-    type: Array,
-    required: true
+  source: {
+    type: Function,
+    required: true,
+  },
+  openDirection: {
+    type: String,
+    default: 'down'
   }
 });
 
 const ui = reactive({
+  format: "",
   downloadUrl: ""
 });
 
 const toast = useToast();
 
-const exportList = async (format) => {
-  let list = "";
-  if(format === 'mtgo') {
-    for(const card of props.cards.values()) {
-      list += `${card.count || 1} ${card.name} \n`;
-    };
+const downloadButton = ref(null);
+
+const exportList = async () => {
+  let cards = props.cards;
+  if(cards) {
+    cards = await props.source();
   }
-  else if(format === 'mtga') {
-    for(const card of props.cards.values()) {
-      list += `${card.count || 1} ${card.name} (${card.set}) ${card.collector_number}\n`;
-    };
-  }
-  else if(format === 'mkm') {
-    const versions = await post(`${backendUrl}/mkmVersions`, {
-      ids: props.cards.map(c => c.id),
-    });
-    for(const card of props.cards.values()) {
-      const version = versions.data[card.id] || 1;
-      let set_name = "" + card.set_name;
-      if(card.promo) {
-        set_name = set_name.replace(" Promos", ": Promos");
-      }
-      else if(card.promo_types.includes('boosterfun')) {
-        set_name = set_name += ": Extras";
-      }
-      if(versions.data[card.id]) {
-        list += `${card.count || 1}x ${card.name} (V.${version}) (${set_name})\n`;
-      }
-      else {
-        list += `${card.count || 1}x ${card.name} (${set_name})\n`;
-      }
-    };
-  }
-  else if (format === 'moxfield') {
-    list = '"Count","Tradelist Count","Name","Edition","Condition","Language","Foil","Tags","Last Modified","Collector Number"\n';
-    for(const card of props.cards.values()) {
-      list += `"${card.count || 1}","0","${card.name}","${card.set}","Near Mint","English",${card.finish},"","2022-03-22 02:52:33.210000","${card.collector_number}"\n`;
-    };
+  console.log(cards);
+  let list = await cardsToText(cards, ui.format);
+  if (ui.format === 'moxfield') {
     var blob = new Blob([list], { 
       type: 'text/csv;charset=utf-8;' 
     });
     var url = URL.createObjectURL(blob);
     ui.downloadUrl = url;
-    // pom.setAttribute('download', 'foo.csv');
-    // downloadButton.value.click();
-    return;
-  } 
-  navigator.clipboard.writeText(list);
-  toast(`Copied to Clipboard`);
+    downloadButton.value.setAttribute('download', 'moxfield.csv');
+    downloadButton.value.click();
+  }
+  else {
+    navigator.clipboard.writeText(list);
+    toast(`Copied to Clipboard`);
+  }
 };
 </script>
 <template>
-  <MenuButton 
-    text="Export"
-    :actions="{
-      'MTGO': 'mtgo',
-      'MTGA': 'mtga',
-      'MKM': 'mkm',
-      'Moxfield': 'moxfield',
-    }"
-    @click="exportList"
-  />
-  <a
-    class="button"
-    download="moxfield.csv"
-    v-if="ui.downloadUrl"
-    :href="ui.downloadUrl"
-  >Download</a>
+  <div class="row">
+    <Multiselect
+      :options="{
+        'mtgo': 'MTGO',
+        'mtga': 'MTGA',
+        'mkm': 'MKM',
+        'moxfield': 'Moxfield',
+      }"
+      label="key"
+      v-model="ui.format"
+      mode="single"
+      placeholder="Export to"
+      :open-direction="props.openDirection"
+    />
+    <a
+      class="button small icon"
+      :class="{
+        'icon-clip': ui.format !== 'moxfield',
+        'icon-arrow-down': ui.format === 'moxfield'
+      }"
+      download="moxfield.csv"
+      @click="exportList"
+    />
+    <a
+      class="button"
+      download="moxfield.csv"
+      ref="downloadButton"
+      v-show="false"
+      :href="ui.downloadUrl"
+    >Export</a>
+  </div>
 </template>
 
 <style scoped>
-
+.row {
+  display: flex;
+  flex-direction: row;
+  gap: .5rem;
+}
 </style>
