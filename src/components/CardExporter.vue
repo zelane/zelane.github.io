@@ -28,11 +28,7 @@ const toast = useToast();
 const downloadButton = ref(null);
 
 const exportList = async () => {
-  let cards = props.cards;
-  if(cards) {
-    cards = await props.source();
-  }
-  console.log(cards);
+  const cards = await props.source();
   let list = await cardsToText(cards, ui.format);
   if (ui.format === 'moxfield') {
     var blob = new Blob([list], { 

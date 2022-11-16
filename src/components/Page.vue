@@ -154,13 +154,15 @@ const moveCard = dir => {
   uiGlobal.details.index = newIndex;
   const next = cards.filtered[uiGlobal.details.index];
   details.loadDetails(next);
+
   
   if(cardsWindow.value) {
-    const focused = cardsWindow.value.querySelector(`.card[data-id="${next.id}"]`);
+    let scrollable = cardsWindow.value.querySelector('.cards');
+    const focused = scrollable.querySelector(`.card[data-id="${next.id}"]`);
     if(focused) {
       // const scrollTo = focused.offsetTop;
-      const scrollTo = focused.offsetTop - (cardsWindow.value.offsetHeight / 2) + (focused.offsetHeight / 2);
-      cardsWindow.value.scrollTo({
+      const scrollTo = focused.offsetTop - (scrollable.offsetHeight / 2) + (focused.offsetHeight / 2);
+      scrollable.scrollTo({
         top: scrollTo,
         behavior: 'smooth'
       });

@@ -134,6 +134,7 @@ option {
   justify-content: center;
   top: 0;
   z-index: 2;
+  pointer-events: none;
 }
 .info-bar .zoom input {
   max-width: 4rem;
@@ -157,11 +158,13 @@ option {
   align-items: center;
   gap: .5rem;
   cursor: pointer;
+  pointer-events: all;
 }
 .info-bar .sort {
   display: flex;
   gap: 1em;
   align-items: center;
+  pointer-events: all;
 }
 .selection-menu {
   display: flex;
@@ -169,6 +172,7 @@ option {
 }
 .selection-menu a {
   cursor: pointer;
+  pointer-events: all;
 }
 @media (max-width: 640px) {
   .info-bar {
