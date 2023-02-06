@@ -23,7 +23,7 @@ export const useMeta = defineStore('meta', {
     },
     setNames(state) {
       let map = new Map();
-      for (const s of state._sets.values()) {
+      for(const s of state._sets.values()) {
         map.set(s.name, s.code);
       }
       return map;
