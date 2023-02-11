@@ -115,8 +115,10 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   <div class="filter-group">
     <Multiselect
       v-model="cardView.filters.sets"
-      :options="cardView.sets"
+      :options="meta.sets"
       :searchable="true"
+      label="name"
+      value-prop="code"
       mode="tags"
       placeholder="Sets"
     />

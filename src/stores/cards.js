@@ -1,5 +1,4 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
-import Fuse from 'fuse.js';
 import { useCollections } from './collections';
 import { cachedGet } from '../utils/network';
 import { deepUnref } from 'vue-deepunref';
@@ -94,7 +93,7 @@ const config = {
       return formatter.format(value);
     },
     sorted(state) {
-      return [... state.cards.values()].sort(dynamicSort(state.sort));
+      return [...state.cards.values()].sort(dynamicSort(state.sort));
     },
     grouped(state) {
       let by = state.filters.group;
@@ -103,7 +102,7 @@ const config = {
         let existing = grouped.get(card.name);
         let price = card.price > 0 ? card.price : Infinity;
         if (existing) {
-          if(existing.price > price || (existing.price === 0 && card.price !== 0)) {
+          if (existing.price > price || (existing.price === 0 && card.price !== 0)) {
             let count = 0 + existing.count;
             existing = { ...card };
             existing.count = count;
@@ -119,7 +118,7 @@ const config = {
           grouped.set(card.name, existing);
         }
       }
-      return [... grouped.values()].sort(dynamicSort(state.sort));
+      return [...grouped.values()].sort(dynamicSort(state.sort));
     },
     keywords(state) {
       let keywords = new Set();
@@ -130,7 +129,7 @@ const config = {
           });
         }
       });
-      return [... keywords];
+      return [...keywords];
     },
     tags(state) {
       let tags = new Set();
@@ -163,7 +162,7 @@ const config = {
       });
     },
     _filterColours(card, options) {
-      const {mode, colours} = options;
+      const { mode, colours } = options;
       if (mode === 'commander') {
         let notIn = card.color_identity.filter(c => {
           return !colours.includes(c);
@@ -179,7 +178,7 @@ const config = {
         return colours.every(c => card.color_identity.includes(c));
       }
       else if (mode === 'exact') {
-        return card.color_identity.sort().join() === colours.sort().join(); 
+        return card.color_identity.sort().join() === colours.sort().join();
       }
       return true;
     },
@@ -189,21 +188,8 @@ const config = {
       // let to = setTimeout(() => this.loading = true, 300);
       let filtered = _filters.group !== null ? this.grouped : this.sorted;
 
-      if (_filters.cardText && _filters.cardText !== '') {
-        const fuse = new Fuse(filtered, {
-          ignoreLocation: true,
-          threshold: 0.5,
-          findAllMatches: true,
-          keys: ['oracle_text', 'card_faces.oracle_text'],
-        });
-        filtered = [];
-        fuse.search(_filters.cardText).forEach((item) => {
-          filtered.push(item.item);
-        });
-      }
-
       this.have.clear();
-      if(_filters.cmpCol.length > 0) {
+      if (_filters.cmpCol.length > 0) {
         await this._compare(filtered, _filters.cmpCol);
       }
       if (_filters.incCol.length > 0) {
@@ -226,6 +212,20 @@ const config = {
         // if(card.border_color === 'borderless' || card.full_art === true) return false;
         // return card.frame == '2003';
         // return card.full_art == true;
+
+        if (_filters.cardText && _filters.cardText !== '') {
+          let text = card.oracle_text
+          if (text === undefined) {
+            text = ""
+            for (const face of card.card_faces) {
+              text += face.oracle_text
+            }
+          }
+          const re = new RegExp(_filters.cardText);
+          if (!re.test(text)) {
+            return false;
+          }
+        }
 
         const hasFinish = !_filters.finish || card.finish === _filters.finish;
         if (!hasFinish) return false;
@@ -318,7 +318,7 @@ const config = {
         existing.count += card.count;
       }
       else {
-        this.cards.set(card.id + card.finish, {... card});
+        this.cards.set(card.id + card.finish, { ...card });
       }
       this.filtered.push({ ...card });
     },
@@ -335,14 +335,14 @@ const config = {
     },
     getSelection() {
       const cards = [];
-      for(const card of this.cards.values()) {
-        if(this.selected.has(card.id + card.finish)) {
+      for (const card of this.cards.values()) {
+        if (this.selected.has(card.id + card.finish)) {
           cards.push(card);
         }
       }
       return cards;
     },
-    async loadSearch(query, unique='card', force=false) {
+    async loadSearch(query, unique = 'card', force = false) {
       if (query.length === 0) {
         this.cards.clear();
         return;
