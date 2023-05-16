@@ -11,5 +11,8 @@ export default defineConfig({
     watch: {
       usePolling: true
     }
-  }
+  },
+  optimizeDeps: {
+    exclude: ['@sqlite.org/sqlite-wasm'],
+  },
 });

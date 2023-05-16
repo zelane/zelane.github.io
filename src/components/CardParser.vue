@@ -248,17 +248,17 @@ const updateCollection = async (name, cardList) => {
 
 const handleSearch = async (data) => {
   // Todo: Add finish
-  const collection = await collections.get(upload.name);
-  let existing = collection.cards.filter(c => {
-    return c.id === data.id && c.finish === 'nonfoil';
-  });
-  if (existing.length > 0) {
-    existing[0].count += data.count;
-  }
-  else {
-    collection.cards.push(data);
-  }
-  collections.save(upload.name, collection.cards, collection.syncCode);
+  // const collection = await collections.get(upload.name);
+  // let existing = collection.cards.filter(c => {
+  //   return c.id === data.id && c.finish === 'nonfoil';
+  // });
+  // if (existing.length > 0) {
+  //   existing[0].count += data.count;
+  // }
+  // else {
+  //   collection.cards.push(data);
+  // }
+  collections.save(upload.name, [data], null);
   emit('parsed', collections.open);
   toast(`${'' + data.name} added to ${upload.name}`);
 };

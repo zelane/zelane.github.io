@@ -15,6 +15,7 @@ import CardDetails from './CardDetails.vue';
 import InfoBar from './InfoBar.vue';
 import { useUser } from '../stores/user';
 import { useDetails } from '../stores/details';
+import { initDB } from '../utils/db'
 
 const details = useDetails();
 
@@ -47,23 +48,26 @@ watch(cards.sort, () => {
   cards.applyFilters();
 });
 
+await initDB();
+await collections.init();
+await meta.init();
 
 onBeforeMount(async () => {
-  await collections.init();
-  await meta.init();
-  try {
-    const clipboardCards = await collections.getCards(['clipboard']);
-    if(clipboardCards) clipboard.addMany(clipboardCards);
-    const channel = new BroadcastChannel("clipboard");
-    channel.addEventListener("message", (e) => {
-      if(e.data === 'update') {
-        clipboard.loadCollections(['clipboard']);
-      }
-    });
-  }
-  catch (e) {
-    console.error(e);
-  }
+  // await collections.init();
+  // await meta.init();
+  // try {
+  //   const clipboardCards = await collections.getCards(['clipboard']);
+  //   if(clipboardCards) clipboard.addMany(clipboardCards);
+  //   const channel = new BroadcastChannel("clipboard");
+  //   channel.addEventListener("message", (e) => {
+  //     if(e.data === 'update') {
+  //       clipboard.loadCollections(['clipboard']);
+  //     }
+  //   });
+  // }
+  // catch (e) {
+  //   console.error(e);
+  // }
   user.loadCookie();
 });
 
@@ -145,8 +149,8 @@ const touchEnd = e => {
   startT = null;
 };
 
-
 const cardsWindow = ref(null);
+
 const moveCard = dir => {
   let newIndex = uiGlobal.details.index + dir;
   if(newIndex < 0) newIndex = cards.filtered.length - 1;
@@ -170,13 +174,11 @@ const moveCard = dir => {
   }
 };
 
-
 const clickOut = (e) => {
   if(e.target.id === 'details-overlay') {
     uiGlobal.details.show = false;
   }
 };
-
 
 </script>
 
