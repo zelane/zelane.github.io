@@ -48,7 +48,7 @@ watch(cards.sort, () => {
 });
 
 
-onBeforeMount(async () => {
+const init = async () => {
   await collections.init();
   await meta.init();
   try {
@@ -65,7 +65,9 @@ onBeforeMount(async () => {
     console.error(e);
   }
   user.loadCookie();
-});
+};
+
+await init();
 
 let startX = null;
 let startY = null;

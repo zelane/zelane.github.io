@@ -2,7 +2,12 @@
 </script>
 
 <template>
-  <router-view />
+  <Suspense>
+    <router-view />
+    <template #fallback>
+      Loading...
+    </template>
+  </Suspense>
 </template>
 
 <style src="@vueform/multiselect/themes/default.css"></style>

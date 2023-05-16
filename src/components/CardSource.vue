@@ -29,6 +29,7 @@ const ui = reactive({
 });
 
 const loadCollections = collections => {
+  if(collections.length === 0) return;
   uiGlobal.source = 'collection';
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
 };
