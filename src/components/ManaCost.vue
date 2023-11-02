@@ -16,7 +16,7 @@ const parseColours = (text) => {
   }
   const all = /(\{[aA-zZ0-9/]+\})/g;
   text = text.replace(
-      all, (_, v) => `<img class='symbol' src='${meta.symbols.get(v)}' />`
+      all, (_, v) => `<img crossorigin='anonymous' class='symbol' src='${meta.symbols.get(v)}' />`
     );
   return text;
 };

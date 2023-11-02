@@ -196,6 +196,7 @@ onMounted(async () => {
               <img
                 class="icon"
                 :src="option.icon_svg_uri"
+                crossorigin="anonymous"
               >
               <span class="name">{{ option.name }}</span>
             </span>

@@ -27,18 +27,21 @@ const props = defineProps({
       v-if="props.card.image_uris"
       :srcset="`${props.card.image_uris.normal}, ${props.card.image_uris.large} 2x, ${props.card.image_uris.large} 400w`"
       loading="lazy"
+      crossorigin="anonymous"
     >
     <img
       class="flip front"
       v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
       :src="props.card.card_faces[0].image_uris.normal"
       loading="lazy"
+      crossorigin="anonymous"
     >
     <img
       class="flip back"
       v-if="props.card.card_faces && props.card.card_faces[0].image_uris"
       :src="props.card.card_faces[1].image_uris.normal"
       loading="lazy"
+      crossorigin="anonymous"
     >
   </div>
   <!-- <a

@@ -183,7 +183,7 @@ const cardSource = async (name) => {
         v-if="user.token"
         @click="user.logout()"
       >
-        <img :src="user.info.picture">
+        <img :src="user.info.picture" crossorigin="anonymous">
         <span class="text">Syncing as {{ user.info.given_name }}</span>
         <span class="icon icon-close" />
       </div>
