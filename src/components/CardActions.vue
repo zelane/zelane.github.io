@@ -1,6 +1,6 @@
 <script setup>
 import { useCollections } from '../stores/collections';
-import { useCardView } from '../stores/cards';
+import { useCardView, useVersionsView } from '../stores/cards';
 import { usePrintsView, useClipboard } from '../stores/cards';
 import { useUI } from '../stores/ui';
 
@@ -8,6 +8,7 @@ const clipboard = useClipboard();
 const cardView = useCardView();
 const collections = useCollections();
 const prints = usePrintsView();
+const versions = useVersionsView();
 const ui = useUI();
 const cards = useCardView();
 
@@ -66,6 +67,12 @@ const deleteCard = async (card) => {
       class="small prints icon icon-prints"
       @click.stop="() => {prints.loadPrints(props.card.name); ui.showSidebar('prints')}"
       title="View all prints"
+    />
+    <button
+      v-if="props.actions.includes('prints') && cardView.filters.group"
+      class="small versions icon icon-list"
+      @click.stop="() => {versions.loadVersions(props.card.name); ui.showSidebar('versions')}"
+      title="View versions in open collections"
     />
     <button
       v-if="props.actions.includes('clip')"

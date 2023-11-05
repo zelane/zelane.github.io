@@ -55,7 +55,10 @@ img {
   width: 100%;
   border-radius: 5%;
   aspect-ratio: 2.5/3.5;
-  box-shadow: 0px 2px 5px #000000f2;
+  box-shadow: 0px 2px 5px #000000f2, 0px 0px 2px 2px black;
+  transition: filter 0.3s;
+  /* border: 2px solid #9c9c9c24; */
+  /* border: 2px solid #000000; */
 }
 .img {
   border-radius: 5%;
@@ -89,16 +92,21 @@ img {
     mix-blend-mode: multiply;
   }
 }
-.img.missing {
-  /* opacity: 0.5; */
-}
-.img.missing::after {
-  /* opacity: 0.5; */
-  /* background-color: rgba(0,0,0,0.6); */
-  mix-blend-mode: normal;
-  background: transparent;
-  backdrop-filter: brightness(50%) grayscale(75%);
 
+.img:is(.have, .exact, .missing)::after {
+  display: none;
+}
+
+.img.have img{
+  filter: saturate(3%);
+    /* box-shadow: 0 2px 10px 0 #ffffff55, 0px 2px 5px #000000f2; */
+}
+.img.exact img{
+  /* filter: saturate(100%); */
+    /* box-shadow: 0 2px 10px 0 #ffd6877d, 0px 2px 5px #000000f2; */
+}
+.img.missing img {
+  filter: saturate(0%) opacity(.4);
 }
 .flip.back {
   display: none;

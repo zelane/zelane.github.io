@@ -57,6 +57,14 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     >
   </div>
 
+  <div class="filter-group">
+    <input
+      type="search"
+      v-model="cardView.filters.cardText"
+      placeholder="Card text"
+    >
+  </div>
+
   <div class="filter-group mana">
     <input
       type="number"
@@ -105,14 +113,6 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   </div>
 
   <div class="filter-group">
-    <input
-      type="search"
-      v-model="cardView.filters.cardText"
-      placeholder="Card text"
-    >
-  </div>
-
-  <div class="filter-group">
     <Multiselect
       v-model="cardView.filters.sets"
       :options="meta.sets"
@@ -130,7 +130,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   >
     <Multiselect
       v-model="cardView.filters.tags"
-      :options="[...cardView.tags]"
+      :options="cardView.tags"
       :searchable="true"
       mode="tags"
       placeholder="Tags"
@@ -202,6 +202,13 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   />
   
   <Multiselect
+    v-model="cardView.filters.frame"
+    :options=cardView.frame_effects
+    mode="single"
+    placeholder="Frame"
+  />
+  
+  <Multiselect
     v-model="cardView.filters.border"
     :options="['borderless', 'black', 'white']"
     mode="single"
@@ -230,7 +237,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
       v-model="cardView.filters.group"
     > -->
     <Multiselect
-      :options="['Name']"
+      :options="{'ID': 'Oracle id'}"
       mode="single"
       placeholder="Group by"
       v-model="cardView.filters.group"

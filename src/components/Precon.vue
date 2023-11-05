@@ -14,9 +14,12 @@ const values = reactive({
   name: '',
   set: '',
   cards: '',
+  errors: '',
 });
 
 const emit = defineEmits(['close']);
+
+let errors = ""
 
 const uploadPrecon = async () => {
   const re = /([0-9]+) (.+)/g;
@@ -28,13 +31,19 @@ const uploadPrecon = async () => {
       name: m[2].trim()
     });
   }
-  await post(backendUrl + '/precon', {
-    name: values.name,
-    commander: values.commander,
-    set: values.set,
-    cards: cards,
-  });
-  toast(`Uploaded ${values.name}`);
+  try {
+     await post(backendUrl + '/precon', {
+      name: values.name,
+      commander: values.commander,
+      set: values.set,
+      cards: cards,
+    });
+    toast(`Uploaded ${values.name}`);
+  }
+  catch(e) {
+    values.errors = e;
+    toast(`Failed ${e}`);
+  }
 };
 
 </script>
@@ -75,6 +84,7 @@ const uploadPrecon = async () => {
         <button @click="uploadPrecon">
           Upload
         </button>
+        <pre class='errors' v-if="values.errors"> {{ values.errors }}</pre>
       </div>
     </div>
   </div>
@@ -119,6 +129,10 @@ textarea {
   grid-column: span 2;
 }
 button {
+  grid-column: span 2;
+}
+.errors {
+  height: fit-content;
   grid-column: span 2;
 }
 </style>

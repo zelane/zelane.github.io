@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import PrintsView from './PrintsView.vue';
+import VersionView from './VersionsView.vue';
 import CardDetails from './CardDetails.vue';
 import CardParser from './CardParser.vue';
 import ClipBoard from './ClipBoard.vue';
@@ -132,6 +133,13 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'prints'"
     >
       <PrintsView />
+    </div>
+        
+    <div
+      class="versions panel"
+      v-show="ui.sidebar.selected === 'versions'"
+    >
+      <VersionView />
     </div>
 
     <div
