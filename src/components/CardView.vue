@@ -65,7 +65,7 @@ const props = defineProps({
   justify-content: center;
   align-items: center;
   
-  background: linear-gradient(0deg, rgb(23, 19, 23) 0%, rgb(23, 19, 23) 20%, rgba(23, 19, 23, 0.8) 100%);
+  background: linear-gradient(0deg, var(--colour-lighter-grey) 0%, var(--colour-lighter-grey) 20%, rgba(23, 19, 23, 0.8) 100%);
   backdrop-filter: blur(2px);
   backdrop-filter: blur(5px) grayscale(50%);
 }

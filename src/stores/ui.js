@@ -17,7 +17,8 @@ export const useUI = defineStore('ui', {
       },
       edit: {
         card: null
-      }
+      },
+      clipboard_change: false
     };
   },
   getters: {

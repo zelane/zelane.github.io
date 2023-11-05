@@ -32,6 +32,10 @@ const clip = async (card) => {
   await collections.save('clipboard', clipboard.unrefCards());
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
+  ui.clipboard_change = true;
+  setTimeout(()=> {
+    ui.clipboard_change = false;
+  }, 500)
 };
 
 const deleteCard = async (card) => {
@@ -71,7 +75,7 @@ const deleteCard = async (card) => {
     <button
       v-if="props.actions.includes('prints') && cardView.filters.group"
       class="small versions icon icon-list"
-      @click.stop="() => {versions.loadVersions(props.card.name); ui.showSidebar('versions')}"
+      @click.stop="() => {versions.loadVersions(props.card.oracle_id); ui.showSidebar('versions')}"
       title="View versions in open collections"
     />
     <button

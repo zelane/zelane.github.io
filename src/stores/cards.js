@@ -76,6 +76,7 @@ const config = {
         frame: null,
         border: null,
         quantity: { value: [null, null], min: 0, max: 100 },
+        oracle_id: null,
       },
       sort: {
         val: 'Price',
@@ -209,7 +210,7 @@ const config = {
     async applyFilters() {
       const collections = useCollections();
       let _filters = this.filters;
-      // let to = setTimeout(() => this.loading = true, 300);
+
       let filtered = _filters.group !== null ? this.grouped : this.sorted;
 
       this.have.clear();
@@ -299,6 +300,9 @@ const config = {
 
         const hasBorder = _filters.border ? card.border_color == _filters.border : true;
         if (!hasBorder) return false;
+
+        const hasOracleId = _filters.oracle_id ? card.oracle_id == _filters.oracle_id : true
+        if (!hasOracleId) return false
 
         return true;
       });
@@ -451,10 +455,10 @@ const config = {
       this.addMany(json.data.cards);
       this.loading = false;
     },
-    async loadVersions(card_name) {
+    async loadVersions(oracle_id) {
       const collections = useCollections();
       this.loadCollections(collections.open);
-      this.filters.name = card_name;
+      this.filters.oracle_id = oracle_id;
       this.loading = false;
     },
     unrefCards() {
