@@ -57,7 +57,7 @@ const init = async () => {
     const channel = new BroadcastChannel("clipboard");
     channel.addEventListener("message", (e) => {
       if(e.data === 'update') {
-        clipboard.loadCollections(['clipboard']);
+        clipboard.reloadCollections(['clipboard']);
       }
     });
   }

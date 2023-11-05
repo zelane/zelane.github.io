@@ -426,6 +426,17 @@ const config = {
       }
       this.loading = false;
     },
+    async reloadCollections(names) {
+      const collections = useCollections();
+      let colCards = await collections.load(names);
+      if (names.length === 0) {
+        this.cards.empty();
+        this.filtered = [];
+      }
+      else {
+        this.addMany(colCards);
+      }
+    },
     async loadPrecon(name) {
       this.loading = true;
       const cache = await caches.open('cardDataCache');

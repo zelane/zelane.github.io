@@ -20,15 +20,15 @@ export const useCollections = defineStore('collections', {
   },
   getters: {
     names(state) {
-      return [... state.collections.keys()].sort();
+      return [...state.collections.keys()].sort();
     },
     all(state) {
-      return [... state.collections.keys()].sort();
+      return [...state.collections.keys()].sort();
       // https://cards.scryfall.io/art_crop/front/7/e/7e78b70b-0c67-4f14-8ad7-c9f8e3f59743.jpg?1562614382
     },
     obj(state) {
       let o = [];
-      for(const [k, v] of state.collections.entries()) {
+      for (const [k, v] of state.collections.entries()) {
         v.name = k;
         o.push(v);
       }
@@ -38,7 +38,7 @@ export const useCollections = defineStore('collections', {
   actions: {
     async init() {
       db.collections.toCollection().each(col => {
-        if(col.name === 'clipboard') return;
+        if (col.name === 'clipboard') return;
         this.collections.set(col.name, {
           lastSync: col.lastSync || 0,
           downloaded: true,
@@ -50,7 +50,7 @@ export const useCollections = defineStore('collections', {
     async refreshPrices() {
       for (const name of this.open) {
         let collection = await db.collections.get({ name: name });
-      
+
         var ids = [];
         for (const card of collection.cards) {
           ids.push(card.id);
@@ -69,7 +69,7 @@ export const useCollections = defineStore('collections', {
     },
     async delete(name) {
       const user = useUser();
-      if(user.collections.has(name)) {
+      if (user.collections.has(name)) {
         await _delete(backendUrl + '/collection', {
           id: user.collections.get(name).id
         });
@@ -104,11 +104,11 @@ export const useCollections = defineStore('collections', {
       return await db.collections.get({ name: name });
     },
     async load(names) {
-      this.open = names;
-      if(!names) return;
+      // this.open = names;
+      if (!names) return;
 
       const user = useUser();
-      for(const name of names) {
+      for (const name of names) {
         const co = this.collections.get(name);
         if (co && !co.downloaded) {
           await this.download(user.collections.get(name).id);
