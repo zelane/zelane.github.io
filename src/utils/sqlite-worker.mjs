@@ -4,6 +4,8 @@ import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 const log = (...args) => console.log(...args);
 const error = (...args) => console.error(...args);
 
+log("Starting worker")
+
 class SqliteWorker {
   db;
   rowMode = 'object';

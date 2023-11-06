@@ -5,9 +5,8 @@ import { useUser } from '../stores/user';
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 import { SqliteClient } from '@sqlite.org/sqlite-wasm';
-const worker = new URL('../utils/sqlite-worker.mjs', import.meta.url).href
+import SqliteWorker from '../utils/sqlite-worker?worker&url'
 
-// This is the name of your database. It corresponds to the path in the OPFS.
 const filename = '/test.sqlite';
 
 const opfsRoot = await navigator.storage.getDirectory('/');
@@ -17,7 +16,7 @@ for await (let [name, handle] of opfsRoot.entries()) {
   }
 }
 
-const sqlite = new SqliteClient(filename, worker);
+const sqlite = new SqliteClient(filename, SqliteWorker);
 await sqlite.init();
 
 const SCHEMA = `

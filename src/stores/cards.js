@@ -54,7 +54,6 @@ const config = {
       tribes: [],
       loading: false,
       selected: new Set(),
-      frame_effects: new Set(),
       filters: {
         colours: { colours: [], mode: 'commander' },
         rarity: [],
