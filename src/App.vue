@@ -46,6 +46,7 @@ html {
   --colour-accent: #938996;
   --colour-off-white: #e5dbdc;
   --colour-anchor: #c49dcb;
+  --colour-lighter-grey: rgb(23, 19, 23);
 
   --colour-red: #f9ac90;
   --colour-green: #9cd4af;

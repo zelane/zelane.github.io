@@ -25,8 +25,8 @@ export const post = async (url = '', data = {}) => {
     },
     body: JSON.stringify(data),
   });
-  if(!response.ok) {
-    throw Error(response.statusText);
+  if (!response.ok) {
+    throw Error(await response.text());
   }
   const json = await response.json();
   return json;

@@ -57,7 +57,7 @@ const init = async () => {
     const channel = new BroadcastChannel("clipboard");
     channel.addEventListener("message", (e) => {
       if(e.data === 'update') {
-        clipboard.loadCollections(['clipboard']);
+        clipboard.reloadCollections(['clipboard']);
       }
     });
   }
@@ -274,7 +274,7 @@ const clickOut = (e) => {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: linear-gradient(0deg, rgb(23, 19, 23) 0%, rgb(23, 19, 23) 20%, rgba(23, 19, 23, 0.8) 100%);
+  background: linear-gradient(0deg, var(--colour-lighter-grey) 0%, var(--colour-lighter-grey) 20%, rgba(23, 19, 23, 0.8) 100%);
   /* opacity: 0; */
   padding: 1rem;
   transition: transform 0.2s, opacity 0.2s;

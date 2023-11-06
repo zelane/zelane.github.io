@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import PrintsView from './PrintsView.vue';
+import VersionView from './VersionsView.vue';
 import CardDetails from './CardDetails.vue';
 import CardParser from './CardParser.vue';
 import ClipBoard from './ClipBoard.vue';
@@ -82,7 +83,7 @@ const touchEnd = (e) => {
           'settings': [ 'settings','Settings'],
         }"
         :key="name"
-        :class="name"
+        :class="[name, name === 'clipboard' && ui.clipboard_change ? 'changed' : '']"
       >
         <span
           class="icon"
@@ -132,6 +133,13 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'prints'"
     >
       <PrintsView />
+    </div>
+        
+    <div
+      class="versions panel"
+      v-show="ui.sidebar.selected === 'versions'"
+    >
+      <VersionView />
     </div>
 
     <div
@@ -301,7 +309,7 @@ const touchEnd = (e) => {
     bottom: 0px;
     gap: 5px;
     padding: 1rem;
-    background: rgb(23, 19, 23);
+    background: var(--colour-lighter-grey);
   }
   .menu .item {
     flex-grow: 1;
@@ -323,6 +331,7 @@ const touchEnd = (e) => {
   .menu .item .icon {
     color: var(--colour-anchor);
   }
+
   .item.prints, .item.details {
     display: none;
   }
@@ -339,4 +348,48 @@ const touchEnd = (e) => {
     top: 1rem;
   }
 }
+.menu .item.clipboard .icon {
+  /* display: block; */
+  /* animation: bounce 1s infinite; */
+}
+.menu .item.clipboard.changed .icon {
+  display: block;
+  animation: bounce .5s forwards;
+}
+
+@keyframes bounce {
+    0%   { transform: scale(1,1)      translateY(0); }
+    10%  { transform: scale(1.1,.9)   translateY(0); }
+    30%  { transform: scale(.9,1.1)   translateY(-6px); }
+    50%  { transform: scale(1.05,.95) translateY(0); }
+    57%  { transform: scale(1,1)      translateY(-2px); }
+    64%  { transform: scale(1,1)      translateY(0); }
+    100% { transform: scale(1,1)      translateY(0); }
+}
+
+@keyframes bounce {
+    0%   { transform: rotate(0deg)    translateY(0); }
+    10%  { transform: rotate(0deg)    translateY(0); }
+    20%  { transform: rotate(10deg)   translateY(-2px); }
+    30%  { transform: rotate(0deg)    translateY(-3px); }
+    40%  { transform: rotate(-10deg)  translateY(-4px); }
+    50%  { transform: rotate(0deg)    translateY(0); }
+    57%  { transform: rotate(0deg)    translateY(-2px); }
+    64%  { transform: rotate(0deg)    translateY(0); }
+    100% { transform: rotate(0deg)    translateY(0); }
+}
+/* 
+@keyframes bounce {
+    0%   { transform: rotate(0deg)    translateY(0); }
+    10%  { transform: rotate(0deg)    translateY(0); }
+    30%  { transform: rotate(0deg)    translateY(-5px); }
+    35%  { transform: rotate(10deg)   translateY(-5px); }
+    40%  { transform: rotate(-10deg)   translateY(-5px); }
+    45%  { transform: rotate(10deg)   translateY(-5px); }
+    50%  { transform: rotate(-10deg)   translateY(-5px); }
+    60%  { transform: rotate(0deg)    translateY(0); }
+    67%  { transform: rotate(0deg)    translateY(-2px); }
+    74%  { transform: rotate(0deg)    translateY(0); }
+    100% { transform: rotate(0deg)    translateY(0); }
+} */
 </style>

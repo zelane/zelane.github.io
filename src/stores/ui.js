@@ -17,7 +17,8 @@ export const useUI = defineStore('ui', {
       },
       edit: {
         card: null
-      }
+      },
+      clipboard_change: false
     };
   },
   getters: {
@@ -29,7 +30,7 @@ export const useUI = defineStore('ui', {
     },
     loadMain(view) {
       this.mainView = view;
-      if(['upload', 'precons'].includes(view)) {
+      if (['upload', 'precons'].includes(view)) {
         this.sidebar.show = false;
       }
     },

@@ -350,7 +350,7 @@ export const useCollections = defineStore('collections', {
       };
     },
     async load(names) {
-      this.open = names;
+      // this.open = names;
       if (!names) return;
 
       const user = useUser();

@@ -29,36 +29,20 @@ const emit = defineEmits(['clicked', 'select', 'deselect']);
 
 const calcEffects = card => {
   if(cardView.filters.cmpCol.length > 0) {
-    const missing = !cardView.have.get(card.oracle_id);
-    return missing ? ['missing'] : ['selected'];
+    const have = cardView.have.get(card.oracle_id);
+    const haveExact = cardView.haveExact.get(card.id);
+    if (haveExact) {
+      return ['exact'];
+    }
+    else if(have) {
+      return ['have'];
+    }
+    return ['missing'];
+    // return missing ? ['missing'] : ['selected'];
   }
   if ([... cardView.selected].length > 0) {
     return cardView.selected.has(card.id + card.finish) ? ['selected'] : ['missing'];
   }
-};
-
-let triggered = false;
-let to = null;
-
-const mouseDown = e => {
-  // e.stopPropagation();
-  // to = setTimeout(()=> {
-  //   emit('select');
-  //   triggered = true;
-  // }, 500);
-};
-
-const mouseUp = e => {
-};
-
-const click = e => {
-  // e.preventDefault();
-  // clearTimeout(to);
-  // if(!triggered) {
-  //   emit('clicked');
-  // }
-  // triggered = false;
-  emit('clicked');
 };
 
 </script>

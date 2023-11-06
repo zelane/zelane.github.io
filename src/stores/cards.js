@@ -49,10 +49,12 @@ const config = {
     return {
       cards: new Map(),
       have: new Map(),
+      haveExact: new Map(),
       filtered: [],
       tribes: [],
       loading: false,
       selected: new Set(),
+      frame_effects: new Set(),
       filters: {
         colours: { colours: [], mode: 'commander' },
         rarity: [],
@@ -71,8 +73,10 @@ const config = {
         cmpCol: [],
         ors: {},
         finish: null,
+        frame: null,
         border: null,
         quantity: { value: [null, null], min: 0, max: 100 },
+        oracle_id: null,
       },
       sort: {
         val: 'Price',
@@ -99,23 +103,33 @@ const config = {
       let by = state.filters.group;
       let grouped = new Map();
       for (const card of state.cards.values()) {
-        let existing = grouped.get(card.name);
+
+        let key = ""
+        if (by === 'Name') {
+          key = card.name;
+        }
+        else if (by === 'ID') {
+          key = card.oracle_id;
+        }
+
+        let existing = grouped.get(key);
         let price = card.price > 0 ? card.price : Infinity;
+
         if (existing) {
-          if (existing.price > price || (existing.price === 0 && card.price !== 0)) {
+          if (existing.price < price || (existing.price === 0 && card.price !== 0)) {
             let count = 0 + existing.count;
             existing = { ...card };
             existing.count = count;
           }
           existing.count += (card.count || 1);
-          grouped.set(card.name, existing);
+          grouped.set(key, existing);
         }
         else {
-          grouped.set(card.name, { ...card });
+          grouped.set(key, { ...card });
         }
         if (!existing || existing.price > price || (existing.price === 0 && card.price !== 0)) {
           existing = { ...card };
-          grouped.set(card.name, existing);
+          grouped.set(key, existing);
         }
       }
       return [...grouped.values()].sort(dynamicSort(state.sort));
@@ -140,7 +154,7 @@ const config = {
           });
         }
       });
-      return tags;
+      return [...tags];
     },
     sets(state) {
       let sets = new Map();
@@ -150,15 +164,26 @@ const config = {
         }
       });
       return Object.fromEntries(sets);
-    }
+    },
+    frame_effects(state) {
+      let effects = new Set();
+      state.sorted.forEach(card => {
+        if (card.frame_effects) {
+          card.frame_effects.forEach(e => effects.add(e));
+        }
+      });
+      return [...effects];
+    },
   },
   actions: {
     async _compare(cards, collectionNames) {
       const collections = useCollections();
       const colCards = await collections.getCards(collectionNames);
-      const ids = colCards.map(c => c.oracle_id);
+      const oids = colCards.map(c => c.oracle_id);
+      const ids = colCards.map(c => c.id);
       cards = cards.forEach(card => {
-        this.have.set(card.oracle_id, ids.includes(card.oracle_id));
+        this.have.set(card.oracle_id, oids.includes(card.oracle_id));
+        this.haveExact.set(card.id, ids.includes(card.id))
       });
     },
     _filterColours(card, options) {
@@ -185,10 +210,12 @@ const config = {
     async applyFilters() {
       const collections = useCollections();
       let _filters = this.filters;
-      // let to = setTimeout(() => this.loading = true, 300);
+
       let filtered = _filters.group !== null ? this.grouped : this.sorted;
 
       this.have.clear();
+      this.haveExact.clear();
+
       if (_filters.cmpCol.length > 0) {
         await this._compare(filtered, _filters.cmpCol);
       }
@@ -229,6 +256,10 @@ const config = {
 
         const hasFinish = !_filters.finish || card.finish === _filters.finish;
         if (!hasFinish) return false;
+
+        const hasFrame = !_filters.frame || (card.frame_effects && card.frame_effects.includes(_filters.frame));
+        if (!hasFrame) return false;
+
         const hasName = !_filters.name || !_filters.name != '' || card.name.toLowerCase().includes(_filters.name.toLowerCase());
         if (!hasName) return false;
 
@@ -269,6 +300,9 @@ const config = {
 
         const hasBorder = _filters.border ? card.border_color == _filters.border : true;
         if (!hasBorder) return false;
+
+        const hasOracleId = _filters.oracle_id ? card.oracle_id == _filters.oracle_id : true
+        if (!hasOracleId) return false
 
         return true;
       });
@@ -396,6 +430,17 @@ const config = {
       }
       this.loading = false;
     },
+    async reloadCollections(names) {
+      const collections = useCollections();
+      let colCards = await collections.load(names);
+      if (names.length === 0) {
+        this.cards.empty();
+        this.filtered = [];
+      }
+      else {
+        this.addMany(colCards);
+      }
+    },
     async loadPrecon(name) {
       this.loading = true;
       const cache = await caches.open('cardDataCache');
@@ -410,6 +455,12 @@ const config = {
       this.addMany(json.data.cards);
       this.loading = false;
     },
+    async loadVersions(oracle_id) {
+      const collections = useCollections();
+      this.loadCollections(collections.open);
+      this.filters.oracle_id = oracle_id;
+      this.loading = false;
+    },
     unrefCards() {
       return [... this.cards.values()].map(deepUnref);
     }
@@ -420,6 +471,7 @@ export const useCardView = defineStore('cardView', config);
 export const usePrintsView = defineStore('printsView', config);
 export const useSearchView = defineStore('searchView', config);
 export const useClipboard = defineStore('clipboardView', config);
+export const useVersionsView = defineStore('versionsView', config);
 
 if (import.meta.hot) {
   import.meta.hot.accept(acceptHMRUpdate(useCardView, import.meta.hot));
