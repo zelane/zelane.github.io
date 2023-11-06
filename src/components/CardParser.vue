@@ -236,9 +236,8 @@ const updateCollection = async (name, cardList) => {
   }
   if (cardList.size > 0) {
     const newData = await fetchCardData(cardList);
-    collection.cards = collection.cards.concat(newData);
+    await collections.save(name, newData, collection.syncCode);
   }
-  collections.save(name, collection.cards, collection.syncCode);
   upload.active = false;
   upload.count = 0;
   upload.progress = 0;
@@ -248,19 +247,16 @@ const updateCollection = async (name, cardList) => {
 
 const handleSearch = async (data) => {
   // Todo: Add finish
-  const collection = await collections.get(upload.name);
-  let existing = collection.cards.filter(c => {
-    return c.id === data.id && c.finish === 'nonfoil';
-  });
-  if (existing.length > 0) {
-    existing[0].count += data.count;
-  }
-  else {
-    collection.cards.push(data);
-  }
-  collections.save(upload.name, collection.cards, collection.syncCode);
+  await collections.addMany(upload.name, [{
+    id: data.id,
+    count: data.count,
+    finish: 'nonfoil',
+    tags: [],
+    data: data
+  }], 'add');
   emit('parsed', collections.open);
   toast(`${'' + data.name} added to ${upload.name}`);
+  return 
 };
 
 const fetchCardData = async (cardList) => {
@@ -310,10 +306,14 @@ const fetchCardData = async (cardList) => {
         upload.errors.push(`Missing data for ${_card.name} ${_card.number} [${_card.set}]`);
         continue;
       }
-      data.count = _card.count || 1;
-      data.finish = data.finishes.length === 1 ? data.finishes[0] : _card.finish;
-      data.tags = _card.tags;
-      cardData.push(data);
+      
+      cardData.push({
+        id: data.id,
+        count: _card.count || 1,
+        finish: data.finishes.length === 1 ? data.finishes[0] : _card.finish,
+        tags: _card.tags,
+        data: data
+      });
     }
     upload.progress = 100;
   }

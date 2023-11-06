@@ -1,43 +1,60 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
-import Dexie from 'dexie';
 import { post, _delete } from '../utils/network';
 import { useUser } from '../stores/user';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 import { SqliteClient } from '@sqlite.org/sqlite-wasm';
-const imgUrl = new URL('../utils/sqlite-worker.mjs', import.meta.url).href
+const worker = new URL('../utils/sqlite-worker.mjs', import.meta.url).href
 
 // This is the name of your database. It corresponds to the path in the OPFS.
-const filename = '/test.sqlite3';
-const sqlite = new SqliteClient(filename, imgUrl);
+const filename = '/test.sqlite';
+
+const opfsRoot = await navigator.storage.getDirectory('/');
+for await (let [name, handle] of opfsRoot.entries()) {
+  if ('/' + name != filename) {
+    opfsRoot.removeEntry(name);
+  }
+}
+
+const sqlite = new SqliteClient(filename, worker);
 await sqlite.init();
 
 const SCHEMA = `
-  CREATE TABLE collection
+  CREATE TABLE IF NOT EXISTS collection
   (
-    name text
+    name TEXT PRIMARY KEY
   );
+  CREATE INDEX IF NOT EXISTS idx_collection_name ON collection (name);
 
-  CREATE TABLE collection_card
+  CREATE TABLE IF NOT EXISTS collection_card
   (
-    collection_name text,
-    card_id text,
+    collection_name TEXT NOT NULL,
+    card_id TEXT NOT NULL,
+    count INTEGER DEFAULT 1,
+    finish STRING DEFAULT 'nonfoil',
+    UNIQUE(collection_name, card_id, finish)
 
     CONSTRAINT fk_collection_name
       FOREIGN KEY (collection_name)
       REFERENCES collection (name)
+      ON DELETE CASCADE
 
     CONSTRAINT fk_card_id
       FOREIGN KEY (card_id)
       REFERENCES card (id)
+      ON DELETE CASCADE
+  );
+  CREATE INDEX IF NOT EXISTS idx_collection_name ON collection_card (collection_name);
+  CREATE INDEX IF NOT EXISTS idx_collection_card_id ON collection_card (card_id);
+
+  CREATE TABLE IF NOT EXISTS card
+  (
+    id TEXT PRIMARY KEY,
+    data JSON NOT NULL
   );
 
-  CREATE TABLE card
-  (
-    id text,
-    data blob
-  );
+  CREATE INDEX IF NOT EXISTS idx_card_id ON card (id);
 `;
 
 
@@ -177,28 +194,21 @@ const test_card = {
 }
 
 const SEED = `
-    insert into collection(name) values ('test'), ('test2');
-    insert into collection_card(collection_name, card_id) values ('test', 'a131d558-5f6b-448b-a378-1882e2d02bd2');
-    insert into card(id, data) values ('a131d558-5f6b-448b-a378-1882e2d02bd2', '${JSON.stringify(test_card)}');
+    insert into collection(name) values ('test') on conflict do nothing;
+    insert into collection_card(collection_name, card_id, count, finish) values ('test', 'a131d558-5f6b-448b-a378-1882e2d02bd2', 2, 'foil') on conflict do nothing;
+    insert into card(id, data) values ('a131d558-5f6b-448b-a378-1882e2d02bd2', json('${JSON.stringify(test_card)}')) on conflict do nothing;
 `
-
-let result = await sqlite.executeSql("drop table if exists collection; drop table if exists collection_card; drop table if exists card;")
-console.log(result);
+let result = null;
+// result = await sqlite.executeSql("drop table if exists collection; drop table if exists collection_card; drop table if exists card;")
 result = await sqlite.executeSql(SCHEMA);
-// await sqlite.executeSql('INSERT INTO test VALUES(?, ?)', [6, 7]);
-// const results = await sqlite.executeSql('SELECT * FROM test');
-console.log(result);
-
 result = await sqlite.executeSql(SEED);
-console.log(result);
 
-result = await sqlite.executeSql(`select id, data from card`);
-console.log(result);
+// console.log("Starting vacuum");
+// result = await sqlite.executeSql('VACUUM');
+// console.log("Vacuum complete");
 
-const db = new Dexie('mtg');
-db.version(4).stores({
-  collections: '&name, syncCode'
-});
+// result = await sqlite.executeSql(`select id, data->'name' from card`);
+
 
 export const useCollections = defineStore('collections', {
   state: () => {
@@ -226,14 +236,14 @@ export const useCollections = defineStore('collections', {
   },
   actions: {
     async init() {
-
       result = await sqlite.executeSql(`
-        select collection.name, count(card.id) as card_count
+        select collection.name, sum(collection_card.count) as card_count
         from collection
-        join collection_card on collection.name == collection_card.collection_name
-        join card on collection_card.card_id == card.id
+        left outer join collection_card on collection.name == collection_card.collection_name
+        left outer join card on collection_card.card_id == card.id
+        group by collection_card.collection_name
       `);
-      console.log(result)
+
       result.forEach(col => {
         if (col.name === 'clipboard') return;
         this.collections.set(col.name, {
@@ -248,22 +258,22 @@ export const useCollections = defineStore('collections', {
     },
     async refreshPrices() {
       for (const name of this.open) {
-        let collection = await db.collections.get({ name: name });
+        let results = await sqlite.executeSql(`select card_id from collection_card where collection_name = '${name}'`)
+        var ids = results.map(row => row['card_id']);
 
-        var ids = [];
-        for (const card of collection.cards) {
-          ids.push(card.id);
-        }
         const resp = await post(backendUrl + "/prices", {
           data: ids
         });
 
-        let newCards = [];
-        for (const card of collection.cards) {
-          card.prices = resp.data[card.id];
-          newCards.push(card);
+        await sqlite.executeSql('begin transaction');
+        for (const [id, price] of Object.entries(resp['data'])) {
+          results = await sqlite.executeSql(`
+            update card
+            set data = json_set(data, '$.prices', json('${JSON.stringify(price)}'))
+            where id = '${id}'
+        `)
         }
-        await this.save(name, newCards);
+        await sqlite.executeSql('commit transaction');
       }
     },
     async delete(name) {
@@ -272,44 +282,72 @@ export const useCollections = defineStore('collections', {
         await _delete(backendUrl + '/collection', {
           id: user.collections.get(name).id
         });
-        // user.collections.delete(name);
       }
-      await db.collections.delete(name);
+      result = await sqlite.executeSql(`delete from collection where name = '${name}';`)
       this.collections.delete(name);
       this.open.splice(this.open.indexOf(name), 1);
     },
+    async addMany(name, cards, onconflict = 'update') {
+      let values = [];
+      let mappings = [];
+
+      for (const card of cards) {
+        values.push(`('${card.id}', '${this.prepareJson(card.data)}')`)
+        mappings.push(`('${name}', '${card.id}', ${card.count}, '${card.finish}')`)
+      }
+      await sqlite.executeSql(`
+        insert into card(id, data) 
+        values
+        ${values.join(',')}
+        on conflict(id) do update set data=EXCLUDED.data
+      `)
+
+      let conflict = 'do update set count=EXCLUDED.count'
+      if (onconflict === 'add') {
+        conflict = 'do update set count = count + EXCLUDED.count'
+      }
+
+      await sqlite.executeSql(`
+        insert into collection_card(collection_name, card_id, count, finish)
+        values
+        ${mappings.join(',')}
+        on conflict(collection_name, card_id, finish) ${conflict}
+      `)
+    },
     async save(name, cards) {
       let now = Date.now();
-      console.log(cards[0]);
-      console.log(JSON.stringify(cards[0]).replace("'", ""));
 
-      await sqlite.executeSql(`insert into card(id, data) values ('${cards[0].id}', '${JSON.stringify(cards[0]).replace("'", "")}');`)
-      // for (let card of cards) {
-      //   await sqlite.executeSql(`insert into card(id, data) values ('${card.id}', '${JSON.stringify(card)}');`)
-      // }
-      return this.getCards('');
+      await sqlite.executeSql(`insert into collection(name) values ('${name}') on conflict do nothing;`);
+      if (Object.keys(cards).length > 0) {
+        await this.addMany(name, cards);
+      }
 
-      await db.collections.put({ name: name, cards: cards, lastSync: now });
+      // await db.collections.put({ name: name, cards: cards, lastSync: now });
       if (!this.collections.has(name)) {
         this.collections.set(name, { downloaded: true, lastSync: now });
       }
       return this.all;
     },
     async replaceCard(collection, old, new_) {
-      const col = await db.collections.get({ name: collection });
-      let newCards = col.cards.filter(c => c.id !== old.id || c.finish !== old.finish);
-      newCards.push(new_);
-      await db.collections.update(collection, { cards: newCards });
+      console.log("Not implemented yet");
+      // const col = await db.collections.get({ name: collection });
+      // let newCards = col.cards.filter(c => c.id !== old.id || c.finish !== old.finish);
+      // newCards.push(new_);
+      // await db.collections.update(collection, { cards: newCards });
     },
     async deleteCard(collectionNames, card) {
-      for (const colName of collectionNames) {
-        const col = await db.collections.get({ name: colName });
-        const newCards = col.cards.filter(c => c.id !== card.id || c.finish !== card.finish);
-        await db.collections.update(colName, { cards: newCards });
-      }
+      await sqlite.executeSql(`
+        delete from collection_card
+        where collection_name = '${collectionNames[[0]]}'
+        and card_id = '${card.id}';
+      `);
     },
     async get(name) {
-      return await db.collections.get({ name: name });
+      const cards = await this.getCards([name]);
+      return {
+        'name': name,
+        'cards': cards,
+      };
     },
     async load(names) {
       this.open = names;
@@ -324,38 +362,46 @@ export const useCollections = defineStore('collections', {
       }
       return await this.getCards(names);
     },
-    async getCards(names) {
-      result = await sqlite.executeSql(`select id, data from card`);
+    asParams(params) {
+      return params.map(item => `'${item}'`).join(', ')
+    },
+    safeStrings(obj) {
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          const value = obj[key];
 
-      let re = [];
-      for (const card of result) {
-        re.push(JSON.parse(card.data));
-      }
-      return re;
+          if (typeof value === 'string') {
+            obj[key] = value.replace(/'/g, "''")
+          }
 
-      let cardMap = new Map();
-      for (const name of names) {
-        let collection = await db.collections.get({ name: name });
-        if (collection && Object.keys(collection.cards).length > 0) {
-          for (const card of collection.cards) {
-            if (!card) {
-              continue;
-            }
-            const cardKey = card.id + card.finish;
-            if (cardMap.has(cardKey)) {
-              let ex = cardMap.get(cardKey);
-              ex.count = parseInt(ex.count) + parseInt(card.count);
-              ex.collections.push(collection.name);
-              cardMap.set(cardKey, ex);
-            }
-            else {
-              card.collections = [collection.name];
-              cardMap.set(cardKey, card);
-            }
+          if (typeof value === 'object' && value !== null) {
+            this.safeStrings(value);
           }
         }
       }
-      return [...cardMap.values()];
+    },
+    prepareJson(obj) {
+      this.safeStrings(obj);
+      return JSON.stringify(obj);
+    },
+    async getCards(names) {
+      result = await sqlite.executeSql(`
+        select collection_card.card_id, card.data, sum(collection_card.count) as count, collection_card.finish
+        from collection_card
+        join card on card.id = collection_card.card_id
+        where collection_card.collection_name in (${this.asParams(names)})
+        group by collection_card.card_id, collection_card.finish
+      `);
+      let re = [];
+      for (const card of result) {
+        let data = JSON.parse(card.data);
+        data.count = card.count;
+        if (card.count > 1) {
+        }
+        data.finish = card.finish;
+        re.push(data);
+      }
+      return re;
     },
     async upload(userToken, name) {
       try {
