@@ -19,6 +19,7 @@ class SqliteWorker {
         print: log,
         printErr: error,
       }).then((sqlite3) => {
+        console.log(sqlite3)
         try {
           this.db = new sqlite3.oo1.OpfsDb(dbFile);
         } catch (err) {
