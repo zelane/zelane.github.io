@@ -9,46 +9,46 @@ const backendUrl = import.meta.env.VITE_BACKEND_URL;
 import { SqliteClient } from '@sqlite.org/sqlite-wasm';
 import SqliteWorker from '../utils/sqlite-worker?worker&url'
 
-
-const worker = new Worker(new URL('../utils/wa-worker.js', import.meta.url), { type: 'module' });
-await new Promise(resolve => {
-  worker.addEventListener('message', resolve, { once: true });
-});
-
-const config = {
-  dbName: 'test.sqlite',
-}
-const workerProxy = Comlink.wrap(worker);
-const sql = await workerProxy(config);
-const sqlite = {}
-
-sqlite.executeSql = async (query) => {
-  const result = await sql`${query}`;
-  let ret = []
-  if (result.length > 0) {
-    for (const row of result[0].rows) {
-      let obj = {}
-      result[0].columns.forEach((col, index) => {
-        obj[col] = row[index];
-      });
-      ret.push(obj);
-    }
-  }
-  return ret;
-}
-
 const filename = '/test.sqlite';
 
-const opfsRoot = await navigator.storage.getDirectory('/');
-for await (let [name, handle] of opfsRoot.entries()) {
-  console.log(name)
-  if ('/' + name != filename) {
-    opfsRoot.removeEntry(name);
-  }
-}
+// const worker = new Worker(new URL('../utils/wa-worker.js', import.meta.url), { type: 'module' });
+// await new Promise(resolve => {
+//   worker.addEventListener('message', resolve, { once: true });
+// });
 
-// const sqlite = new SqliteClient(filename, SqliteWorker);
-// await sqlite.init();
+// const config = {
+//   dbName: 'test.sqlite',
+// }
+// const workerProxy = Comlink.wrap(worker);
+// const sql = await workerProxy(config);
+// const sqlite = {}
+
+// sqlite.executeSql = async (query) => {
+//   const result = await sql`${query}`;
+//   let ret = []
+//   if (result.length > 0) {
+//     for (const row of result[0].rows) {
+//       let obj = {}
+//       result[0].columns.forEach((col, index) => {
+//         obj[col] = row[index];
+//       });
+//       ret.push(obj);
+//     }
+//   }
+//   return ret;
+// }
+
+
+// const opfsRoot = await navigator.storage.getDirectory('/');
+// for await (let [name, handle] of opfsRoot.entries()) {
+//   console.log(name)
+//   if ('/' + name != filename) {
+//     opfsRoot.removeEntry(name);
+//   }
+// }
+
+const sqlite = new SqliteClient(filename, SqliteWorker);
+await sqlite.init();
 
 
 const SCHEMA = `
