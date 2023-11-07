@@ -1,23 +1,55 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import { post, _delete } from '../utils/network';
 import { useUser } from '../stores/user';
+import * as Comlink from 'comlink';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+
 import { SqliteClient } from '@sqlite.org/sqlite-wasm';
 import SqliteWorker from '../utils/sqlite-worker?worker&url'
+
+
+const worker = new Worker(new URL('../utils/wa-worker.js', import.meta.url), { type: 'module' });
+await new Promise(resolve => {
+  worker.addEventListener('message', resolve, { once: true });
+});
+
+const config = {
+  dbName: 'test.sqlite',
+}
+const workerProxy = Comlink.wrap(worker);
+const sql = await workerProxy(config);
+const sqlite = {}
+
+sqlite.executeSql = async (query) => {
+  const result = await sql`${query}`;
+  let ret = []
+  if (result.length > 0) {
+    for (const row of result[0].rows) {
+      let obj = {}
+      result[0].columns.forEach((col, index) => {
+        obj[col] = row[index];
+      });
+      ret.push(obj);
+    }
+  }
+  return ret;
+}
 
 const filename = '/test.sqlite';
 
 const opfsRoot = await navigator.storage.getDirectory('/');
 for await (let [name, handle] of opfsRoot.entries()) {
+  console.log(name)
   if ('/' + name != filename) {
     opfsRoot.removeEntry(name);
   }
 }
 
-const sqlite = new SqliteClient(filename, SqliteWorker);
-await sqlite.init();
+// const sqlite = new SqliteClient(filename, SqliteWorker);
+// await sqlite.init();
+
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS collection
@@ -55,6 +87,7 @@ const SCHEMA = `
 
   CREATE INDEX IF NOT EXISTS idx_card_id ON card (id);
 `;
+
 
 
 const test_card = {

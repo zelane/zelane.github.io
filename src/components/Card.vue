@@ -61,8 +61,6 @@ const calcEffects = card => {
       <CardImage 
         :card="props.card"
         :effects="calcEffects(card)"
-        @touchstart="mouseDown"
-        @touchend="mouseUp"
         @click.stop="emit('clicked')"
       />
       <CardActions
