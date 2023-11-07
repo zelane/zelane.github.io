@@ -1,54 +1,57 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import { post, _delete } from '../utils/network';
 import { useUser } from '../stores/user';
-import * as Comlink from 'comlink';
+import { SharedService } from "../utils/SharedService.js";
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
+const SHARED_SERVICE_NAME = 'ahp-demo';
 
 
-import { SqliteClient } from '@sqlite.org/sqlite-wasm';
-import SqliteWorker from '../utils/sqlite-worker?worker&url'
-
-const filename = '/test.sqlite';
-
-// const worker = new Worker(new URL('../utils/wa-worker.js', import.meta.url), { type: 'module' });
-// await new Promise(resolve => {
-//   worker.addEventListener('message', resolve, { once: true });
-// });
-
-// const config = {
-//   dbName: 'test.sqlite',
-// }
-// const workerProxy = Comlink.wrap(worker);
-// const sql = await workerProxy(config);
-// const sqlite = {}
-
-// sqlite.executeSql = async (query) => {
-//   const result = await sql`${query}`;
-//   let ret = []
-//   if (result.length > 0) {
-//     for (const row of result[0].rows) {
-//       let obj = {}
-//       result[0].columns.forEach((col, index) => {
-//         obj[col] = row[index];
-//       });
-//       ret.push(obj);
-//     }
-//   }
-//   return ret;
-// }
+const worker = new Worker(new URL('../utils/wa-worker2.js', import.meta.url), { type: 'module' });
+const sharedService = new SharedService(SHARED_SERVICE_NAME, async () => {
+  const providerPort = await new Promise(resolve => {
+    worker.addEventListener('message', event => {
+      resolve(event.ports[0]);
+    }, { once: true });
+    worker.postMessage(null);
+  });
+  return providerPort;
+});
+sharedService.activate();
 
 
-// const opfsRoot = await navigator.storage.getDirectory('/');
-// for await (let [name, handle] of opfsRoot.entries()) {
-//   console.log(name)
-//   if ('/' + name != filename) {
-//     opfsRoot.removeEntry(name);
-//   }
-// }
+const sqlite = {}
+sqlite.executeSql = async (query) => {
+  const result = await sharedService.proxy.query(query)
+  // const result = await sql`${query}`;
+  let ret = []
+  if (result.length > 0) {
+    for (const row of result[0].rows) {
+      let obj = {}
+      result[0].columns.forEach((col, index) => {
+        obj[col] = row[index];
+      });
+      ret.push(obj);
+    }
+  }
+  return ret;
+}
 
-const sqlite = new SqliteClient(filename, SqliteWorker);
-await sqlite.init();
+
+const opfsRoot = await navigator.storage.getDirectory('/');
+for await (let [name, handle] of opfsRoot.entries()) {
+  console.log(name)
+  // if ('/' + name != filename) {
+  //   opfsRoot.removeEntry(name);
+  // }
+}
+
+// import { SqliteClient } from '../utils/sqlite-client.mjs';
+// import SqliteWorker from '../utils/sqlite-worker?worker&url'
+
+// const filename = '/test.sqlite';
+// const sqlite = new SqliteClient(filename, SqliteWorker);
+// await sqlite.init();
 
 
 const SCHEMA = `

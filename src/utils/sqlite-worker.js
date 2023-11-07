@@ -1,6 +1,8 @@
 import * as Comlink from './comlink.mjs';
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
+
+
 const log = (...args) => console.log(...args);
 const error = (...args) => console.error(...args);
 
@@ -9,25 +11,15 @@ log("Starting worker")
 class SqliteWorker {
   db;
   rowMode = 'object';
-  init(dbFile, rowMode) {
+  async init(dbFile, rowMode) {
     if (rowMode && rowMode !== 'array' && rowMode !== 'object') {
       throw new Error('Invalid rowMode');
     }
     this.rowMode = rowMode || this.rowMode;
-    return new Promise((resolve) => {
-      sqlite3InitModule({
-        print: log,
-        printErr: error,
-      }).then((sqlite3) => {
-        try {
-          this.db = new sqlite3.oo1.OpfsDb(dbFile);
-        } catch (err) {
-          error(err.name, err.message);
-        }
-
-        return resolve();
-      });
-    });
+    const sqlite3 = await sqlite3InitModule({ print: log, printErr: error });
+    const vfs = await sqlite3.installOpfsSAHPoolVfs();
+    this.db = new vfs.OpfsSAHPoolDb(dbFile, 'c');
+    // this.db = new sqlite3.oo1.OpfsDb(dbFile, 'c');
   }
 
   executeSql(sqlStatement, bindParameters, callback) {
