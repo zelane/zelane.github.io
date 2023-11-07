@@ -177,9 +177,9 @@ const config = {
   actions: {
     async _compare(cards, collectionNames) {
       const collections = useCollections();
-      const colCards = await collections.getCards(collectionNames);
-      const oids = colCards.map(c => c.oracle_id);
-      const ids = colCards.map(c => c.id);
+      const cids = await collections.getCardIds(collectionNames)
+      const oids = cids.map(c => c.oracle_id);
+      const ids = cids.map(c => c.card_id);
       cards = cards.forEach(card => {
         this.have.set(card.oracle_id, oids.includes(card.oracle_id));
         this.haveExact.set(card.id, ids.includes(card.id))
@@ -456,8 +456,8 @@ const config = {
     },
     async loadVersions(oracle_id) {
       const collections = useCollections();
-      this.loadCollections(collections.open);
-      this.filters.oracle_id = oracle_id;
+      const cards = await collections.getByOracleId(collections.open, oracle_id);
+      this.addMany(cards);
       this.loading = false;
     },
     unrefCards() {

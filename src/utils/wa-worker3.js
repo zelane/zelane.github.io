@@ -1,48 +1,50 @@
 // Copyright 2023 Roy T. Hashimoto. All Rights Reserved.
 
-import SQLiteESMFactory from 'wa-sqlite/dist/wa-sqlite.mjs';
-import * as SQLite from 'wa-sqlite/src/sqlite-api.js';
-import { AccessHandlePoolVFS } from 'wa-sqlite/src/examples/AccessHandlePoolVFS.js';
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
 import { createSharedServicePort } from './SharedService.js';
 
-import { createTag } from "wa-sqlite/src/examples/tag.js";
 
-const sqlite3Ready = SQLiteESMFactory().then(module => {
-  return SQLite.Factory(module);
-});
+const log = (...args) => console.log(...args);
+const error = (...args) => console.error(...args);
 
 class DatabaseService {
   #chain;
   #isTransactionPending;
-  #tag;
+  #db;
 
   constructor() {
     this.#chain = this.#initialize();
   }
 
+  executeSql(sqlStatement, bindParameters) {
+    return this.#db.exec({
+      sql: sqlStatement,
+      bind: bindParameters,
+      returnValue: 'resultRows',
+      rowMode: 'object',
+    });
+  }
+
   query(...args) {
     const result = this.#chain.then(async () => {
       if (this.#isTransactionPending()) {
-        await this.#tag('ROLLBACK').catch(() => { });
+        await this.executeSql('ROLLBACK').catch(() => { });
       }
-      return this.#tag(...args);
+      return this.executeSql(...args);
     });
     this.#chain = result.catch(() => { });
     return result;
   }
 
   async #initialize() {
-    // Create the database.
-    const sqlite3 = await sqlite3Ready;
-    const vfs = new AccessHandlePoolVFS('/demo-AccessHandlePoolVFS');
+    const sqlite3 = await sqlite3InitModule({ print: log, printErr: error });
+    const vfs = await sqlite3.installOpfsSAHPoolVfs();
     await vfs.isReady;
-    sqlite3.vfs_register(vfs, true);
-    const db = await sqlite3.open_v2('demo');
-
-    // Create the query interface.
-    this.#tag = createTag(sqlite3, db);
-    this.#isTransactionPending = () => !sqlite3.get_autocommit(db);
+    console.log("here")
+    this.#db = new vfs.OpfsSAHPoolDb('testvfs', 'c');
+    // this.#isTransactionPending = () => !sqlite3.get_autocommit(this.#db);
+    this.#isTransactionPending = () => false;
 
     this.query(`
       PRAGMA locking_mode=exclusive;

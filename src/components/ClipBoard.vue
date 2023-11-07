@@ -18,41 +18,42 @@ const ui = reactive({
 });
 
 const addToCollection = async (name, newCards) => {
-  let collection = await collections.get(name);
-  const isOpen = collections.open.includes(name);
-  let added = 0;
-  for(const newCard of newCards) {
-    let existing = collection.cards.filter(card => card.id === newCard.id);
-    if(existing.length === 0) {
-      collection.cards.push({... deepUnref(newCard)});
+  await collections.addMany(name, newCards.map(card => {
+    let c = deepUnref(card);
+    return {
+      id: c.id,
+      finish: c.finish || 'nonfoil',
+      count: c.count || 1,
+      data: c,
     }
-    else {
-      existing[0].count += newCard.count || 1;
-    }
-    added += 1;
-    if(isOpen) {
-      cards.add({... newCard});
-    }
+  }), 'add');
+  if (collections.open.includes(name)) {
+    await cards.reloadCollections([name]);
   }
-  await collections.save(name, collection.cards, collection.syncCode);
-  toast(`${added} added to ${name}`);
+  toast(`${newCards.length} added to ${name}`);
 };
 
 const clear = async () => {
   clipboard.$reset();
-  await collections.save('clipboard', []);
+  await collections.empty('clipboard');
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
 };
 
 const clipAll = async() => {  
-  // clipboard.addMany(cards.filtered);
   cards.filtered.forEach(card => {
     let copy = {... card};
     copy.count = 1;
     clipboard.add(copy);
   });
-  await collections.save('clipboard', clipboard.unrefCards());
+  await collections.addMany('clipboard', clipboard.unrefCards().map(card => {
+    return {
+      id: card.id,
+      finish: card.finish || 'nonfoil',
+      count: 1,
+      data: card,
+    }
+  }), 'add');
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
 };
@@ -86,7 +87,7 @@ const clipAll = async() => {
       />
       <button
         class="small icon icon-arrow-right"
-        @click="() => addToCollection(ui.copyTo, clipboard.cards.values())"
+        @click="() => addToCollection(ui.copyTo, [... clipboard.cards.values()])"
       />
     </div>
     <div class="buttons">

@@ -1,7 +1,5 @@
-import * as Comlink from './comlink.mjs';
+import * as Comlink from 'comlink';
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-
-
 
 const log = (...args) => console.log(...args);
 const error = (...args) => console.error(...args);

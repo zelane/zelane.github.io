@@ -42,7 +42,6 @@ export class SharedService extends EventTarget {
     // Connect to the current provider and future providers.
     this.#providerPort = this.#providerChange();
     this.#clientChannel.addEventListener('message', ({ data }) => {
-      console.log("channel", data);
       if (data?.type === 'provider' && data?.sharedService === this.#serviceName) {
         // A context (possibly this one) announced itself as the new provider.
         // Discard any old provider and connect to the new one.

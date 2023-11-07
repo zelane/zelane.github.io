@@ -29,7 +29,13 @@ const clip = async (card) => {
   let copy = {... card};
   copy.count = 1;
   clipboard.add(copy);
-  await collections.save('clipboard', clipboard.unrefCards());
+  await collections.addMany('clipboard', [{
+      id: card.id,
+      finish: card.finish || 'nonfoil',
+      count: 1,
+      data: card,
+  }], 'add');
+  // await collections.save('clipboard', clipboard.unrefCards());
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
   ui.clipboard_change = true;

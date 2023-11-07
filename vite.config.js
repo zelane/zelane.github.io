@@ -16,7 +16,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ['@sqlite.org/sqlite-wasm', 'wa-sqlite/dist'],
+    exclude: ['@sqlite.org/sqlite-wasm', 'wa-sqlite'],
     esbuildOptions: {
       target: 'esnext', // you can also use 'es2020' here
     },
