@@ -79,6 +79,7 @@ const config = {
         border: null,
         quantity: { value: [null, null], min: 0, max: 100 },
         oracle_id: null,
+        reprint: null,
       },
       sort: {
         val: 'Price',
@@ -305,6 +306,9 @@ const config = {
 
         const hasOracleId = _filters.oracle_id ? card.oracle_id == _filters.oracle_id : true
         if (!hasOracleId) return false
+
+        const hasReprint = _filters.reprint === null | _filters.reprint == card.reprint.toString()
+        if (!hasReprint) return false
 
         return true;
       });

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive } from 'vue';
+import { onMounted, reactive, watch, watchEffect } from 'vue';
 import { useCardView } from '../stores/cards';
 import { useMeta } from '../stores/meta';
 import { useCollections } from '../stores/collections';
@@ -8,6 +8,7 @@ import Multiselect from '@vueform/multiselect';
 import ManaCost from './ManaCost.vue';
 import { useUI } from '../stores/ui';
 import { useDetails } from '../stores/details';
+import { deepUnref } from 'vue-deepunref';
 
 const router = useRouter();
 const cards = useCardView();
@@ -100,6 +101,9 @@ const loadRoute = async (view, params) => {
       uiGlobal.source = 'search';
       await cards.loadSearch(params.q, params.unique, params.force);
     }
+    if(params.filters) {
+      // cards.filters = {... cards.filters, ... params.filters}
+    }
   }
 };
 
@@ -122,13 +126,26 @@ onBeforeRouteUpdate(async (a, b) => {
   await loadRoute(a.params.view, a.query);
 });
 
+watchEffect((e) => {
+  let params = {}
+  const filters = deepUnref(cards.filters);
+  for (const [key, value] of Object.entries(filters)) {
+    if(Array.isArray(value) && value.length != 0) {
+      params[key] = value;
+      continue
+    }
+    if (value == null || value == "") continue
+    if (typeof value == 'object') continue
+    params[key] = value;
+  }
+  router.replace({
+    query: {... route.query, ... {filters: JSON.stringify(params)}},
+  })
+})
+
 onMounted(async () => {
   if(route.params.view) {
     loadRoute(route.params.view, route.query);
-  }
-  else {
-    // console.log(collections.names);
-    // loadRoute('collection', collections.names[0]);
   }
 });
 

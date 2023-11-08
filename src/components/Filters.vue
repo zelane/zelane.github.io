@@ -91,6 +91,19 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     >
   </div>
 
+  <div class="filter-group quantity">
+    <input
+      type="number"
+      v-model="cardView.filters.quantity.value[0]"
+      placeholder="Count (min)"
+    >
+    <input
+      type="number"
+      v-model="cardView.filters.quantity.value[1]"
+      placeholder="Count (max)"
+    >
+  </div>
+
   <div class="filter-group">
     <Multiselect
       v-model="cardView.filters.tribes"
@@ -215,19 +228,6 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
     placeholder="Border"
   />
 
-  <div class="filter-group quantity">
-    <input
-      type="number"
-      v-model="cardView.filters.quantity.value[0]"
-      placeholder="Count (min)"
-    >
-    <input
-      type="number"
-      v-model="cardView.filters.quantity.value[1]"
-      placeholder="Count (max)"
-    >
-  </div>
-
   <div class="filter-group">
     <h3>Other</h3>
     <!-- <label for="group">Group by</label>
@@ -243,6 +243,16 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
       v-model="cardView.filters.group"
     />
   </div>
+  
+  <Multiselect
+    v-model="cardView.filters.reprint"
+    :options="{
+      'true': 'Reprint',
+      'false': 'Original',
+    }"
+    mode="single"
+    placeholder="Reprint"
+  />
 </template>
 
 <style scoped>
