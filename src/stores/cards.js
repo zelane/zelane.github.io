@@ -10,6 +10,9 @@ const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 
 
 const dynamicSort = (sort) => (a, b) => {
   const dir = sort.dir;
+  if (a.isCommander && !b.isCommander) return -1
+  else if (!a.isCommander && b.isCommander) return 1
+
   if (sort.val === 'Price') {
     if (!a.price) {
       return true;

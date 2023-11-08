@@ -234,11 +234,11 @@ await sqlite.executeSql(SEED);
 // result = await sqlite.executeSql('VACUUM');
 // console.log("Vacuum complete");
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker
-    .register(new URL('../utils/wa-worker2.js', import.meta.url))
-    .then(function () { console.log('Service Worker Registered'); });
-}
+// if ('serviceWorker' in navigator) {
+//   navigator.serviceWorker
+//     .register(new URL('../utils/wa-worker2.js', import.meta.url))
+//     .then(function () { console.log('Service Worker Registered'); });
+// }
 
 export default sqlite;
 

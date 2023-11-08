@@ -106,7 +106,6 @@ const cardSource = async (name) => {
         @click="deleteCollection(ui.collection)"
       />
     </div>
-    
     <div
       class="collection flex"
       v-if="ui.obj"

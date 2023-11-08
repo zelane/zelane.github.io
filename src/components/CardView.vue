@@ -38,9 +38,6 @@ const props = defineProps({
       :actions="props.actions"
       v-for="(card, index) in props.store.filtered.slice(0, 500)"
       :key="card.id + card.finish"
-      :class="{
-        commander: card.isCommander,
-      }"
       :selected="props.store.selected.has(card.id + card.finish)"
       @select="props.store.selected.add(card.id + card.finish)"
       @deselect="props.store.selected.delete(card.id + card.finish)"
@@ -81,10 +78,6 @@ const props = defineProps({
   min-width: 15em;
 	/* content-visibility: auto; */
   max-width: 20rem;
-}
-
-.card.commander {
-  order: -1;
 }
 
 .card.selected .img {

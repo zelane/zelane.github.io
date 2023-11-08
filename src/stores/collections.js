@@ -61,7 +61,7 @@ export const useCollections = defineStore('collections', {
           data: ids
         });
 
-        await sqlite.executeSql('begin transaction');
+        // await sqlite.executeSql('begin transaction');
         for (const [id, price] of Object.entries(resp['data'])) {
           await sqlite.executeSql(`
             update card
@@ -69,7 +69,7 @@ export const useCollections = defineStore('collections', {
             where id = '${id}'
         `)
         }
-        await sqlite.executeSql('commit transaction');
+        // await sqlite.executeSql('commit transaction');
       }
     },
     async delete(name) {
@@ -183,6 +183,14 @@ export const useCollections = defineStore('collections', {
       this.safeStrings(obj);
       return JSON.stringify(obj);
     },
+    unpackCard(card) {
+      return {
+        id: card.id,
+        finish: card.finish || 'nonfoil',
+        count: card.count || 1,
+        data: card,
+      }
+    },
     prepCardRows(rows) {
       let re = []
       for (const card of rows) {
@@ -256,7 +264,7 @@ export const useCollections = defineStore('collections', {
       try {
         const resp = await fetch(backendUrl + '/collection?id=' + id);
         const json = await resp.json();
-        await this.save(json.data.name, json.data.cards);
+        await this.save(json.data.name, json.data.cards.map(this.unpackCard));
         this.collections.get(json.data.name).downloaded = true;
       }
       catch (error) {
