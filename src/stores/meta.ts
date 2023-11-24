@@ -3,10 +3,31 @@ import { cachedGet } from '../utils/network';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
+interface MSet {
+  block: string,
+  block_code: string,
+  card_count: number,
+  code: string,
+  digital: false,
+  foil_only: false,
+  icon_svg_uri: string,
+  id: string,
+  name: string,
+  nonfoil_only: true,
+  object: string,
+  parent_set_code: string,
+  released_at: string,
+  scryfall_uri: string,
+  search_uri: string,
+  set_type: string,
+  tcgplayer_id: number,
+  uri: string,
+}
+
 export const useMeta = defineStore('meta', {
   state: () => {
     return {
-      _sets: new Map(),
+      _sets: new Map() as Map<string, MSet>,
       precons: [],
       types: [],
       forex: {
@@ -23,12 +44,12 @@ export const useMeta = defineStore('meta', {
     },
     setNames(state) {
       let map = new Map();
-      for(const s of state._sets.values()) {
+      for (const s of state._sets.values()) {
         map.set(s.name, s.code);
       }
       return map;
     },
-    sets(state) {
+    sets(state): MSet[] {
       return [...state._sets.values()];
     }
   },
@@ -49,7 +70,7 @@ export const useMeta = defineStore('meta', {
 
       // Load sets
       let sets = await cachedGet(cache, 'https://api.scryfall.com/sets', true);
-      sets.data.forEach(set => {
+      sets.data.forEach((set: MSet) => {
         if (set.digital) return;
         this._sets.set(set.code, set);
       });
@@ -59,7 +80,7 @@ export const useMeta = defineStore('meta', {
       this.types = types.data.concat(['Enchantment', 'Sorcery', 'Land', 'Creature', 'Instant', 'Artifact']);
 
       // Load symbols
-      let symbols = await cachedGet(cache, 'https://api.scryfall.com/symbology ');
+      let symbols = await cachedGet(cache, 'https://api.scryfall.com/symbology', true);
       symbols.data.forEach(s => {
         this.symbols.set(s.symbol, s.svg_uri);
       });

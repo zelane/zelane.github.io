@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import Multiselect from '@vueform/multiselect';
 import Colours from './Colours.vue';
 import { useCollections } from '../stores/collections';
@@ -11,6 +11,17 @@ const meta = useMeta();
 
 const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
 
+let nameTimer;
+let cardTextTimer;
+
+const setNameFilter = (name) => {
+  clearTimeout(nameTimer);
+  nameTimer = setTimeout(() => cardView.filters.name = name, 500);
+}
+const setCardTextTimer = (text) => {
+  clearTimeout(cardTextTimer);
+  cardTextTimer = setTimeout(() => cardView.filters.cardText = text, 500);
+}
 
 </script>
 
@@ -52,7 +63,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   <div class="filter-group">
     <input
       type="search"
-      v-model="cardView.filters.name"
+      @input="(e) => setNameFilter(e.target.value)"
       placeholder="Name"
     >
   </div>
@@ -60,7 +71,7 @@ const rarities = ['special', 'mythic', 'rare', 'uncommon', 'common'];
   <div class="filter-group">
     <input
       type="search"
-      v-model="cardView.filters.cardText"
+      @input="(e) => setCardTextTimer(e.target.value)"
       placeholder="Card text"
     >
   </div>

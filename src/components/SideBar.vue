@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 import PrintsView from './PrintsView.vue';
 import VersionView from './VersionsView.vue';
@@ -124,8 +124,8 @@ const touchEnd = (e) => {
       v-show="ui.sidebar.selected === 'details'"
     >
       <h3>Details</h3>
-      <CardImage :card="details.card" />
-      <CardDetails :card="details.card" />
+      <CardImage v-if="details.card" :card="details.card" />
+      <CardDetails v-if="details.card" :card="details.card" />
     </div>
         
     <div

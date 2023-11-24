@@ -1,8 +1,10 @@
-<script setup>
+<script setup lang="ts">
 import { useCollections } from '../stores/collections';
 import { useCardView, useVersionsView } from '../stores/cards';
 import { usePrintsView, useClipboard } from '../stores/cards';
 import { useUI } from '../stores/ui';
+import { PropType } from 'vue';
+import { Card } from '../models/Card';
 
 const clipboard = useClipboard();
 const cardView = useCardView();
@@ -14,7 +16,7 @@ const cards = useCardView();
 
 const props = defineProps({
   card: {
-    type: Object,
+    type: Object as PropType<Card>,
     required: true
   },
   actions: {
@@ -25,16 +27,11 @@ const props = defineProps({
 
 const emit = defineEmits(['select', 'deselect']);
 
-const clip = async (card) => {
+const clip = async (card: Card) => {
   let copy = {... card};
   copy.count = 1;
   clipboard.add(copy);
-  await collections.addMany('clipboard', [{
-      id: card.id,
-      finish: card.finish || 'nonfoil',
-      count: 1,
-      data: card,
-  }], 'add');
+  await collections.addMany('clipboard', [card], 'add');
   // await collections.save('clipboard', clipboard.unrefCards());
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
@@ -44,8 +41,8 @@ const clip = async (card) => {
   }, 500)
 };
 
-const deleteCard = async (card) => {
-  if(confirm(`Are you sure you want to delete ${card.name} from ${collections.open.join(', ')}`)) {
+const deleteCard = async (card: Card) => {
+  if(confirm(`Are you sure you want to delete ${card.data.name} from ${collections.open.join(', ')}`)) {
     await collections.deleteCard(collections.open, card);
     cardView.delete(card);
   };
@@ -75,13 +72,13 @@ const deleteCard = async (card) => {
     <button
       v-if="props.actions.includes('prints')"
       class="small prints icon icon-prints"
-      @click.stop="() => {prints.loadPrints(props.card.name); ui.showSidebar('prints')}"
+      @click.stop="() => {prints.loadPrints(props.card.data.name); ui.showSidebar('prints')}"
       title="View all prints"
     />
     <button
       v-if="props.actions.includes('prints') && cardView.filters.group"
       class="small versions icon icon-list"
-      @click.stop="() => {versions.loadVersions(props.card.oracle_id); ui.showSidebar('versions')}"
+      @click.stop="() => {versions.loadVersions(props.card.data.oracle_id); ui.showSidebar('versions')}"
       title="View versions in open collections"
     />
     <button

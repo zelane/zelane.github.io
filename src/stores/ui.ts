@@ -18,7 +18,9 @@ export const useUI = defineStore('ui', {
       edit: {
         card: null
       },
-      clipboard_change: false
+      clipboard_change: false,
+      query_results: null,
+      overlay: 'details'
     };
   },
   getters: {

@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 
 import { reactive, watchEffect } from 'vue';
 import { useToast } from "vue-toastification";
@@ -16,6 +16,7 @@ const toast = useToast();
 const ui = reactive({
   collection: null,
   obj: null,
+  name: null
 });
 
 watchEffect(() => {
@@ -39,7 +40,6 @@ const downloadCollection = async (name, code) => {
     emit('close');
   }
   else {
-    console.error(error);
     toast.error(`Failed to download ${code}.`);
   }
 };
@@ -86,9 +86,8 @@ const deleteCollection = async (name) => {
   }
 };
 
-const cardSource = async (name) => {
-  const cards = await collections.getCards([ui.collection]);
-  return cards;
+const cardSource = async () => {
+  return await collections.getCards([ui.collection]);
 };
 
 </script>

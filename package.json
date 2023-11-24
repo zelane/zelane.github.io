@@ -13,6 +13,7 @@
     "@vueform/slider": "^2.1.2",
     "@vueform/toggle": "^2.1.1",
     "comlink": "^4.4.1",
+    "monaco-editor": "^0.44.0",
     "papaparse": "^5.3.1",
     "pinia": "^2.0.22",
     "uuid": "^9.0.0",
@@ -30,6 +31,7 @@
     "eslint": "^8.23.1",
     "eslint-plugin-import": "^2.25.4",
     "eslint-plugin-vue": "^9.4.0",
+    "typescript": "^5.2.2",
     "vite": "^4.5.0",
     "vite-plugin-eslint": "^1.8.1"
   }

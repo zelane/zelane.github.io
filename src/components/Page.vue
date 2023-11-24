@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactive, ref, watch, onBeforeMount  } from 'vue';
 import { useCollections } from '../stores/collections';
 import { useCardView, useClipboard } from '../stores/cards';
@@ -15,6 +15,7 @@ import CardDetails from './CardDetails.vue';
 import InfoBar from './InfoBar.vue';
 import { useUser } from '../stores/user';
 import { useDetails } from '../stores/details';
+import DBView from './DBView.vue';
 
 const details = useDetails();
 
@@ -179,6 +180,14 @@ const clickOut = (e) => {
   }
 };
 
+const handleSpecialKeys = (e: KeyboardEvent) => {
+  if(e.shiftKey && e.code == 'KeyD') {
+    uiGlobal.overlay = 'db'
+    uiGlobal.details.show = true;
+  }
+}
+window.addEventListener('keypress', handleSpecialKeys);
+
 
 </script>
 
@@ -229,6 +238,8 @@ const clickOut = (e) => {
           @click="moveCard(-1)"
         />
         <div class="content">
+          <DBView v-if="uiGlobal.overlay === 'db'"></DBView>
+          <template v-else="uiGlobal.overlay === 'details'">
           <CardImage
             :card="details.card" 
             @click.stop=""
@@ -242,6 +253,8 @@ const clickOut = (e) => {
               @click="uiGlobal.details.show = false"
             />
           </div>
+          
+        </template>
         </div>
         <a
           class="move-card icon icon-chevron-right"

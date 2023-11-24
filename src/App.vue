@@ -437,4 +437,9 @@ h3 {
     min-width: 0 !important;
   }
 }
+
+#monaco-editor .monaco-editor {
+  --vscode-editor-background: var(--colour-input-grey);
+  --vscode-editor-foreground: var(--colour-anchor);
+}
 </style>

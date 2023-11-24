@@ -1,12 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import CardExporter from './CardExporter.vue';
-import MenuButton from './MenuButton.vue';
 import { useCollections } from '../stores/collections';
-import { deepUnref } from 'vue-deepunref';
 import { useToast } from "vue-toastification";
 import { useCardView, useClipboard } from '../stores/cards';
 import Multiselect from '@vueform/multiselect';
 import { reactive } from 'vue';
+import { Card } from '../models/Card';
 
 const clipboard = useClipboard();
 const collections = useCollections();
@@ -17,20 +16,12 @@ const ui = reactive({
   copyTo: null,
 });
 
-const addToCollection = async (name, newCards) => {
-  await collections.addMany(name, newCards.map(card => {
-    let c = deepUnref(card);
-    return {
-      id: c.id,
-      finish: c.finish || 'nonfoil',
-      count: c.count || 1,
-      data: c,
-    }
-  }), 'add');
+const addToCollection = async (name: string) => {
+  await collections.addMany(name, clipboard.unrefCards(), 'add');
   if (collections.open.includes(name)) {
     await cards.reloadCollections([name]);
   }
-  toast(`${newCards.length} added to ${name}`);
+  toast(`${clipboard.filtered.length} added to ${name}`);
 };
 
 const clear = async () => {
@@ -46,13 +37,13 @@ const clipAll = async() => {
     copy.count = 1;
     clipboard.add(copy);
   });
-  await collections.addMany('clipboard', clipboard.unrefCards().map(card => {
+  await collections.addMany('clipboard', clipboard.unrefCards().map((card: Card) => {
     return {
       id: card.id,
       finish: card.finish || 'nonfoil',
       count: 1,
-      data: card,
-    }
+      data: card.data,
+    } as Card
   }), 'add');
   const channel = new BroadcastChannel("clipboard");
   channel.postMessage('update');
@@ -69,9 +60,9 @@ const clipAll = async() => {
       <div
         class="clip-card"
         v-for="card in clipboard.cards.values()"
-        :key="'clip-' + card.name"
+        :key="'clip-' + card.data.name"
       >
-        <p>{{ card.count }}x {{ card.name }} ({{ card.set }}) {{ card.collector_number }}</p> 
+        <p>{{ card.count }}x {{ card.data.name }} ({{ card.data.set }}) {{ card.data.collector_number }}</p> 
       </div>
     </div>
     <CardExporter
@@ -87,7 +78,7 @@ const clipAll = async() => {
       />
       <button
         class="small icon icon-arrow-right"
-        @click="() => addToCollection(ui.copyTo, [... clipboard.cards.values()])"
+        @click="() => addToCollection(ui.copyTo)"
       />
     </div>
     <div class="buttons">

@@ -1,12 +1,14 @@
-<script setup>
+<script setup lang="ts">
+import { PropType } from 'vue';
 import Prices from './Prices.vue';
+import { Card } from '../models/Card';
+
 const props = defineProps({
   card: {
-    type: Object,
+    type: Object as PropType<Card>,
     required: true
   }
 });
-
 
 const markings = {
   'nonfoil': '',
@@ -17,17 +19,18 @@ const markings = {
 
 <template>
   <div class="details">
+    
     <span class="name">
-      {{ props.card.count }} {{ props.card.name }} {{ markings[props.card.finish] }}
+      {{ props.card.count }} {{ props.card.data.name }} {{ markings[props.card.finish] }}
     </span>
     <span class="set-line">
-      {{ props.card.set_name }}
+      {{ props.card.data.set_name }}
       <a
-        v-if="props.card.purchase_uris"
-        :href="props.card.purchase_uris.cardmarket"
+        v-if="props.card.data.purchase_uris"
+        :href="props.card.data.purchase_uris.cardmarket"
         target="_blank"
         class="set-id"
-      >{{ props.card.set }}:{{ props.card.collector_number }}</a>
+      >{{ props.card.data.set }}:{{ props.card.data.collector_number }}</a>
     </span>
     <Prices :card="props.card" />
     <div class="tags">
@@ -39,11 +42,11 @@ const markings = {
         {{ tag }}
       </div>
       <template 
-        v-if="props.card.promo_types"
+        v-if="props.card.data.promo_types"
       >
         <div
           class="tag"
-          v-for="tag in props.card.promo_types.filter(card => {
+          v-for="tag in props.card.data.promo_types.filter(card => {
             return card !== 'boosterfun';
           })"
           :key="tag"

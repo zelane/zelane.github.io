@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { reactive } from 'vue';
 import { deepUnref } from 'vue-deepunref';
 import { useSearchView } from '../stores/cards';
@@ -6,6 +6,7 @@ import { useMeta } from '../stores/meta';
 import Multiselect from '@vueform/multiselect';
 import CardImage from './CardImage.vue';
 import CheckBar from './CheckBar.vue';
+import { Card } from '../models/Card';
 
 const search = useSearchView();
 const meta = useMeta();
@@ -48,7 +49,7 @@ const runSearch = async () => {
   if(ui.autoAdd && search.count === 1) emit('selected', deepUnref(search.cards.values().next().value));
 };
 
-const select = card => {
+const select = (card: Card) => {
   let obj = deepUnref(card);
   obj.count = ui.count;
   emit('selected', obj);
@@ -110,15 +111,15 @@ const select = card => {
   <div class="results">
     <div
       v-for="card in search.cards.values()"
-      :key="card.name"
+      :key="card.data.name"
       class="result"
       @click="ui.preview = ui.preview === null ? card.id : null"
     >
       <div class="name">
-        <span class="cn">{{ card.collector_number }}</span> - {{ card.name }} 
+        <span class="cn">{{ card.data.collector_number }}</span> - {{ card.data.name }} 
       </div>
       <div class="set">
-        {{ card.set }} - {{ card.set_name }}
+        {{ card.data.set }} - {{ card.data.set_name }}
       </div>
       <button
         class="small"

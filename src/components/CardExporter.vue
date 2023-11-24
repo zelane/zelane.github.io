@@ -1,11 +1,8 @@
-<script setup>
+<script setup lang="ts">
 import { useToast } from "vue-toastification";
-import { post } from '../utils/network';
 import { reactive, ref } from 'vue';
 import Multiselect from '@vueform/multiselect';
 import { cardsToText } from '../utils/formatters';
-
-const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
 const props = defineProps({
   source: {
@@ -51,7 +48,7 @@ const exportList = async () => {
       :options="{
         'mtgo': 'MTGO',
         'mtga': 'MTGA',
-        'mkm': 'MKM',
+        // 'mkm': 'MKM',
         'moxfield': 'Moxfield',
       }"
       label="key"

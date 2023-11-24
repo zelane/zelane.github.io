@@ -1,11 +1,14 @@
-<script setup>
+<script setup lang="ts">
+  import { PropType } from 'vue';
 import { useMeta } from '../stores/meta';
+import { Card } from '../models/Card';
 
+  
   const meta = useMeta();
   const props = defineProps({
     card: {
-      type: Object,
-      required: true
+      type: Object as PropType<Card>,
+      required: true,
     },
     all: {
       type: Boolean,
@@ -26,7 +29,7 @@ import { useMeta } from '../stores/meta';
     class="prices"
   >
     <span
-      v-for="finish in props.card.finishes"
+      v-for="finish in props.card.data.finishes"
       :key="finish"
     >
       <span
@@ -36,7 +39,7 @@ import { useMeta } from '../stores/meta';
         v-if="finish === 'nonfoil'"
       >
         {{ markings[finish] }} {{ new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
-          props.card.prices['eur'] * meta.forex['eur'] || (props.card.prices['usd'] * meta.forex['usd'])
+          props.card.data.prices['eur'] * meta.forex['eur'] || (props.card.data.prices['usd'] * meta.forex['usd'])
         ) 
         }}
       </span>
@@ -48,7 +51,7 @@ import { useMeta } from '../stores/meta';
       >
         {{ markings[finish] }} {{ 
           new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
-            props.card.prices['eur_' + finish] * meta.forex['eur'] || (props.card.prices['usd_' + finish] * meta.forex['usd']
+            props.card.data.prices['eur_' + finish] * meta.forex['eur'] || (props.card.data.prices['usd_' + finish] * meta.forex['usd']
             )) 
         }}
       </span>

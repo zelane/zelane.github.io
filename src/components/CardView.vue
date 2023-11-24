@@ -1,14 +1,17 @@
-<script setup>
+<script setup lang="ts">
+import { PropType } from 'vue';
 import { useDetails } from '../stores/details';
 import { useUI } from '../stores/ui';
 import Card from './Card.vue';
+import { StoreGeneric, storeToRefs } from 'pinia';
+
 
 const ui = useUI();
 const details = useDetails();
 
 const props = defineProps({
   store: {
-    type: Object,
+    type: Object as PropType<StoreGeneric>,
     required: true
   },
   actions: {
@@ -16,6 +19,7 @@ const props = defineProps({
     default: () => ['select', 'clip', 'delete', 'details', 'prints']
   }
 });
+
 </script>
 
 <template>
@@ -42,8 +46,9 @@ const props = defineProps({
       @select="props.store.selected.add(card.id + card.finish)"
       @deselect="props.store.selected.delete(card.id + card.finish)"
       @clicked="() => {
-        details.loadDetails(card, includeRulings=true); 
+        details.loadDetails(card, true); 
         ui.details.show = true;
+        ui.overlay = 'details';
         ui.details.index = index;
       }"
     />

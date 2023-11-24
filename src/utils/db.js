@@ -225,7 +225,7 @@ for await (let [name, handle] of opfsRoot.entries()) {
 // const sqlite = new SqliteClient(filename, SqliteWorker);
 // await sqlite.init();
 
-// result = await sqlite.executeSql("drop table if exists collection; drop table if exists collection_card; drop table if exists card;")
+// await sqlite.executeSql("drop table if exists collection; drop table if exists collection_card; drop table if exists card;")
 // result = await sqlite.executeSql("delete from collection_card where collection_name = 'clipboard'")
 await sqlite.executeSql(SCHEMA);
 await sqlite.executeSql(SEED);

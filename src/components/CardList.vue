@@ -1,12 +1,13 @@
-<script setup>
-  import { reactive, watchEffect } from 'vue';
+<script setup lang="ts">
+  import { PropType, reactive, watchEffect } from 'vue';
   import Prices from './Prices.vue';
   import ManaCost from './ManaCost.vue';
-import { useDetails } from '../stores/details';
+  import { useDetails } from '../stores/details';
+  import { Card } from '../models/Card'
 
   const props = defineProps({
     cards: {
-      type: Array,
+      type: [] as PropType<Card[]>,
       required: true,
     }, 
     loading: Boolean,
@@ -32,14 +33,14 @@ import { useDetails } from '../stores/details';
       groups.set(t, []);
     }
     for(const card of props.cards.slice(0, 200)) {
-      if(card.isCommander) {
+      if(card.data.isCommander) {
         groups.set('Commander', [card]);
         continue;
       }
       // if(!groups.has(card.type)) {
       //   groups.set(card.type, []);
       // }
-      let x = groups.get(card.type);
+      let x = groups.get(card.data.type);
       x.push(card);
     }
     ui.groups = groups;

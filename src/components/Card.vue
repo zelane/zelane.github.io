@@ -1,14 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import CardImage from './CardImage.vue';
 import CardSummary from './CardSummary.vue';
 import CardActions from './CardActions.vue';
 import { useCardView } from '../stores/cards';
+import { Card } from '../models/Card';
+import { PropType } from 'vue';
 
 const cardView = useCardView();
 
 const props = defineProps({
   card: {
-    type: Object,
+    type: Object as PropType<Card>,
     required: true
   },
   index: {
@@ -27,9 +29,9 @@ const props = defineProps({
 
 const emit = defineEmits(['clicked', 'select', 'deselect']);
 
-const calcEffects = card => {
+const calcEffects = (card: Card) => {
   if(cardView.filters.cmpCol.length > 0) {
-    const have = cardView.have.get(card.oracle_id);
+    const have = cardView.have.get(card.data.oracle_id);
     const haveExact = cardView.haveExact.get(card.id);
     if (haveExact) {
       return ['exact'];

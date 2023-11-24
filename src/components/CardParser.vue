@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 
 import { reactive, ref, watchEffect } from 'vue';
 import Papa from 'papaparse';
@@ -7,6 +7,7 @@ import CardSearch from './CardSearch.vue';
 import { useCollections } from '../stores/collections';
 import { useMeta } from '../stores/meta';
 import { useToast } from 'vue-toastification';
+import { Card, ScryCard } from '../models/Card';
 
 const collections = useCollections();
 const meta = useMeta();
@@ -223,10 +224,10 @@ const updateCollection = async (name, cardList) => {
         return false;
       }
       if(card.set !== '') {
-        return card.set === c.set && card.number === c.collector_number && card.finish === c.finish;
+        return card.set === c.data.set && card.number === c.data.collector_number && card.finish === c.finish;
       }
       else {
-        return card.name === c.name && card.finish === c.finish;
+        return card.name === c.data.name && card.finish === c.finish;
       }
     });
     if (existing.length > 0) {
@@ -236,7 +237,7 @@ const updateCollection = async (name, cardList) => {
   }
   if (cardList.size > 0) {
     const newData = await fetchCardData(cardList);
-    await collections.save(name, newData, collection.syncCode);
+    await collections.save(name, newData);
   }
   upload.active = false;
   upload.count = 0;
@@ -245,17 +246,17 @@ const updateCollection = async (name, cardList) => {
   emit('parsed', collections.open);
 };
 
-const handleSearch = async (data) => {
+const handleSearch = async (card: Card) => {
   // Todo: Add finish
   await collections.addMany(upload.name, [{
-    id: data.id,
-    count: data.count,
+    id: card.id,
+    count: card.count,
     finish: 'nonfoil',
     tags: [],
-    data: data
+    data: card.data
   }], 'add');
   emit('parsed', collections.open);
-  toast(`${'' + data.name} added to ${upload.name}`);
+  toast(`${'' + card.data.name} added to ${upload.name}`);
   return 
 };
 

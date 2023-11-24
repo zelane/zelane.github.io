@@ -1,7 +1,10 @@
 import { defineStore, acceptHMRUpdate } from 'pinia';
 import { post, _delete } from '../utils/network';
-import { useUser } from '../stores/user';
+import { useUser } from './user';
 import sqlite from '../utils/db'
+import { Card, ScryCard } from '../models/Card';
+import { deepUnref } from 'vue-deepunref';
+import { cardsToText } from '../utils/formatters';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -72,7 +75,7 @@ export const useCollections = defineStore('collections', {
         // await sqlite.executeSql('commit transaction');
       }
     },
-    async delete(name) {
+    async delete(name: string) {
       const user = useUser();
       if (user.collections.has(name)) {
         await _delete(backendUrl + '/collection', {
@@ -80,12 +83,14 @@ export const useCollections = defineStore('collections', {
         });
       }
       await sqlite.executeSql(`delete from collection where name = '${name}';`)
+      await sqlite.executeSql(`delete from collection_card where collection_name = '${name}';`)
       this.collections.delete(name);
       this.open.splice(this.open.indexOf(name), 1);
     },
-    async addMany(name, cards, onconflict = 'update') {
+    async addMany(name: string, cards: Card[], onconflict: string = 'update'): Promise<void> {
       let values = [];
       let mappings = [];
+      cards = cards.map(deepUnref)
 
       for (const card of cards) {
         values.push(`('${card.id}', json('${this.prepareJson(card.data)}'))`)
@@ -137,7 +142,7 @@ export const useCollections = defineStore('collections', {
     async deleteCard(collectionNames, card) {
       await sqlite.executeSql(`
         delete from collection_card
-        where collection_name = '${collectionNames[[0]]}'
+        where collection_name = '${collectionNames[0]}'
         and card_id = '${card.id}';
       `);
     },
@@ -148,7 +153,7 @@ export const useCollections = defineStore('collections', {
         'cards': cards,
       };
     },
-    async load(names) {
+    async load(names: string[]): Promise<Card[]> {
       // this.open = names;
       if (!names) return;
 
@@ -191,33 +196,39 @@ export const useCollections = defineStore('collections', {
         data: card,
       }
     },
-    prepCardRows(rows) {
+    // remove
+    prepCardRows(rows): Card[] {
       let re = []
       for (const card of rows) {
         try {
-          let data = JSON.parse(card.data);
-          data.count = card.count;
-          data.finish = card.finish;
-          re.push(data);
+          re.push({
+            id: card.card_id,
+            finish: card.finish,
+            count: card.count,
+            data: JSON.parse(card.data) as ScryCard
+          });
         }
         catch (e) {
-          this.deleteCard('test', card);
           console.error(e);
           continue
         }
       }
       return re
     },
-    async getCardIds(names) {
+    async getCardIds(names: string[]) {
       const result = await sqlite.executeSql(`
         select distinct(collection_card.card_id), card.data->>'oracle_id' as oracle_id
         from collection_card
         join card on collection_card.card_id = card.id
         where collection_card.collection_name in (${this.asParams(names)})
       `)
-      return result;
+      interface CardIds {
+        card_id: string,
+        oracle_id: string
+      }
+      return result as CardIds[];
     },
-    async getByOracleId(names, oracle_id) {
+    async getByOracleId(names: string[], oracle_id: string): Promise<Card[]> {
       const result = await sqlite.executeSql(`
         select card.data, sum(collection_card.count) as count, collection_card.finish
         from collection_card
@@ -228,7 +239,7 @@ export const useCollections = defineStore('collections', {
       `);
       return this.prepCardRows(result)
     },
-    async getCards(names) {
+    async getCards(names: string[]): Promise<Card[]> {
       const result = await sqlite.executeSql(`
         select collection_card.card_id, card.data, sum(collection_card.count) as count, collection_card.finish
         from collection_card
@@ -238,7 +249,7 @@ export const useCollections = defineStore('collections', {
       `);
       return this.prepCardRows(result)
     },
-    async upload(userToken, name) {
+    async upload(userToken: string, name: string) {
       try {
         const collection = await this.get(name);
         let data = {
@@ -260,7 +271,7 @@ export const useCollections = defineStore('collections', {
         console.error(error);
       }
     },
-    async download(id) {
+    async download(id: string) {
       try {
         const resp = await fetch(backendUrl + '/collection?id=' + id);
         const json = await resp.json();

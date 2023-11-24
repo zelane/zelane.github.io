@@ -1,9 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import { useDetails } from '../stores/details';
 import { useMeta } from '../stores/meta';
 import CardSummary from './CardSummary.vue';
 import CardActions from './CardActions.vue';
 import { useCardView } from '../stores/cards';
+import { PropType } from 'vue';
+import { Card } from '../models/Card';
 
 const details = useDetails();
 const meta = useMeta();
@@ -13,7 +15,7 @@ const emit = defineEmits(["changed"]);
 
 const props = defineProps({
   card: {
-    type: Object,
+    type: Object as PropType<Card>,
     required: true
   },
   face: {
@@ -23,7 +25,7 @@ const props = defineProps({
 });
 
 
-const parseColours = (text) => {
+const parseColours = (text: string) => {
   if(!text) {
     return "";
   }
@@ -34,8 +36,8 @@ const parseColours = (text) => {
   return text;
 };
 
-const copyJson = card => {
-  navigator.clipboard.writeText(JSON.stringify(card, null, 2));
+const copyJson = (card: Card) => {
+  navigator.clipboard.writeText(JSON.stringify(card.data, null, 2));
 };
 
 </script>
@@ -49,7 +51,7 @@ const copyJson = card => {
   <CardSummary :card="props.card" />
   <div
     class="face"
-    v-for="(face, index) in (props.card.card_faces || [props.card])"
+    v-for="(face, index) in (props.card.data.card_faces || [props.card.data])"
     :key="face + index"
     :class="{show: props.face === index}"
   >

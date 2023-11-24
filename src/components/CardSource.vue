@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { onMounted, reactive, watch, watchEffect } from 'vue';
 import { useCardView } from '../stores/cards';
 import { useMeta } from '../stores/meta';
@@ -35,14 +35,14 @@ const loadCollections = collections => {
   router.push({ path: '/collection', query: {q: encodeURIComponent(collections.join('~'))} });
 };
 
-const loadSet = (setId, force) => {
+const loadSet = (setId:string, force:boolean=false) => {
  uiGlobal.source = 'set';
-  router.push({ path: '/set', query: {q: setId, force: force} });
+  router.push({ path: '/set', query: {q: setId, force: force.toString()} });
 };
 
 const loadSearch = async (query, unique='prints', force=false) => {
   uiGlobal.source = 'search';
-  router.push({ path: '/search', query: {q: query, unique: unique, force: force} });
+  router.push({ path: '/search', query: {q: query, unique: unique, force: force.toString()} });
 };
 
 const loadPrecon = (name) => {
@@ -53,13 +53,12 @@ const loadPrecon = (name) => {
 const loadView = async item => {
   if(ui.selected === item) return;
   ui.selected = item;
-  details.card = {};
   uiGlobal.details.show = false;
   if(item === 'collection') {
     if(ui.collections) loadCollections(ui.collections);
   }
   else if(item === 'set') {
-    if(ui.set) loadSet(ui.set);
+    if(ui.set) loadSet(ui.set, false);
   }
   else if(item === 'precon') {
     if(ui.precons) loadPrecon(ui.precons);
@@ -69,7 +68,7 @@ const loadView = async item => {
   }
 };
 
-const loadRoute = async (view, params) => {
+const loadRoute = async (view: string, params) => {
   if(view) {
     ui.selected = view;
     if(Object.keys(params).length === 0) {
@@ -126,22 +125,22 @@ onBeforeRouteUpdate(async (a, b) => {
   await loadRoute(a.params.view, a.query);
 });
 
-watchEffect((e) => {
-  let params = {}
-  const filters = deepUnref(cards.filters);
-  for (const [key, value] of Object.entries(filters)) {
-    if(Array.isArray(value) && value.length != 0) {
-      params[key] = value;
-      continue
-    }
-    if (value == null || value == "") continue
-    if (typeof value == 'object') continue
-    params[key] = value;
-  }
-  router.replace({
-    query: {... route.query, ... {filters: JSON.stringify(params)}},
-  })
-})
+// watchEffect((e) => {
+//   let params = {}
+//   const filters = deepUnref(cards.filters);
+//   for (const [key, value] of Object.entries(filters)) {
+//     if(Array.isArray(value) && value.length != 0) {
+//       params[key] = value;
+//       continue
+//     }
+//     if (value == null || value == "") continue
+//     if (typeof value == 'object') continue
+//     params[key] = value;
+//   }
+//   router.replace({
+//     query: {... route.query, ... {filters: JSON.stringify(params)}},
+//   })
+// })
 
 onMounted(async () => {
   if(route.params.view) {
@@ -213,7 +212,7 @@ onMounted(async () => {
               <img
                 class="icon"
                 :src="option.icon_svg_uri"
-                crossorigin="anonymous"
+                crossOrigin="Anonymous"
               >
               <span class="name">{{ option.name }}</span>
             </span>
