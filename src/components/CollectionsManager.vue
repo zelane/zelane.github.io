@@ -7,10 +7,12 @@ import { useUser } from '../stores/user';
 import CardExporter from './CardExporter.vue';
 import Multiselect from '@vueform/multiselect';
 import { useCardView } from '../stores/cards';
+import { useUI } from '../stores/ui';
 
 const user = useUser();
 const collections = useCollections();
 const cards = useCardView();
+const guid = useUI();
 
 const toast = useToast();
 const ui = reactive({
@@ -186,6 +188,9 @@ const cardSource = async () => {
         <span class="icon icon-close" />
       </div>
     </div>
+    <button @click="collections.downloadDefaultCards()">Download default cards</button>
+    <button @click="collections.scryfallSync()">Sync scryfall db</button>
+    <span>{{ guid.synced }}</span>
   </div>
 </template>
 

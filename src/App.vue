@@ -438,8 +438,8 @@ h3 {
   }
 }
 
-#monaco-editor .monaco-editor {
+/* #monaco-editor .monaco-editor {
   --vscode-editor-background: var(--colour-input-grey);
   --vscode-editor-foreground: var(--colour-anchor);
-}
+} */
 </style>

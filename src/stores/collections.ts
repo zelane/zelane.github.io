@@ -5,6 +5,8 @@ import sqlite from '../utils/db'
 import { Card, ScryCard } from '../models/Card';
 import { deepUnref } from 'vue-deepunref';
 import { cardsToText } from '../utils/formatters';
+import { JSONParser } from '@streamparser/json';
+import { useUI } from './ui';
 
 const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
@@ -283,6 +285,67 @@ export const useCollections = defineStore('collections', {
         return false;
       }
       return true;
+    },
+
+    async downloadDefaultCards() {
+      console.log("Downloading default cards");
+      const apiUrl = 'https://data.scryfall.io/default-cards/default-cards-20231124220635.json';
+      const response = await fetch(apiUrl);
+
+      const handle = await navigator.storage.getDirectory();
+      const writable = await handle.getFileHandle('default.json', { create: true });
+      const writableStream = await writable.createWritable();
+      await response.body.pipeTo(writableStream);
+      console.log("Downloaded");
+    },
+    async loadDefaultCards(): Promise<File> {
+      const handle = await navigator.storage.getDirectory();
+      const writable = await handle.getFileHandle('default.json', { create: true });
+      const file = await writable.getFile()
+      return file;
+    },
+    async scryfallSync() {
+      // await this.downloadDefaultCards();
+      const stream = (await this.loadDefaultCards()).stream();
+
+      const jsonparser = new JSONParser({ stringBufferSize: undefined, paths: ['$.*'] });
+
+      const ui = useUI();
+      ui.synced = 0;
+      let toInsert = [];
+      jsonparser.onValue = ({ value, key, parent, stack }) => {
+        if (stack.length > 1) return;
+        // console.log(value.name);
+        toInsert.push(`('${value.id}', json('${this.prepareJson(value)}'))`);
+        ui.synced += 1;
+      }
+
+      // await sqlite.executeSql(`
+      //     PRAGMA journal_mode = OFF;
+      //     PRAGMA synchronous = 0;
+      //     PRAGMA cache_size = 1000000;
+      //     PRAGMA locking_mode = EXCLUSIVE;
+      //     PRAGMA temp_store = MEMORY;
+      // `)
+      for await (const chunk of stream) {
+        jsonparser.write(chunk);
+        if (toInsert.length > 5000) {
+          await sqlite.executeSql(`
+          insert into card(id, data) 
+          values
+          ${toInsert.join(',')}
+          on conflict(id) do nothing
+        `);
+          toInsert = [];
+        }
+      }
+      await sqlite.executeSql(`
+        insert into card(id, data) 
+        values
+        ${toInsert.join(',')}
+        on conflict(id) do nothing
+      `);
+      console.log("done");
     },
   },
 });

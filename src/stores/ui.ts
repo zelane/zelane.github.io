@@ -20,7 +20,8 @@ export const useUI = defineStore('ui', {
       },
       clipboard_change: false,
       query_results: null,
-      overlay: 'details'
+      overlay: 'details',
+      synced: 0,
     };
   },
   getters: {

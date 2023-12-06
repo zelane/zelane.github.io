@@ -211,14 +211,35 @@ sqlite.executeSql = async (query) => {
   return ret;
 }
 
+function formatBytes(bytes, decimals) {
+  if (bytes == 0) return '0 Bytes';
+  var k = 1024,
+    dm = decimals || 2,
+    sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
+    i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+
+const tree = async (path, rootHandle) => {
+  for await (let [name, handle] of rootHandle.entries()) {
+    if (handle.kind === 'file') {
+      const file = await handle.getFile();
+      console.log(`${path}/${name}`, formatBytes(file.size))
+      // rootHandle.removeEntry(name);
+    }
+    else {
+      await tree(`${path}/${name}`, handle)
+      // console.log('Dir', path, handle);
+    }
+    // if ('/' + name != filename) {
+    //   opfsRoot.removeEntry(name);
+    // }
+  }
+}
 
 const opfsRoot = await navigator.storage.getDirectory('/');
-for await (let [name, handle] of opfsRoot.entries()) {
-  // console.log(name)
-  // if ('/' + name != filename) {
-  //   opfsRoot.removeEntry(name);
-  // }
-}
+await tree('/', opfsRoot)
 
 
 // const filename = '/test.sqlite';
@@ -231,7 +252,7 @@ await sqlite.executeSql(SCHEMA);
 await sqlite.executeSql(SEED);
 
 // console.log("Starting vacuum");
-// result = await sqlite.executeSql('VACUUM');
+// await sqlite.executeSql('VACUUM');
 // console.log("Vacuum complete");
 
 // if ('serviceWorker' in navigator) {

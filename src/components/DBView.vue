@@ -73,7 +73,8 @@ const runQuery = async () => {
     //   },
     // ]);
   }
-  if(! ui.results) return
+  console.log(ui.results);
+  if(!ui.results || ui.results.length == 0) return
   ui.column_count = Object.keys(ui.results[0]).length;
   ui.column_style = Array(ui.column_count).fill('auto').join(' ');
 }

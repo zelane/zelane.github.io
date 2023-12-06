@@ -212,6 +212,11 @@
   resolved "https://registry.yarnpkg.com/@sqlite.org/sqlite-wasm/-/sqlite-wasm-3.44.0-build5.tgz#afd47df33ba7fb42ed85d1a3a871de11902c1367"
   integrity sha512-rbshhKar9/UqSoUH7rTL0vsh3eSuRRSmuQ2FmW+YkbTe7PFP3YeR6RxZIC0x6gzscBUs6inNXvCYBULEW+RoJA==
 
+"@streamparser/json@^0.0.17":
+  version "0.0.17"
+  resolved "https://registry.yarnpkg.com/@streamparser/json/-/json-0.0.17.tgz#b68742ebb49eec9c1fcc76cfa730dd74a5131382"
+  integrity sha512-mW54K6CTVJVLwXRB6kSS1xGWPmtTuXAStWnlvtesmcySgtop+eFPWOywBFPpJO4UD173epYsPSP6HSW8kuqN8w==
+
 "@types/eslint@^8.4.5":
   version "8.44.7"
   resolved "https://registry.yarnpkg.com/@types/eslint/-/eslint-8.44.7.tgz#430b3cc96db70c81f405e6a08aebdb13869198f5"
