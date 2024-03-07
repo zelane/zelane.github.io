@@ -19,41 +19,34 @@ const markings = {
 
 <template>
   <div class="details">
-    
+
     <span class="name">
       {{ props.card.count }} {{ props.card.data.name }} {{ markings[props.card.finish] }}
     </span>
     <span class="set-line">
       {{ props.card.data.set_name }}
-      <a
-        v-if="props.card.data.purchase_uris"
-        :href="props.card.data.purchase_uris.cardmarket"
-        target="_blank"
-        class="set-id"
-      >{{ props.card.data.set }}:{{ props.card.data.collector_number }}</a>
+      <a v-if="props.card.data.purchase_uris" :href="props.card.data.purchase_uris.cardmarket" target="_blank"
+        class="set-id">{{ props.card.data.set }}:{{ props.card.data.collector_number }}</a>
     </span>
     <Prices :card="props.card" />
     <div class="tags">
-      <div 
-        class="tag" 
-        v-for="tag in props.card.tags"
-        :key="tag"
-      >
+      <div class="tag" v-for="tag in props.card.tags" :key="tag">
         {{ tag }}
       </div>
-      <template 
-        v-if="props.card.data.promo_types"
-      >
-        <div
-          class="tag"
-          v-for="tag in props.card.data.promo_types.filter(card => {
-            return card !== 'boosterfun';
-          })"
-          :key="tag"
-        >
+      <template v-if="props.card.data.promo_types">
+        <div class="tag" v-for="tag in props.card.data.promo_types.filter(card => {
+        return card !== 'boosterfun';
+      })" :key="tag">
           {{ tag }}
         </div>
       </template>
+      <!-- <div
+        class="tag"
+        v-for="game in props.card.data.games"
+        :key="game"
+      >
+        {{ game }}
+      </div> -->
     </div>
   </div>
 </template>
@@ -65,15 +58,18 @@ const markings = {
   line-height: 1.6;
   text-align: center;
 }
+
 .details:deep(.prices) {
   justify-content: center;
 }
+
 .name {
   font-weight: bold;
   display: block;
   font-size: 1em;
   font-family: "Beleren Bold";
 }
+
 .tags {
   display: flex;
   gap: .5rem;
@@ -82,6 +78,7 @@ const markings = {
   margin-top: .5em;
   justify-content: center;
 }
+
 .tags .tag {
   font-size: .8em;
   background-color: var(--colour-accent);
@@ -90,6 +87,7 @@ const markings = {
   border-radius: 50px;
   text-indent: 0;
 }
+
 .set-id {
   color: #827684;
 }
