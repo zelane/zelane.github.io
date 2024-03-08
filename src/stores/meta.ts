@@ -95,12 +95,17 @@ export const useMeta = defineStore('meta', {
       precons.data.sort((a, b) => Date.parse(a.releaseDate) < Date.parse(b.releaseDate) ? 1 : -1);
       let groups = {};
       for (const pc of precons.data) {
-        let set = this._sets.get(pc.set).name;
-        if (groups[set]) {
-          groups[set].push(pc);
+        try {
+          let set = this._sets.get(pc.set).name;
+          if (groups[set]) {
+            groups[set].push(pc);
+          }
+          else {
+            groups[set] = [pc];
+          }
         }
-        else {
-          groups[set] = [pc];
+        catch (error) {
+          console.error(error)
         }
       }
       this.precons = [];

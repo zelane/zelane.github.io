@@ -36,7 +36,7 @@ const emit = defineEmits(['change', 'delete', 'close']);
 const downloadCollection = async (name, code) => {
   toast(`Downloading [${code}] to ${name}.`);
   const success = await collections.download(name, code);
-  if(success) {
+  if (success) {
     toast(`${name} downloaded.`);
     emit('change', name);
     emit('close');
@@ -50,7 +50,7 @@ const refreshCollection = async (name) => {
   const stid = toast(`Refreshing collection ${name}`);
   const id = user.collections.get(name).id;
   const success = await collections.download(id);
-  if(success) {
+  if (success) {
     toast.dismiss(stid);
     toast(`${name} refreshed.`);
     emit('change', name);
@@ -64,7 +64,7 @@ const refreshCollection = async (name) => {
 const uploadCollection = async (name) => {
   const stid = toast(`Uploading ${name}`);
   const col = await collections.upload(user.token, name);
-  if(col) {
+  if (col) {
     toast.dismiss(stid);
     toast(`${name} uploaded.`);
     user.collections.set(name, col);
@@ -83,7 +83,7 @@ const newCollection = async (name) => {
 };
 
 const deleteCollection = async (name) => {
-  if(confirm(`Are you sure you want to delete ${name}`)) {
+  if (confirm(`Are you sure you want to delete ${name}`)) {
     collections.delete(name);
   }
 };
@@ -97,100 +97,61 @@ const cardSource = async () => {
 <template>
   <div class="upload flex">
     <div class="row">
-      <Multiselect
-        v-model="ui.collection"
-        :options="collections.names"
-        mode="single"
-      />
-      <button
-        class="small icon icon-delete" 
-        @click="deleteCollection(ui.collection)"
-      />
+      <Multiselect v-model="ui.collection" :options="collections.names" mode="single" />
+      <button class="small icon icon-delete" @click="deleteCollection(ui.collection)" />
     </div>
-    <div
-      class="collection flex"
-      v-if="ui.obj"
-    >
-      <div
-        class="img"
-        :style="{
-          'background-image': `url(${ui.obj.image})`
-        }"
-      />
+    <div class="collection flex" v-if="ui.obj">
+      <div class="img" :style="{
+        'background-image': `url(${ui.obj.image})`
+      }" />
       <div>
         <span>Cards: </span><span> {{ ui.obj.count }}</span>
       </div>
-      <div v-if="user.token && ui.obj.downloaded ">
+      <div v-if="user.token && ui.obj.downloaded">
         <span>Last sync: </span>
         {{ (
-          new Intl.DateTimeFormat('en-GB', {
-            dateStyle: 'short',
-            timeStyle: 'medium',
-            timeZone: 'UTC'
-          }).format(new Date(ui.obj.lastSync * 1))) }}
+        new Intl.DateTimeFormat('en-GB', {
+          dateStyle: 'short',
+          timeStyle: 'medium',
+          timeZone: 'UTC'
+        }).format(new Date(ui.obj.lastSync * 1))) }}
       </div>
-      <div
-        class="row"
-        v-if="user.token"
-      >
-        <button
-          v-if="ui.obj.downloaded"
-          @click.exact="uploadCollection(ui.collection)"
-          @click.ctrl="uploadCollection(ui.collection)"
-        >
+      <div class="row" v-if="user.token">
+        <button v-if="ui.obj.downloaded" @click.exact="uploadCollection(ui.collection)"
+          @click.ctrl="uploadCollection(ui.collection)">
           <!-- <span class="icon icon-arrow-up" /> -->
           <div class="text">
             Upload
           </div>
         </button>
-        <button
-          v-if="user.collections.has(ui.collection)"
-          @click.exact="refreshCollection(ui.collection)"
-        >
+        <button v-if="user.collections.has(ui.collection)" @click.exact="refreshCollection(ui.collection)">
           <!-- <span class="icon icon-arrow-down" /> -->
           <div class="text">
             Download
           </div>
         </button>
       </div>
-      <CardExporter
-        :source="cardSource"
-      />
+      <CardExporter :source="cardSource" />
     </div>
     <hr>
 
     <div class="new-collection">
-      <input
-        type="text"
-        v-model="ui.name"
-        placeholder="New collection"
-      >
-      
-      <button
-        @click="newCollection(ui.name)"
-        class="button small icon icon-plus"
-      />
+      <input type="text" v-model="ui.name" placeholder="New collection">
+
+      <button @click="newCollection(ui.name)" class="button small icon icon-plus" />
     </div>
     <hr>
     <div class="google-sync">
-      <GoogleLogin
-        v-if="!user.token"
-        :callback="r => user.handleGoogleLogin(r.credential)"
-        popup-type="TOKEN"
-      />
-      <div
-        class="logged-in"
-        v-if="user.token"
-        @click="user.logout()"
-      >
+      <GoogleLogin v-if="!user.token" :callback="r => user.handleGoogleLogin(r.credential)" popup-type="TOKEN" />
+      <div class="logged-in" v-if="user.token" @click="user.logout()">
         <img :src="user.info.picture" crossorigin="anonymous">
         <span class="text">Syncing as {{ user.info.given_name }}</span>
         <span class="icon icon-close" />
       </div>
     </div>
-    <button @click="collections.downloadDefaultCards()">Download default cards</button>
-    <button @click="collections.scryfallSync()">Sync scryfall db</button>
-    <span>{{ guid.synced }}</span>
+    <!-- <button @click="collections.downloadDefaultCards()">Download default cards</button> -->
+    <!-- <button @click="collections.scryfallSync()">Sync scryfall db</button> -->
+    <!-- <span>{{ guid.synced }}</span> -->
   </div>
 </template>
 
@@ -199,13 +160,16 @@ const cardSource = async () => {
   display: flex;
   gap: .5rem;
 }
+
 .row button {
   flex-grow: 1;
 }
+
 .code {
   color: var(--colour-accent);
   cursor: copy;
 }
+
 .flex {
   display: flex;
   flex-direction: column;
@@ -225,12 +189,15 @@ const cardSource = async () => {
   display: flex;
   gap: .5rem;
 }
+
 .new-collection input {
   flex-grow: 2;
 }
+
 .google-sync {
   width: 100%;
 }
+
 .logged-in {
   background-color: var(--colour-input-grey);
   box-shadow: var(--default-shadow);
@@ -242,18 +209,21 @@ const cardSource = async () => {
   gap: 1rem;
   cursor: pointer;
 }
+
 .logged-in img {
   box-shadow: inset 0 0 2px 2px;
   height: 50px;
 }
+
 .logged-in .text {
   flex-grow: 1;
 }
+
 .logged-in .icon {
   display: inline-block;
-  box-shadow: -1px 0px 0 rgba(255,255,255,0.05);
+  box-shadow: -1px 0px 0 rgba(255, 255, 255, 0.05);
   padding-left: .8rem;
-  border-left: 1px solid rgba(0,0,0,0.3);
+  border-left: 1px solid rgba(0, 0, 0, 0.3);
   line-height: 1.5rem;
 }
 </style>
